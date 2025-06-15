@@ -6,7 +6,7 @@
 %--------------------------------------
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{PracaDyplomowa-Szablon}[2024/10/26~-~Praca Inżynierska~-~Krystian Łapa]
+\ProvidesClass{PracaDyplomowa}[2024/10/26~-~Praca Magisterska~-~]
 \LoadClass[12pt, openany]{book}
 
 \usepackage[a4paper, left=35mm, top=20mm, bottom=20mm, right=20mm]{geometry}
@@ -81,7 +81,7 @@ literate={ą}{{\k{a}}}1 {ę}{{\k{e}}}1 {ć}{{\c{c}}}1 {ł}{{\l}}1 {ń}{{\n}}1 {�
 \begin{center}
 \includegraphics[width=15cm]{fig_LogoWIiSI.png}\\
 \vspace{96pt}
-{\LARGE PRACA DYPLOMOWA INŻYNIERSKA} \\
+{\LARGE PRACA DYPLOMOWA MAGISTERSKA} \\
 \vspace{32pt}
 {\Large\bf\@title} \\
 \vspace{16pt}
