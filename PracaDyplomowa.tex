@@ -1,0 +1,323 @@
+%--------------------------------------
+% autorstwo szablonu: Krystian Łapa
+% aktualizacja: Krzysztof Cpałka
+% zgodność z~przepisami: 2024.10.26
+% wymagane narzędzia: miktex, texstudio
+%--------------------------------------
+
+\documentclass{PracaDyplomowa-Szablon}
+
+%--------------------------------------
+% początek: wskazówka
+%--------------------------------------
+%„W pracy nie należy używać wielokrotnych spacji, ani wielokrotnych znaków nowego akapitu. Znaki interpunkcyjne takie jak przecinek (,), kropka (.), dwukropek (:), średnik (;), znak zapytania (?), wykrzyknik (!), zamknięcie dowolnego nawiasu (]})>), zamknięcie cudzysłowu (” lub ’) nie mogą być nigdy poprzedzone spacją. Bezpośrednio po wymienionych znakach może wystąpić wyłącznie spacja, znak nowego akapitu lub inny znak interpunkcyjny. Po znakach otwierających dowolnego nawiasu ([{(<) lub otwarcia cudzysłowu („ lub ‘) nigdy nie należy używać spacji. Spację używamy przed tymi znakami. Nie należy rozpoczynać akapitu od spacji – wcięcia uzyskuje się przez zastosowanie stylu „Tekst podstawowy z~wcięciem” (patrz punkt Style). Nie należy pozostawiać spacji na końcu akapitu – przed znakiem nowego akapitu. Tytułu rozdziałów i~podrozdziałów pozostawiamy bez kropki na końcu.”
+% wstawianie spacji nierozdzielającej po spójnikach:~ (powoduje ona, że spójnik przechodzi do nowej linii wraz z~kolejnym wyrazem)
+%--------------------------------------
+% koniec: wskazówka
+%--------------------------------------
+
+%--------------------------------------
+% początek: do uzupełnienia
+%--------------------------------------
+\author{Imię i~nazwisko}
+
+\title{Tytuł pracy w~języku polskim~-~Tytuł pracy w~języku polskim~-~Tytuł pracy w~języku polskim~-~Tytuł pracy w~języku polskim~-~Tytuł pracy w~języku polskim~-~Tytuł pracy w~języku polskim~-~Tytuł pracy w~języku polskim}
+
+\titleeng{Tytuł pracy w~języku angielskim~-~Tytuł pracy w~języku angielskim~-~Tytuł pracy w~języku angielskim~-~Tytuł pracy w~języku angielskim~-~Tytuł pracy w~języku angielskim~-~Tytuł pracy w~języku angielskim}
+
+\album{000000}
+
+\studia{stacjonarne}
+
+\poziom{II}
+
+\promotor{dr hab. inż. Jan Kowalski, prof. PCz}
+
+\dedykacja{Niniejszym chciałbym serdecznie podziękować\\…\\za bezcenne wsparcie udzielone mi\\w trakcie trwania studiów.}
+%--------------------------------------
+% koniec: do uzupełnienia
+%--------------------------------------
+
+\begin{document}
+
+\frontpage
+\tableofcontents
+
+\cleardoublepage %wymuszenie umieszczenia na nieparzystej stronie (dotyczy to tylko wstępu, pierwszego rozdziału, podsumowania i~bibliografii)
+\chapter*{Wstęp}
+\addcontentsline{toc}{chapter}{Wstęp}
+
+%--------------------------------------
+% początek: wskazówka
+%--------------------------------------
+%„Wstęp powinien przedstawiać ogólne informacje na temat, którego dotyczy praca, historię i~zakres zastosowań”~\cite{bib:ZasadyPisania}. We wstępie nie powinno być rysunków, tabel i~wzorów.
+%--------------------------------------
+% koniec: wskazówka
+%--------------------------------------
+
+W ostatnim czasie obserwuje się intensywny rozwój [Proszę uzupełnić].
+
+Niestety [Proszę wpisać wadę lub niedogodność istniejących rozwiązań].
+
+W związku z~tym, ciekawym wydaje się zaprojektowanie i~zrealizowanie [Proszę uzupełnić].
+
+\section*{Cel pracy}
+\addcontentsline{toc}{section}{Cel pracy}
+
+%--------------------------------------
+% początek: wskazówka
+%--------------------------------------
+%„Pierwszy akapit dotyczy sformułowania problematyki i~dziedziny pracy. W~drugi akapicie opisuje się część teoretyczną – jej cele, a~w trzecim części praktycznej. Przykładowe cele: analiza istniejących metod i~technik, eksperymentalne badania różnych rozwiązań, zaprojektowanie i~wykonanie programu lub systemu komputerowego”~\cite{bib:ZasadyPisania}.
+%--------------------------------------
+% koniec: wskazówka
+%--------------------------------------
+
+Celem niniejszej pracy jest zaprojektowanie i~zrealizowanie [Proszę uzupełnić].
+
+\section*{Zakres pracy}
+\addcontentsline{toc}{section}{Zakres pracy}
+
+Zakres pracy obejmuje:
+
+\begin{itemize}
+\item zebranie wiadomości z~zakresu [Proszę uzupełnić],
+
+\item porównanie [Proszę uzupełnić],
+
+\item opracowanie założeń projektowych dotyczących [Proszę uzupełnić],
+
+\item implementację [Proszę uzupełnić],
+
+\item przetestowanie [Proszę uzupełnić].
+\end{itemize}
+
+W Rozdziale~\ref{cha:RozdzialWprowadzajacy} pracy opisano/ podsumowano/ opisano/ rozważano/ skoncentrowano się na [Proszę uzupełnić]. Natomiast w~Rozdziale [Proszę uzupełnić] opisano/ podsumowano/ opisano/ rozważano/ skoncentrowano się na [Proszę uzupełnić]. itd.
+
+\cleardoublepage
+
+\chapter{Tytuł przykładowego rozdziału}
+\label{cha:RozdzialWprowadzajacy}
+
+%--------------------------------------
+% początek: wskazówka
+%--------------------------------------
+%Każdy rozdział powinien mieć zdanie wstępu przed przejściem do podrozdziału. Rysunki powinny być wyśrodkowane, numerowane i~powinny mieć odwołania do literatury lub oznaczenie że zostały opracowane samodzielnie.
+%--------------------------------------
+% koniec: wskazówka
+%--------------------------------------
+
+W niniejszym rozdziale opisano [Proszę uzupełnić], [Proszę uzupełnić] oraz [Proszę uzupełnić].
+
+Sposób realizacji [Proszę uzupełnić] przedstawiono na Rys.~\ref{fig:LogoWIiSI}.
+
+\begin{figure}[h]
+\centering\includegraphics[width=15cm]{fig_LogoWIiSI.png}
+%\centering\includegraphics[scale=1.0]{fig_LogoWIiSI.png}
+\caption{Logo Wydziału Informatyki i~Sztucznej Inteligencji~\cite{bib:LogoWIMiI}.}
+\label{fig:LogoWIiSI}
+\end{figure}
+
+\noindent Można zauważyć, że Rysunek~\ref{fig:LogoWIiSI} dotyczy [Proszę uzupełnić].
+
+Kod służący do osadzania rysunków w~tekście pracy przedstawiono na Listingu.~\ref{lis:SposobOsadzaniaRysunkow}.
+
+\begin{lstlisting}[
+ caption={Kod wstawiania rysunku do tekstu pracy.},
+ label={lis:SposobOsadzaniaRysunkow}
+]
+\begin{figure}[h]
+\centering\includegraphics[width=15cm]{NazwaPliku.png}
+\centering\includegraphics[scale=1.0]{NazwaPliku.png}
+\caption{Opis pliku.}
+\label{fig:EtykietaRysunku}
+\end{figure}
+\end{lstlisting}
+
+\noindent Można zauważyć, że Listing~\ref{lis:SposobOsadzaniaRysunkow} dotyczy [Proszę uzupełnić].
+
+Sposób realizacji [Proszę uzupełnić] można opisać następująco:
+
+\begin{equation}
+\label{eq:y_j}
+{{\bar y}_j}=\frac{{\sum\limits_{r=1}^N {\bar y_{j,r}^B\cdot{\mu_{{{B'}_j}}}\left({\bar y_{j,r}^B}\right)}}}{{\sum\limits_{r=1}^N {{\mu_{{{B'}_j}}}\left({\bar y_{j,r}^B}\right)}}},
+\end{equation}
+
+\noindent gdzie $N$ oznacza..., ${\bar y_{j,r}^B}$ oznacza..., itd. Można zauważyć, że wzór (\ref{eq:y_j}) dotyczy [Proszę uzupełnić].
+
+Porównanie składu tekstu przy pomocy środowisk Tex i~Word przedstawiono w~Tabeli~\ref{tab:PorownanieMozliwosciTexiWord}. Można zauważyć, że [Proszę uzupełnić].
+
+\begin{table}[t!] %\begin{table*}[t!] %dla dwóch kolumn
+\setlength\tabcolsep{4.5pt}
+%\def\arraystretch{0.65}
+\begin{center}
+\caption{Porównanie składu tekstu przy pomocy środowisk Tex i~Word.}
+\label{tab:PorownanieMozliwosciTexiWord}
+\footnotesize
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Kategoria} & \textbf{Środowisko TeX} & \textbf{Środowisko Word} \\
+\hline\hline
+Typografia& \begin{tabular}{c}Wysokiej jakości układ tekstu,\\idealny do publikacji.\end{tabular} & \begin{tabular}{c}Dobre formatowanie,\\ale ograniczone\\w~precyzji typograficznej.\end{tabular} \\
+\hline
+Matematyka& \begin{tabular}{c}Doskonałe wsparcie dla równań\\i~symboli matematycznych.\end{tabular} & \begin{tabular}{c}Możliwe, ale\\trudniejsze w~edytowaniu.\end{tabular} \\
+\hline
+Praca zespołowa& \begin{tabular}{c}Wymaga synchronizacji plików;\\lepsze dla programistów.\end{tabular} & \begin{tabular}{c}Wbudowane narzędzia\\do współpracy, łatwe w~użyciu.\end{tabular} \\
+\hline
+Wizualizacja danych& \begin{tabular}{c}Ograniczone możliwości\\bez dodatkowych pakietów.\end{tabular} & \begin{tabular}{c}Silne wsparcie\\dla grafiki i~diagramów.\end{tabular} \\
+\hline
+Dokumentacja& \begin{tabular}{c}Idealne do tworzenia\\dokumentacji technicznej.\end{tabular} & \begin{tabular}{c}Dobre dla prostych dokumentów,\\łatwe do formatowania.\end{tabular} \\
+\hline
+Krzywa uczenia się& \begin{tabular}{c}Wymaga czasu\\na naukę składni.\end{tabular} & \begin{tabular}{c}Intuicyjny interfejs,\\szybka nauka\\dla początkujących.\end{tabular} \\
+\hline
+Zarządzanie referencjami& \begin{tabular}{c}Doskonałe wsparcie\\z~pakietami takimi jak BibTeX.\end{tabular} & \begin{tabular}{c}Wbudowane narzędzia,\\ale mogą być mniej elastyczne.\end{tabular} \\
+\hline
+Dostosowywanie& \begin{tabular}{c}Możliwość pełnej kontroli\\nad formatowaniem.\end{tabular} & \begin{tabular}{c}Ograniczone możliwości\\dostosowywania w~porównaniu\\do TeX.\end{tabular} \\
+\hline
+\end{tabular}
+\end{center}
+\end{table} %\end{table*} %dla dwóch kolumn
+
+\section{Tytuł przykładowego podrozdziału}
+\label{sec:PodrozdzialWprowadzajacy}
+
+W niniejszym podrozdziale opisano [Proszę uzupełnić], [Proszę uzupełnić] oraz [Proszę uzupełnić].
+
+[Proszę wpisać treść podrozdziału]
+
+\section{Tytuł kolejnego przykładowego podrozdziału}
+\label{sec:PodrozdzialKolejny}
+
+W niniejszym podrozdziale opisano [Proszę uzupełnić], [Proszę uzupełnić] oraz [Proszę uzupełnić].
+
+[Proszę wpisać treść podrozdziału]
+
+\cleardoublepage
+\chapter{Podsumowanie}
+
+%--------------------------------------
+% początek: wskazówka
+%--------------------------------------
+%„Dyskusja nad dalszym rozwojem pracy. Wnioski. Omówienie wyników. Co zrobiono w~pracy i~jakie uzyskano wyniki? Czy i~w jakim zakresie praca stanowi nowe ujęcie problemu? Sposób wykorzystania pracy (publikacja, udostępnienie instytucjom, materiał źródłowy dla studentów). Co uważa autor za własne osiągnięcia?”~\cite{bib:ZasadyPisania}. Dodatkowo warto zaznaczyć czy udało się osiągnąć założony cel pracy.
+%--------------------------------------
+% koniec: wskazówka
+%--------------------------------------
+
+W ramach niniejszej pracy:
+
+\begin{itemize}
+\item zebrano wiadomości z~zakresu [Proszę wpisać tematykę],
+\item opisano istniejące rozwiązania z~zakresu [Proszę wpisać],
+\item zaprojektowano autorski system informatyczny [Proszę wpisać pełną nazwę systemu],
+\item zaimplementowano autorski system informatyczny [Proszę wpisać pełną nazwę systemu],
+\item przetestowano [Proszę wpisać, co przetestowano w~pracy].
+\end{itemize}
+
+Zaprojektowany i~zrealizowany w~pracy autorski [Proszę wpisać pełną nazwę systemu] charakteryzuje się tym, że:
+
+\begin{itemize}
+\item ... [Proszę wpisać zaletę systemu],
+\item ... [Proszę wpisać zaletę systemu],
+\item .. [Proszę wpisać zaletę systemu].
+\end{itemize}
+
+Zaprojektowany i~zrealizowany w~pracy autorski [Proszę wpisać pełną nazwę systemu] można wykorzystać m.in. do:
+
+\begin{itemize}
+\item ... [Proszę wpisać potencjalną możliwość zastosowania],
+\item ... [Proszę wpisać potencjalną możliwość zastosowania],
+\item ... [Proszę wpisać potencjalną możliwość zastosowania].
+\end{itemize}
+
+Zaprojektowany i~zrealizowany w~pracy autorski [Proszę wpisać pełną nazwę systemu] można w~przyszłości rozbudować o~następujące funkcje:
+
+\begin{itemize}
+\item ... [Proszę wpisać potencjalną możliwość rozbudowy],
+\item ... [Proszę wpisać potencjalną możliwość rozbudowy],
+\item ... [Proszę wpisać potencjalną możliwość rozbudowy].
+\end{itemize}
+
+Podsumowując można stwierdzić, że [Proszę wpisać pełną nazwę systemu], ze względu na [Proszę raz jeszcze wymienić podstawową zaletę rozwiązania], może być niezwykle użyteczny w~[Proszę krótko wpisać obszar zastosowań].
+
+\cleardoublepage
+\begin{thebibliography}{99}
+\addcontentsline{toc}{chapter}{\bibname}
+
+%--------------------------------------
+% początek: wskazówka
+%--------------------------------------
+%formatowanie literatury:
+%Książka, artykuł:
+%Nazwisko Pierwsza_litera_imienia., Tytuł_italikiem, źródło_informacji (wydawnictwo), rok wydania, strony
+%strona WWW:
+%Autorzy (jeśli podani), Tytuł, dokładny adres, stan na dzień: data
+%Przykłady: 
+%Amborski K., Teoria sterowania, Warszawa: PWN, 1987. str. 80-100
+%Cisco Systems, Dynamic ISL (DISL), http://www.cisco.com/en/US/tech/tk389/tk390/tk162/tech_protocol_home.html, stan na dzień: 20.12.2004
+%--------------------------------------
+% koniec: wskazówka
+%--------------------------------------
+
+\bibitem{bib:ZasadyPisania} Zasady pisania prac dyplomowych, https://wiisi.pcz.pl/student-wiisi/vademecum-studenta/praca-dyplomowa, stan na dzień: 26.10.2024
+
+\bibitem{bib:LogoWIMiI} Strona internetowa Wydziału Informatyki i~Sztucznej Inteligencji, https://wiisi.pcz.pl, stan na dzień: 26.10.2024
+
+\end{thebibliography}
+
+\chapter*{Dodatek. Zawartość dołączonej płyty}
+\addcontentsline{toc}{chapter}{Dodatek. Zawartość dołączonej płyty}
+
+Do niniejszej pracy dołączono płytę z~następującą zawartością:
+
+\begin{itemize}
+\item Dokument pracy w~formatach tex i~pdf.
+
+\item Kod źródłowy zaprojektowanego i~zrealizowanego w~ramach pracy systemu.
+\end{itemize}
+
+\listoffigures
+\addcontentsline{toc}{chapter}{\listfigurename}
+
+\listoftables
+\addcontentsline{toc}{chapter}{\listtablename}
+
+\lstlistoflistings
+\addcontentsline{toc}{chapter}{\lstlistingname}
+
+\chapter*{Streszczenie}
+\addcontentsline{toc}{chapter}{Streszczenie}
+
+Praca pt. \textit{„Tytuł pracy”} nawiązuje do bardzo aktualnych zagadnień współczesnej informatyki, a~mianowicie do [Proszę wpisać ogólną tematykę pracy]. W~ostatnim czasie obserwuje się intensywny rozwój [Proszę wpisać ogólne wprowadzenie do tematu]. Jednocześnie [Proszę wpisać wady lub niedogodności takiego rozwiązania]. W~rozważanej pracy podjęto zatem próbę rozwiązania tego problemu. W~szczególności zebrano wiadomości z~zakresu [Proszę wpisać tematykę], porównano [Proszę wpisać, jakie rozwiązania działające porównano], opracowano [Proszę wpisać, co opracowano w~pracy], zrealizowano [Proszę wpisać, co zrealizowano w~pracy], przetestowano [Proszę wpisać, co przetestowano w~pracy]. Zaprojektowany i~zaimplementowany system charakteryzuje się następującymi cechami: [Proszę uzupełnić], [Proszę uzupełnić], [Proszę uzupełnić]. Dzięki temu zaprojektowany i~zaimplementowany system może być wykorzystany w~praktyce np. do: [Proszę wpisać potencjalną możliwość zastosowania], [Proszę wpisać potencjalną możliwość zastosowania], [Proszę wpisać potencjalną możliwość zastosowania].
+
+Do realizacji praktycznej części pracy wykorzystano najnowsze narzędzia i~technologie informatyczne, w~tym m.in. [Proszę wpisać nazwę technologii], [Proszę wpisać nazwę technologii], [Proszę wpisać nazwę technologii].
+
+Zaprojektowany i~zaimplementowany system można w~przyszłości przykładowo rozbudować o~następujące funkcje: [Proszę wpisać], [Proszę wpisać] i~[Proszę wpisać].
+
+\chapter*{Summary}
+\addcontentsline{toc}{chapter}{Summary}
+
+Proszę umieścić tłumaczenie polskiej wersji streszczenia.
+
+\chapter*{Słowa kluczowe}
+\addcontentsline{toc}{chapter}{Słowa kluczowe}
+
+\noindent informatyka;
+
+\noindent zaprojektowanie autorskiego systemu informatycznego;
+
+\noindent implementacja autorskiego systemu informatycznego;
+
+\noindent przetestowanie autorskiego systemu informatycznego;
+
+\noindent [Proszę wpisać słowo dotyczące tematyki pracy];
+
+\noindent [Proszę wpisać słowo dotyczące kluczowej funkcjonalności systemu];
+
+\noindent [Proszę wpisać słowo dotyczące użytej technologii];
+
+\noindent [Proszę wpisać słowo dotyczące użytej technologii];
+
+\noindent [Proszę wpisać słowo dotyczące użytej technologii]
+
+\oswiadczenie % tego elementu ma nie być w~spisie treści
+
+\end{document}
