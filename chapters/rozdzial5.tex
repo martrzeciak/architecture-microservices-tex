@@ -1,0 +1,35 @@
+\cleardoublepage
+
+\chapter{Orkiestracja kontenerów i rozwiązania chmurowe}
+\label{cha:OrkiestracjaKontenerow}
+
+\section{Kubernetes w ekosystemie .NET}
+\label{sec:Kubernetes}
+
+\subsection{Azure Kubernetes Service (AKS)}
+\label{subsec:AzureAKS}
+
+AKS jest wiodącą platformą dla deploynetu mikroserwisów .NET w chmurze Azure. Ten podrozdział uzasadnia się przez praktyczne potrzeby wdrażania i zarządzania mikroserwisami w środowisku produkcyjnym. AKS oferuje zarządzaną płaszczyznę kontrolną Kubernetes oraz integrację z innymi usługami Azure.
+
+\subsection{Wdrażanie z Helm Charts}
+\label{subsec:HelmCharts}
+
+Helm Charts stanowią standard dla wdrażania aplikacji w Kubernetes. Ten podrozdział uzasadnia się przez konieczność pokazania, jak automatyzować deployment mikroserwisów oraz zarządzać ich konfiguracją w różnych środowiskach. Helm umożliwia wersjonowanie i przywracanie poprzednich wersji wdrożeń, co jest kluczowe dla CI/CD.
+
+\section{Service Mesh}
+\label{sec:ServiceMesh}
+
+\subsection{Linkerd i Istio}
+\label{subsec:LinkerdIstio}
+
+Service Mesh rozwiązuje problemy komunikacji, bezpieczeństwa i observability w architekturze mikroserwisowej. Porównanie Linkerd i Istio uzasadnia się przez znaczące różnice w wydajności - Linkerd dodaje 40-400\% mniej latencji niż Istio. Ten podrozdział jest istotny dla zrozumienia, jak Service Mesh wpływa na wydajność komunikacji między mikroserwisami.
+
+\subsection{Distributed Tracing}
+\label{subsec:DistributedTracing}
+
+Distributed Tracing jest niezbędny dla debugowania i monitorowania systemów mikroserwisowych.
+
+\section{CI/CD Pipeline dla mikroserwisów}
+\label{sec:CICD}
+
+CI/CD dla mikroserwisów wprowadza unikalne wyzwania związane z niezależnym deploynmentem serwisów. Azure DevOps oferuje dedykowane narzędzia dla tego celu.

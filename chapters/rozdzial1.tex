@@ -1,0 +1,103 @@
+\cleardoublepage
+
+\chapter{Wprowadzenie do architektury mikroserwisów w ekosystemie .NET}
+\label{cha:WprowadzenieDoMikroserwisow}
+
+%--------------------------------------
+% początek: wskazówka
+%--------------------------------------
+%Każdy rozdział powinien mieć zdanie wstępu przed przejściem do podrozdziału. Rysunki powinny być wyśrodkowane, numerowane i~powinny mieć odwołania do literatury lub oznaczenie że zostały opracowane samodzielnie.
+%--------------------------------------
+% koniec: wskazówka
+%--------------------------------------
+
+% W niniejszym rozdziale opisano [Proszę uzupełnić], [Proszę uzupełnić] oraz [Proszę uzupełnić].
+
+% Sposób realizacji [Proszę uzupełnić] przedstawiono na Rys.~\ref{fig:LogoWIiSI}.
+
+% \begin{figure}[h]
+% \centering\includegraphics[width=15cm]{fig_LogoWIiSI.png}
+% %\centering\includegraphics[scale=1.0]{fig_LogoWIiSI.png}
+% \caption{Logo Wydziału Informatyki i~Sztucznej Inteligencji~\cite{bib:LogoWIMiI}.}
+% \label{fig:LogoWIiSI}
+% \end{figure}
+
+% \noindent Można zauważyć, że Rysunek~\ref{fig:LogoWIiSI} dotyczy [Proszę uzupełnić].
+
+% Kod służący do osadzania rysunków w~tekście pracy przedstawiono na Listingu.~\ref{lis:SposobOsadzaniaRysunkow}.
+
+% \begin{lstlisting}[
+%  caption={Kod wstawiania rysunku do tekstu pracy.},
+%  label={lis:SposobOsadzaniaRysunkow}
+% ]
+% \begin{figure}[h]
+% \centering\includegraphics[width=15cm]{NazwaPliku.png}
+% \centering\includegraphics[scale=1.0]{NazwaPliku.png}
+% \caption{Opis pliku.}
+% \label{fig:EtykietaRysunku}
+% \end{figure}
+% \end{lstlisting}
+
+% \noindent Można zauważyć, że Listing~\ref{lis:SposobOsadzaniaRysunkow} dotyczy [Proszę uzupełnić].
+
+% Sposób realizacji [Proszę uzupełnić] można opisać następująco:
+
+% \begin{equation}
+% \label{eq:y_j}
+% {{\bar y}_j}=\frac{{\sum\limits_{r=1}^N {\bar y_{j,r}^B\cdot{\mu_{{{B'}_j}}}\left({\bar y_{j,r}^B}\right)}}}{{\sum\limits_{r=1}^N {{\mu_{{{B'}_j}}}\left({\bar y_{j,r}^B}\right)}}},
+% \end{equation}
+
+% \noindent gdzie $N$ oznacza..., ${\bar y_{j,r}^B}$ oznacza..., itd. Można zauważyć, że wzór (\ref{eq:y_j}) dotyczy [Proszę uzupełnić].
+
+% Porównanie składu tekstu przy pomocy środowisk Tex i~Word przedstawiono w~Tabeli~\ref{tab:PorownanieMozliwosciTexiWord}. Można zauważyć, że [Proszę uzupełnić].
+
+% \begin{table}[t!] %\begin{table*}[t!] %dla dwóch kolumn
+% \setlength\tabcolsep{4.5pt}
+% %\def\arraystretch{0.65}
+% \begin{center}
+% \caption{Porównanie składu tekstu przy pomocy środowisk Tex i~Word.}
+% \label{tab:PorownanieMozliwosciTexiWord}
+% \footnotesize
+% \begin{tabular}{|c|c|c|}
+% \hline
+% \textbf{Kategoria} & \textbf{Środowisko TeX} & \textbf{Środowisko Word} \\
+% \hline\hline
+% Typografia& \begin{tabular}{c}Wysokiej jakości układ tekstu,\\idealny do publikacji.\end{tabular} & \begin{tabular}{c}Dobre formatowanie,\\ale ograniczone\\w~precyzji typograficznej.\end{tabular} \\
+% \hline
+% Matematyka& \begin{tabular}{c}Doskonałe wsparcie dla równań\\i~symboli matematycznych.\end{tabular} & \begin{tabular}{c}Możliwe, ale\\trudniejsze w~edytowaniu.\end{tabular} \\
+% \hline
+% Praca zespołowa& \begin{tabular}{c}Wymaga synchronizacji plików;\\lepsze dla programistów.\end{tabular} & \begin{tabular}{c}Wbudowane narzędzia\\do współpracy, łatwe w~użyciu.\end{tabular} \\
+% \hline
+% Wizualizacja danych& \begin{tabular}{c}Ograniczone możliwości\\bez dodatkowych pakietów.\end{tabular} & \begin{tabular}{c}Silne wsparcie\\dla grafiki i~diagramów.\end{tabular} \\
+% \hline
+% Dokumentacja& \begin{tabular}{c}Idealne do tworzenia\\dokumentacji technicznej.\end{tabular} & \begin{tabular}{c}Dobre dla prostych dokumentów,\\łatwe do formatowania.\end{tabular} \\
+% \hline
+% Krzywa uczenia się& \begin{tabular}{c}Wymaga czasu\\na naukę składni.\end{tabular} & \begin{tabular}{c}Intuicyjny interfejs,\\szybka nauka\\dla początkujących.\end{tabular} \\
+% \hline
+% Zarządzanie referencjami& \begin{tabular}{c}Doskonałe wsparcie\\z~pakietami takimi jak BibTeX.\end{tabular} & \begin{tabular}{c}Wbudowane narzędzia,\\ale mogą być mniej elastyczne.\end{tabular} \\
+% \hline
+% Dostosowywanie& \begin{tabular}{c}Możliwość pełnej kontroli\\nad formatowaniem.\end{tabular} & \begin{tabular}{c}Ograniczone możliwości\\dostosowywania w~porównaniu\\do TeX.\end{tabular} \\
+% \hline
+% \end{tabular}
+% \end{center}
+% \end{table} %\end{table*} %dla dwóch kolumn
+
+\section{Definicja i charakterystyka architektury mikroserwisowej}
+\label{sec:DefinicjaMikroserwisow}
+
+Ten podrozdział stanowił będzie fundamentalne wprowadzenie teoretyczne niezbędne dla zrozumienia całej pracy. Architektura mikroserwisowa to podejście do projektowania aplikacji jako zestawu małych, niezależnych usług, z których każda działa w swoim własnym procesie i komunikuje się przez lekkie mechanizmy. Definicja ta jest kluczowa dla czytelnika, ponieważ ustala terminologię i koncepcyjne podstawy dla dalszych rozdziałów.
+
+\section{Porównanie z architekturą monolityczną}
+\label{sec:PorownanieMikroserwisyMonolit}
+
+Porównanie z architekturą monolityczną jest niezbędne dla ukazania kontekstu i motywacji wyboru mikroserwisów. Ten podrozdział uzasadniał się koniecznością pokazania różnic w podejściu do projektowania, wdrażania i skalowania aplikacji. Tradycyjna architektura monolityczna używa pojedynczego modelu danych dla operacji odczytu i zapisu, co może prowadzić do problemów z wydajnością i skalowalością. Mikroserwisy natomiast pozwalają na niezależne skalowanie komponentów i izolację awarii. To porównanie pomaga czytelnikowi zrozumieć, dlaczego organizacje wybierają mikroserwisy i jakie są minusy tej decyzji.
+
+\section{Zalety i wyzwania mikroserwisów}
+\label{sec:ZaletyWyzwaniaMikroserwisow}
+
+Przedstawienie zalet i wyzwań jest kluczowe dla obiektywnej oceny architektury mikroserwisowej. Zalety obejmują zwiększoną skalowalność, elastyczność technologiczną oraz odporność na awarie. Jednak mikroserwisy wprowadzają również znaczne wyzwania, takie jak złożoność zarządzania danymi rozproszonymi, konieczność implementacji mechanizmów komunikacji międzyserwisowej oraz trudności w testowaniu. Ten podrozdział jest niezbędny dla zrównoważonego przedstawienia tematu i przygotowania czytelnika na dalsze szczegóły techniczne.
+
+\section{Ekosystem .NET w kontekście mikroserwisów}
+\label{sec:EkosystemNET}
+
+Uzasadnienie tego podrozdziału wynika z tematu pracy skupiającego się na ekosystemie .NET. Platforma .NET Core oferuje zaawansowane narzędzia do budowy systemów mikroserwisowych, włączając integrację z nowoczesnymi technologiami chmurowymi. ASP.NET Core zapewnia natywne wsparcie dla gRPC, REST API oraz zaawansowanych wzorców architektonicznych. Ten podrozdział ustala technologiczne podstawy dla praktycznej części pracy i pokazuje, dlaczego .NET jest odpowiednim wyborem dla implementacji mikroserwisów.

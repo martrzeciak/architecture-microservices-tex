@@ -1,0 +1,53 @@
+\cleardoublepage
+
+\chapter{Mechanizmy komunikacji w architekturze mikroserwisowej}
+\label{cha:MechanizmyKomunikacji}
+
+\section{Komunikacja synchroniczna}
+\label{sec:KomunikacjaSynchroniczna}
+
+\subsection{REST API w ASP.NET Core}
+\label{subsec:RESTAPI}
+
+REST pozostaje najpopularniejszym stylem architektonicznym dla komunikacji między mikroserwisami. Uzasadnienie tego podrozdziału wynika z konieczności przedstawienia tradycyjnego podejścia, które będzie później porównywane z gRPC w części badawczej pracy. REST wykorzystuje protokół HTTP/1.1 i jest intuicyjny dla programistów webowych. ASP.NET Core oferuje bogate wsparcie dla tworzenia REST API z funkcjami takimi jak automatyczna walidacja modeli, routing oraz integracja z OpenAPI.
+
+\subsection{gRPC - architektura i implementacja}
+\label{subsec:gRPC}
+
+Ten podrozdział jest kluczowy dla aspektu badawczego pracy. gRPC wykorzystuje HTTP/2 i Protocol Buffers, co zapewnia 5-10 razy większą przepustowość niż REST. Framework ten oferuje unikalne funkcje jak np. silne typowanie interfejsów. Szczegółowe omówienie architektury gRPC jest niezbędne dla zrozumienia wyników testów wydajnościowych, które będą przeprowadzone w części empirycznej pracy.
+
+\subsection{GraphQL jako alternatywa}
+\label{subsec:GraphQL}
+
+GraphQL zasługuje na uwagę jako alternatywne podejście do projektowania API, które może wpływać na wydajność komunikacji. Ten podrozdział uzasadnia się potrzebą przedstawienia kompletnego spektrum opcji komunikacji synchronicznej.
+
+\section{Komunikacja asynchroniczna}
+\label{sec:KomunikacjaAsynchroniczna}
+
+\subsection{Message Brokers (RabbitMQ, Azure Service Bus)}
+\label{subsec:MessageBrokers}
+
+Komunikacja asynchroniczna jest fundamentalna dla osiągnięcia luźnego sprzężenia w architekturze mikroserwisowej. Message brokers eliminują bezpośrednie zależności między serwisami i umożliwiają implementację wzorców event-driven. RabbitMQ i Azure Service Bus są wiodącymi rozwiązaniami w ekosystemie .NET, oferującymi różne mechanizmy dostarczania wiadomości i gwarancje spójności.
+
+\subsection{Event-driven Architecture}
+\label{subsec:EventDrivenArchitecture}
+
+Event-driven architecture stanowi kluczowy wzorzec dla mikroserwisów, umożliwiając reaktywne przetwarzanie zdarzeń. Ten podrozdział uzasadnia się koniecznością pokazania, jak zdarzenia mogą zastąpić bezpośrednie wywołania API i zwiększyć elastyczność systemu. Wzorzec ten jest szczególnie istotny w kontekście Event Sourcing, który będzie omówiony w dalszej części pracy.
+
+\section{Komunikacja w czasie rzeczywistym}
+\label{sec:KomunikacjaCzasRzeczywisty}
+
+\subsection{WebSockets w aplikacjach internetowych}
+\label{subsec:WebSockets}
+
+WebSockets są kluczowe dla komunikacji w czasie rzeczywistym, oferując pełnodupleksową komunikację między klientem a serwerem. WebSockets eliminują ograniczenia tradycyjnego modelu request-response HTTP i umożliwiają natychmiastowe przekazywanie aktualizacji.
+
+\subsection{Server-Sent Events (SSE)}
+\label{subsec:ServerSentEvents}
+
+SSE stanowią alternatywę dla WebSockets w scenariuszach jednostronnej komunikacji serwer-klient. Uzasadnienie tego podrozdziału wynika z potrzeby przedstawienia pełnego spektrum opcji komunikacji w czasie rzeczywistym.
+
+\subsection{gRPC Streaming}
+\label{subsec:gRPCStreaming}
+
+gRPC oferuje unikalne możliwości streamingu, które łączą wydajność binarnej komunikacji z elastycznością streaming. Ten podrozdział uzasadnia się potrzebą pokazania, jak gRPC może konkurować z WebSockets w aplikacjach wymagających komunikacji w czasie rzeczywistym.

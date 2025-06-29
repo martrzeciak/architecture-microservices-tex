@@ -1,0 +1,32 @@
+\cleardoublepage
+
+\chapter{Wzorce projektowe i architektoniczne}
+\label{cha:WzorceProjektowe}
+
+\section{CQRS (Command Query Responsibility Segregation)}
+\label{sec:CQRS}
+
+CQRS jest fundamentalnym wzorcem dla mikroserwisów, pozwalającym na separację operacji odczytu i zapisu. Uzasadnienie tego podrozdziału wynika z faktu, że CQRS umożliwia niezależną optymalizację wydajności dla różnych typów operacji, co jest kluczowe w środowisku mikroserwisowym.
+
+\section{Event Sourcing}
+\label{sec:EventSourcing}
+
+Event Sourcing jest ściśle powiązany z CQRS i oferuje unikalne korzyści jak 100\% audit logging oraz możliwość odtworzenia stanu aplikacji. Ten podrozdział uzasadnia się przez konieczność pokazania, jak Event Sourcing rozwiązuje problem atomowego aktualizowania bazy danych i wysyłania wiadomości. Wzorzec ten jest szczególnie istotny w kontekście event-driven architecture w mikroserwisach.
+
+\section{Database-per-Service}
+\label{sec:DatabasePerService}
+
+Wzorzec Database-per-Service jest fundamentalny dla osiągnięcia niezależności mikroserwisów. Każdy serwis zarządza własną bazą danych, co zapewnia izolację, skalowalność i elastyczność technologiczną. Ten podrozdział uzasadnia się przez konieczność pokazania, jak ten wzorzec wpływa na zarządzanie danymi rozproszonymi oraz jakie wprowadza wyzwania związane z transakcjami i ich spójnością.
+
+\section{API Gateway}
+\label{sec:APIGateway}
+
+\subsection{Porównanie Ocelot i Envoy}
+\label{subsec:PorowanieOcelotEnvoy}
+
+API Gateway jest kluczowym komponentem architektury mikroserwisowej, centralizującym routing, uwierzytelnianie i monitoring. Porównanie Ocelot (natywnego dla .NET) z Envoy uzasadnia się przez praktyczne potrzeby wyboru odpowiedniego rozwiązania. Envoy oferuje lepszą wydajność (100k RPS vs 10k RPS dla Ocelot) ale wymaga dodatkowej konfiguracji.
+
+\subsection{Circuit Breaker Pattern}
+\label{subsec:CircuitBreaker}
+
+Circuit Breaker jest kluczowy dla zapewnienia odporności systemu mikroserwisowego na awarie. Ten podrozdział uzasadnia się przez konieczność pokazania, jak wzorzec ten zapobiega kaskadowym awariom.

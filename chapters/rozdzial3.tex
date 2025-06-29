@@ -1,0 +1,40 @@
+\cleardoublepage
+
+\chapter{gRPC-Web i komunikacja frontend-backend}
+\label{cha:gRPCWeb}
+
+\section{Ograniczenia natywnego gRPC w przeglądarkach}
+\label{sec:OgraniczeniagRPC}
+
+Przeglądarki nie oferują wystarczającej kontroli nad żądaniami HTTP/2, aby wspierać pełną specyfikację gRPC. Brak dostępu do surowych ramek HTTP/2 oraz trailing headers uniemożliwia natywną implementację gRPC w JavaScript. Ten podrozdział jest kluczowy dla zrozumienia, dlaczego potrzebne są dodatkowe rozwiązania.
+
+\section{Architektura gRPC-Web}
+\label{sec:ArchitekturagRPCWeb}
+
+\subsection{Rola proxy w komunikacji gRPC-Web}
+\label{subsec:RolaProxy}
+
+gRPC-Web wymaga warstwy translacyjnej między przeglądarką a backendem gRPC. Ten podrozdział uzasadnia się koniecznością wyjaśnienia, jak proxy tłumaczy uproszczone żądania gRPC-Web na natywny protokół gRPC. 
+
+\subsection{Envoy Proxy i nginx jako reverse proxy}
+\label{subsec:EnvoyNginx}
+
+Envoy i nginx to najpopularniejsze rozwiązania proxy dla gRPC-Web.
+
+\section{Implementacja gRPC-Web w aplikacjach frontendowych}
+\label{sec:ImplementacjagRPCWeb}
+
+\subsection{Integracja z frameworkami JavaScript}
+\label{subsec:IntegracjaJavaScript}
+
+Brak natywnego wsparcia dla gRPC-Web w popularnych frameworkach frontendowych stanowi praktyczne wyzwanie. Ten podrozdział uzasadnia się potrzebą pokazania, jak integrować gRPC-Web z React, Angular czy Vue.js oraz jakie są związane z tym trudności i ograniczenia.
+
+\subsection{Pakiety npm i konfiguracja}
+\label{subsec:PakietyNPM}
+
+Szczegółowe omówienie wymaganych pakietów npm (@types/google-protobuf, grpc-web) jest uzasadnione przez praktyczny aspekt implementacji. Ten podrozdział pomoże czytelnikom zrozumieć konkretne kroki niezbędne do wdrożenia gRPC-Web w projektach frontendowych.
+
+\section{GraphQL Gateway dla gRPC}
+\label{sec:GraphQLGateway}
+
+Integracja GraphQL z gRPC przez grpc-graphql-gateway oferuje alternatywne podejście do ekspozycji usług gRPC.
