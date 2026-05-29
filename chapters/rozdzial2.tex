@@ -3,51 +3,309 @@
 \chapter{Mechanizmy komunikacji w architekturze mikroserwisowej}
 \label{cha:MechanizmyKomunikacji}
 
+Jak przedstawiono w~Rozdziale~\ref{cha:WprowadzenieDoMikroserwisow}, 
+architektura mikroserwisowa opiera się na~zasadzie izolacji funkcjonalnej 
+poszczególnych usług. Każdy mikroserwis jest odpowiedzialny za~odrębny 
+obszar biznesowy i~działa jako niezależny proces. Jednakże aby system 
+składający się z~wielu mikroserwisów mógł realizować złożone przypadki 
+użycia, niezbędna jest efektywna komunikacja międzyserwisowa. Wybór 
+odpowiedniego mechanizmu komunikacji ma~kluczowe znaczenie dla wydajności, 
+skalowalności i~niezawodności całej architektury \cite{bib:Richardson2018}.
+
+W~ekosystemie .NET dostępne są różnorodne podejścia do~komunikacji, 
+które można podzielić na~trzy główne kategorie: komunikację 
+synchroniczną (ang.\ \textit{synchronous communication}), komunikację
+asynchroniczną (ang.\ \textit{asynchronous communication}) oraz 
+komunikację w~czasie rzeczywistym (ang.\ \textit{real-time communication}).
+Każde z~tych podejść ma~swoje zalety, wady oraz typowe zastosowania, 
+które zostaną omówione w~kolejnych sekcjach niniejszego rozdziału.
+
 \section{Komunikacja synchroniczna}
 \label{sec:KomunikacjaSynchroniczna}
+
+Komunikacja synchroniczna charakteryzuje się tym, że wywołujący serwis
+oczekuje na~odpowiedź od~serwisu docelowego przed kontynuowaniem własnego
+przetwarzania. Model ten jest intuicyjny i~przypomina tradyjne wywołania
+funkcji, co~ułatwia jego implementację i~debugowanie. Jednakże wprowadza
+również ścisłe sprzężenie czasowe między serwisami, ponieważ niedostępność
+jednego z~nich może bezpośrednio wpłynąć na~działanie pozostałych \cite{bib:Newman2021}.
 
 \subsection{REST API w ASP.NET Core}
 \label{subsec:RESTAPI}
 
-REST pozostaje najpopularniejszym stylem architektonicznym dla komunikacji między mikroserwisami. Uzasadnienie tego podrozdziału wynika z konieczności przedstawienia tradycyjnego podejścia, które będzie później porównywane z gRPC w części badawczej pracy. REST wykorzystuje protokół HTTP/1.1 i jest intuicyjny dla programistów webowych. ASP.NET Core oferuje bogate wsparcie dla tworzenia REST API z funkcjami takimi jak automatyczna walidacja modeli, routing oraz integracja z OpenAPI.
+\textit{Representational State Transfer} (REST) to~styl architektoniczny zaproponowany 
+przez Roya Fieldinga w~2000~roku \cite{bib:Fielding2000}, który definiuje zestaw ograniczeń 
+dla projektowania rozproszonych systemów hipermedialnych. REST API wykorzystuje protokół
+HTTP i~jego semantykę (metody GET, POST, PUT, DELETE) do~manipulacji zasobami
+reprezentowanymi w~formacie JSON lub XML. W~architekturze mikroserwisowej REST
+stanowi najpopularniejszy mechanizm komunikacji synchronicznej ze~względu na~swoją 
+prostotę, uniwersalność oraz szerokie wsparcie narzędziowe \cite{bib:RichardsonMaturity}.
+
+Fielding w~swojej dysertacji zidentyfikował sześć ograniczeń architektonicznych 
+definiujących styl REST: architekturę klient-serwer (ang.\ \textit{client-server}), 
+bezstanowość (ang.\ \textit{statelessness}), możliwość buforowania odpowiedzi
+(ang.\ \textit{cacheability}), jednolity interfejs (ang.\ \textit{uniform interface}),
+warstwowość systemu (ang.\ \textit{layered system}) oraz opcjonalne przesyłanie kodu
+na~żądanie (ang.\ \textit{code on demand})~\cite{bib:Fielding2000}. Spośród tych
+ograniczeń kluczowe znaczenie dla interoperacyjności posiada jednolity interfejs,
+który konkretyzuje się przez cztery zasady: identyfikację zasobów przez URI,
+manipulację zasobami przez ich reprezentacje, samoopisowe komunikaty
+zawierające metadane dotyczące formatu i~dozwolonych operacji,
+oraz hipermedia jako mechanizm sterowania stanem aplikacji (ang.\ \textit{HATEOAS}).
+W~praktycznych implementacjach API zasada HATEOAS jest często pomijana na~rzecz prostszego 
+modelu żądanie-odpowiedź, co~według Fieldinga czyni takie systemy jedynie \textit{podobnymi} 
+do~REST, nie zaś w~pełni zgodnym z~jego definicją.
+
+W~ekosystemie .NET implementacja REST API jest realizowana za~pomocą platformy
+ASP.NET~Core. W~najnowszych wersjach platformy (w~tym .NET~10), dostępny jest
+uproszczony model definicji punktów końcowych określany mianem \textit{Minimal API},
+który charakteryzuje się mniejszym narzutem konfiguracyjnym oraz wyższą wydajnością
+przy starcie usługi. Listing~\ref{lst:RESTMinimal} przedstawia definicję endpointu REST
+implementującego operację pobierania produktu w~tym modelu.
+
+\begin{lstlisting}[language={[Sharp]C}, caption={Definicja endpointu REST z~wykorzystaniem 
+Minimal API w~.NET 10.}, label=lst:RESTMinimal]
+app.MapGet("/api/products/{id}", async (ProductDbContext db, string id) =>
+{
+    var product = await db.Products
+        .AsNoTracking()
+        .FirstOrDefaultAsync(p => p.Id == id);
+        
+    return product is null ? Results.NotFound() : Results.Ok(product);
+});
+\end{lstlisting}
+
+Do~głównych zalet REST API w~kontekście architektury mikroserwisowej należą:
+bezstanowość (ang.\ \textit{statelessness}), która ułatwia skalowanie
+horyzontalne, wykorzystanie standardowego protokołu HTTP, co~eliminuje
+potrzebę specjalistycznych bibliotek, oraz możliwość stosowania cache'owania
+odpowiedzi na~poziomie infrastruktury sieciowej. REST API charakteryzuje
+się również luźnym sprzężeniem kontraktowym, ponieważ struktura JSON pozwala
+na~ewolucję interfejsu bez konieczności równoczesnej aktualizacji wszystkich klientów.
+
+Wśród ograniczeń REST API można wymienić: stosunkowo duży rozmiar przesyłanych
+danych (JSON jest formatem tekstowym o~większym narzucie niż formaty binarne),
+brak wbudowanej specyfikacji kontraktu (chociaż OpenAPI/Swagger częściowo to~kompensuje)
+oraz problemy z~wydajnością w~scenariuszach wymagających wielu zapytań do~różnych
+endpointów (ang.\ \textit{N+1 problem}). Ponadto tradycyjne implementacje REST
+często wykorzystują HTTP/1.1, który implementuje model request-response
+z~ograniczeniami dotyczącymi multipleksowania połączeń. Nowsze implementacje
+(np.\ ASP.NET~Core w~wersji~10) wspierają HTTP/2, co~częściowo eliminuje
+to ograniczenie, jednakże REST nie oferuje natywnego wsparcia dla streamingu
+w~stopniu porównywalnym z~gRPC.
 
 \subsection{gRPC - architektura i implementacja}
 \label{subsec:gRPC}
 
-Ten podrozdział jest kluczowy dla aspektu badawczego pracy. gRPC wykorzystuje HTTP/2 i Protocol Buffers, co zapewnia 5-10 razy większą przepustowość niż REST. Framework ten oferuje unikalne funkcje jak np. silne typowanie interfejsów. Szczegółowe omówienie architektury gRPC jest niezbędne dla zrozumienia wyników testów wydajnościowych, które będą przeprowadzone w części empirycznej pracy.
+gRPC to~nowoczesny framework komunikacji oparty na~protokole HTTP/2 oraz formacie
+serializacji Protocol Buffers, opracowany przez Google i~udostępniony jako projekt
+open-source w~2015~roku \cite{bib:gRPCDocs}. W~przeciwieństwie do~REST,
+gRPC wykorzystuje binarną serializację oraz umożliwia multipleksowanie wielu
+równoległych wywołań w~ramach jednego połączenia TCP. Framework ten jest
+szczególnie popularny w~komunikacji wewnętrznej między mikroserwisami
+(ang.\ \textit{inter-service communication}), gdzie wysoką wydajność i~niską
+latencję stawia się przed łatwością integracji z~klientami zewnętrznymi.
+
+Centralnym elementem gRPC jest definicja kontraktu za~pomocą języka Protocol
+Buffers (protobuf), który pozwala na~jednoznaczną specyfikację typów danych
+i~operacji serwisowych \cite{bib:ProtocolBuffers}. Kontrakt zapisany 
+w~pliku \texttt{.proto} jest następnie kompilowany do~kodu źródłowego
+w~wybranym języku programowania, co~gwarantuje silne typowanie i~eliminuje
+rozbieżności między klientem a~serwerem. Listing~\ref{lst:gRPCProto}
+prezentuje przykładową definicję serwisu w~formacie protobuf.
+
+\begin{lstlisting}[caption={Definicja serwisu gRPC w formacie Protocol Buffers.}, label=lst:gRPCProto]
+syntax = "proto3";
+
+package ProductService;
+
+service ProductService {
+  rpc GetProduct (ProductRequest) returns (ProductResponse);
+  rpc StreamProducts (ProductRequest) returns (stream ProductResponse);
+}
+
+message ProductRequest {
+  string id = 1;
+}
+
+message ProductResponse {
+  string id = 1;
+  string name = 2;
+  double price = 3;
+}
+\end{lstlisting}
+
+\begin{sloppypar}
+W~ekosystemie .NET implementacja gRPC jest wspierana przez pakiet \texttt{Grpc.AspNetCore},
+który integruje framework gRPC z~platformą ASP.NET~Core. Serwisy gRPC działają jako
+standardowe middleware w~pipeline'ie ASP.NET~Core, co~pozwala na~współdzielenie
+konfiguracji, mechanizmów autoryzacji oraz logowania z~innymi komponentami
+aplikacji. Dzięki zastosowaniu HTTP/2 gRPC oferuje niższą latencję
+w~typowych scenariuszach produkcyjnych z~ruchem w~sieci rozległej
+(WAN) -- rzędu 10--50~ms -- w~porównaniu do~REST API (50--200~ms), różnica 
+ta wynika przede wszystkim z~binarnej serializacji i~multipleksowania
+HTTP/2~\cite{bib:RFC9113}. gRPC obsługuje również
+zaawansowane wzorce komunikacji, takie jak streaming dwukierunkowy
+(ang.\ \textit{bidirectional streaming}) \cite{bib:gRPCDocs}.
+Ograniczenie dotyczące braku bezpośredniego wsparcia w~przeglądarkach
+internetowych jest eliminowane przez protokół \textit{gRPC-Web},
+którego analiza stanowi przedmiot Rozdziału~\ref{cha:gRPCWeb}.
+\end{sloppypar}
+
+Główne zalety gRPC obejmują: wysoką wydajność dzięki binarnej serializacji protobuf (typowo 3--7 razy mniejszy rozmiar danych niż JSON, w~zależności od~struktury komunikatów~\cite{bib:ProtocolBuffers}), wsparcie dla multipleksowania i~flow control na~poziomie protokołu HTTP/2~\cite{bib:RFC9113}, silne typowanie zapewniane przez automatyczną generację kodu oraz wbudowaną obsługę streamingu danych. gRPC integruje się również z~mechanizmami deadline propagation oraz distributed tracing (np.\ OpenTelemetry), co~ułatwia monitorowanie i~diagnozowanie problemów w~rozproszonych systemach.
+
+Do~wad gRPC należy zaliczyć: ograniczoną czytelność komunikatów (format binarny nie jest human-readable), trudności z~debugowaniem w~porównaniu do~REST (brak możliwości testowania przez zwykłą przeglądarkę), ograniczone wsparcie w~starszych infrastrukturach sieciowych, które mogą nie obsługiwać HTTP/2, oraz bardziej złożony proces ewolucji kontraktów, ponieważ zmiany w~plikach \texttt{.proto} wymagają rekompilacji kodu klienta. gRPC jest zatem optymalne dla komunikacji wewnętrznej między mikroserwisami, lecz REST pozostaje preferowany dla publicznych API dostępnych dla zewnętrznych konsumentów.
 
 \subsection{GraphQL jako alternatywa}
 \label{subsec:GraphQL}
 
-GraphQL zasługuje na uwagę jako alternatywne podejście do projektowania API, które może wpływać na wydajność komunikacji. Ten podrozdział uzasadnia się potrzebą przedstawienia kompletnego spektrum opcji komunikacji synchronicznej.
+GraphQL to~język zapytań dla API oraz środowisko wykonawcze stworzone przez Facebook (obecnie Meta) w~2012~roku i~opublikowane jako standard open-source w~2015~roku~\cite{bib:GraphQLSpec}. W~przeciwieństwie do~REST, gdzie struktura odpowiedzi jest z~góry zdefiniowana przez serwer, GraphQL pozwala klientowi na~precyzyjne określenie, które pola danych ma~otrzymać w~odpowiedzi. Mechanizm ten eliminuje problemy over-fetching (pobieranie zbędnych danych) oraz under-fetching (konieczność wykonywania wielu zapytań), które są typowe dla REST API \cite{bib:Newman2021}.
+
+W~ekosystemie .NET implementacja serwerów GraphQL jest realizowana głównie za~pomocą biblioteki Hot~Chocolate, która oferuje pełne wsparcie dla specyfikacji GraphQL oraz integrację z~ASP.NET~Core \cite{bib:HotChocolate}. GraphQL definiuje schema opisującą dostępne typy, zapytania (ang.\ \textit{queries}) oraz mutacje (ang.\ \textit{mutations}), co~stanowi samodokumentujący się kontrakt między klientem a~serwerem. Mechanizm resolverów pozwala na~efektywne pobieranie danych z~wielu źródeł, w~tym z~różnych mikroserwisów, co~czyni GraphQL atrakcyjną opcją dla implementacji warstwy API Gateway (ang.\ \textit{Backend for Frontend -- BFF}).
+
+Zaletami GraphQL są: elastyczność po~stronie klienta, która umożliwia optymalizację zapytań pod~kątem konkretnych potrzeb interfejsu użytkownika, redukcja liczby zapytań sieciowych poprzez możliwość pobierania zagnieżdżonych danych w~jednym wywołaniu oraz silne typowanie i~introspekcja schematu, co~ułatwia integrację i~automatyczne generowanie dokumentacji. GraphQL wspiera również mechanizm subskrypcji (ang.\ \textit{subscriptions}) do~komunikacji w~czasie rzeczywistym.
+
+Do~wad GraphQL należą: zwiększona złożoność implementacji po~stronie serwera, problemy z~cache'owaniem odpowiedzi (brak możliwości wykorzystania standardowego HTTP cache), ryzyko tzw.\ query complexity attacks (złośliwe lub przypadkowo zaprojektowane zapytania mogą przeciążyć serwer) oraz potrzeba dodatkowej warstwy abstrakcji, która może maskować faktyczne zależności między mikroserwisami. Ze~względu na~te ograniczenia GraphQL jest najczęściej stosowany jako warstwa agregacji w~API Gateway, a~nie do~bezpośredniej komunikacji między mikroserwisami.
 
 \section{Komunikacja asynchroniczna}
 \label{sec:KomunikacjaAsynchroniczna}
 
-\subsection{Message Brokers (RabbitMQ, Azure Service Bus)}
+Komunikacja asynchroniczna eliminuje konieczność oczekiwania na~natychmiastową odpowiedź od~serwisu docelowego. W~tym modelu nadawca wysyła wiadomość i~kontynuuje swoje przetwarzanie, natomiast odbiorca przetwarza wiadomość w~dogodnym dla siebie czasie. Komunikacja asynchroniczna wprowadza luźne sprzężenie czasowe między serwisami, co~zwiększa odporność systemu na~awarie pojedynczych komponentów oraz ułatwia skalowanie. Jednakże wiąże się również ze~zwiększoną złożonością implementacji oraz wyzwaniami związanymi z~zapewnieniem eventual consistency (ang.\ \textit{spójność ostateczna}) \cite{bib:FowlerEDA}.
+
+\subsection{Message Brokers -- RabbitMQ i Azure Service Bus}
 \label{subsec:MessageBrokers}
 
-Komunikacja asynchroniczna jest fundamentalna dla osiągnięcia luźnego sprzężenia w architekturze mikroserwisowej. Message brokers eliminują bezpośrednie zależności między serwisami i umożliwiają implementację wzorców event-driven. RabbitMQ i Azure Service Bus są wiodącymi rozwiązaniami w ekosystemie .NET, oferującymi różne mechanizmy dostarczania wiadomości i gwarancje spójności.
+\textit{Message Broker} to~oprogramowanie pośredniczące (ang.\ \textit{middleware}), które przyjmuje wiadomości od~nadawców i~dostarcza je do~odbiorców zgodnie z~określonymi regułami routingu. Message Brokery implementują wzorce komunikacyjne takie jak kolejki (ang.\ \textit{queues}) oraz tematy (ang.\ \textit{topics/exchanges}), co~umożliwia implementację komunikacji typu point-to-point oraz publish-subscribe. Kluczową zaletą wykorzystania Message Broker jest trwałość wiadomości (ang.\ \textit{message persistence}), która gwarantuje, że wiadomość nie zostanie utracona nawet w~przypadku awarii jednego z~mikroserwisów.
+
+W~ekosystemie .NET najpopularniejszymi rozwiązaniami są RabbitMQ oraz Azure~Service~Bus. RabbitMQ to~otwartoźródłowy Message Broker implementujący protokół AMQP~0.9.1, charakteryzujący się wysoką wydajnością, bogatym wsparciem dla wzorców routingu oraz możliwością wdrożenia w~dowolnej infrastrukturze \cite{bib:RabbitMQ}. Azure~Service~Bus to~w~pełni zarządzana usługa chmurowa (ang.\ \textit{Platform as a~Service}), która oferuje dodatkowe funkcjonalności takie jak automatyczne wykrywanie duplikatów wiadomości, scheduled delivery oraz integrację z~ekosystemem Azure \cite{bib:AzureServiceBus}.
+
+Do~komunikacji z~Message Brokerami w~aplikacjach .NET często wykorzystuje się bibliotekę MassTransit, która dostarcza wysokopoziomową abstrakcję nad różnymi implementacjami brokerów i~ułatwia implementację wzorców takich jak Saga, Outbox Pattern oraz Retry Policies \cite{bib:MassTransit}. Listing~\ref{lst:MassTransitConfig} przedstawia przykładową konfigurację MassTransit z~RabbitMQ.
+
+\begin{lstlisting}[language={[Sharp]C}, caption={Konfiguracja MassTransit z RabbitMQ w aplikacji .NET.}, label=lst:MassTransitConfig]
+services.AddMassTransit(x =>
+{
+    x.AddConsumer<OrderCreatedConsumer>();
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host("rabbitmq://localhost", h =>
+        {
+            h.Username("guest");
+            h.Password("guest");
+        });
+        
+        cfg.ConfigureEndpoints(context);
+    });
+});
+\end{lstlisting}
+
+Zalety stosowania Message Brokerów obejmują: odporność na~awarie dzięki trwałości wiadomości, możliwość load balancingu poprzez dystrybucję wiadomości między wiele instancji konsumenta, wsparcie dla mechanizmów retry oraz dead-letter queues w~przypadku niepowodzeń przetwarzania, oraz możliwość tymczasowego buforowania wiadomości w~sytuacjach, gdy konsument jest przeciążony. Message Brokery umożliwiają również implementację wzorca \textit{Transactional Outbox}, który gwarantuje atomowość operacji zapisu do~bazy danych i~wysłania wiadomości, co~w~połączeniu z~orkiestracją typu \textit{Saga} pozwala na~zachowanie spójności ostatecznej w~złożonych procesach biznesowych (np.\ składanie zamówienia), co~zostało zaimplementowane w~części praktycznej niniejszej pracy.
+
+Do~wad Message Brokerów należy zaliczyć: zwiększoną złożoność operacyjną (konieczność utrzymania dodatkowej infrastruktury), wyższą latencję w~porównaniu do~komunikacji synchronicznej (typowo 100--500~ms), trudności w~diagnozowaniu problemów ze~względu na~asynchroniczną naturę komunikacji oraz potrzebę implementacji mechanizmów idempotentności po~stronie konsumentów, aby zapewnić poprawność przetwarzania w~przypadku ponowienia dostawy wiadomości.
 
 \subsection{Event-driven Architecture}
 \label{subsec:EventDrivenArchitecture}
 
-Event-driven architecture stanowi kluczowy wzorzec dla mikroserwisów, umożliwiając reaktywne przetwarzanie zdarzeń. Ten podrozdział uzasadnia się koniecznością pokazania, jak zdarzenia mogą zastąpić bezpośrednie wywołania API i zwiększyć elastyczność systemu. Wzorzec ten jest szczególnie istotny w kontekście Event Sourcing, który będzie omówiony w dalszej części pracy.
+\textit{Event-driven Architecture} (EDA) to~styl architektoniczny, w~którym mikroserwisy komunikują się poprzez publikowanie i~subskrybowanie zdarzeń biznesowych (ang.\ \textit{domain events}). Zdarzenie reprezentuje fakt, że coś się wydarzyło w~systemie, np.\ ,,zamówienie zostało złożone'' lub ,,produkt został dodany do~magazynu''. W~przeciwieństwie do~tradycyjnego podejścia opartego na~komendach (ang.\ \textit{command-driven}), gdzie nadawca jawnie określa, co~odbiorca ma~zrobić, w~EDA nadawca jedynie informuje o~zdarzeniu, a~decyzję o~reakcji podejmują zainteresowani odbiorcy \cite{bib:FowlerEDA}.
+
+Kluczową cechą EDA jest luźne sprzężenie między producentami i~konsumentami zdarzeń. Producent zdarzenia nie ma~wiedzy o~tym, które serwisy subskrybują dane zdarzenie, co~ułatwia rozbudowę systemu o~nowe funkcjonalności bez modyfikacji istniejącego kodu. Mechanizm ten wspiera zasadę otwarte-zamknięte (ang.\ \textit{Open-Closed Principle}) z~inżynierii oprogramowania~\cite{bib:Meyer1997}\cite{bib:Martin2002}. EDA jest naturalnym wyborem dla systemów implementujących wzorzec CQRS (ang.\ \textit{Command Query Responsibility Segregation}) oraz Event Sourcing~\cite{bib:EventStoreDB}, które szczegółowo zostaną omówione w~kolejnych rozdziałach niniejszej pracy.
+
+\begin{sloppypar}
+W~implementacji EDA w~ekosystemie .NET stosuje się Message Brokery (takie jak RabbitMQ lub Azure~Service~Bus) jako infrastrukturę dostarczania zdarzeń. Zdarzenia są~modelowane jako niezmienne obiekty DTO (ang.\ \textit{Data Transfer Object}) zawierające informacje o~tym, co~się wydarzyło oraz niezbędny kontekst biznesowy. Istotne jest, aby zdarzenia były nazwane w~czasie przeszłym (np.\ \texttt{OrderCreatedEvent}, \texttt{PaymentProcessedEvent}), co~podkreśla ich charakter jako faktów, które już miały miejsce.
+\end{sloppypar}
+
+Zalety EDA obejmują: wysoki stopień luźnego sprzężenia między mikroserwisami, ułatwioną rozszerzalność systemu poprzez dodawanie nowych subskrybentów bez modyfikacji producentów, naturalną reprezentację procesów biznesowych jako sekwencji zdarzeń oraz możliwość implementacji zaawansowanych wzorców takich jak event replay (ponowne przetworzenie historycznych zdarzeń) czy temporal queries (zapytania o~stan systemu w~określonym momencie czasu).
+
+Do~wad EDA należą: zwiększona złożoność w~zrozumieniu przepływu danych, ponieważ reakcje na~zdarzenia są~rozproszone w~różnych serwisach, trudności w~debugowaniu i~trasowaniu żądań (ang.\ \textit{distributed tracing}), potencjalne problemy z~kolejnością przetwarzania zdarzeń w~systemach rozproszonych oraz konieczność obsługi eventual consistency, co~oznacza, że stan systemu może być tymczasowo niespójny między różnymi mikroserwisami. EDA wymaga również starannego projektowania granic kontekstów (ang.\ \textit{bounded contexts}) oraz struktury zdarzeń, aby uniknąć niepożądanych zależności między serwisami.
 
 \section{Komunikacja w czasie rzeczywistym}
-\label{sec:KomunikacjaCzasRzeczywisty}
+\label{sec:KomunikacjaRealTime}
 
-\subsection{WebSockets w aplikacjach internetowych}
+Komunikacja w~czasie rzeczywistym (ang.\ \textit{real-time communication}) obejmuje mechanizmy umożliwiające natychmiastowe dostarczanie danych między klientem a~serwerem z~minimalnym opóźnieniem. W~architekturze mikroserwisowej jest wykorzystywana przede wszystkim w~interfejsach użytkownika wymagających aktualizacji na~żywo, takich jak dashboardy monitorujące, aplikacje czatu czy systemy notyfikacji. Komunikacja real-time wymaga utrzymywania długotrwałych połączeń, co~wprowadza dodatkowe wymagania infrastrukturalne związane ze~skalowaniem i~zarządzaniem stanem sesji.
+
+\subsection{WebSockets}
 \label{subsec:WebSockets}
 
-WebSockets są kluczowe dla komunikacji w czasie rzeczywistym, oferując pełnodupleksową komunikację między klientem a serwerem. WebSockets eliminują ograniczenia tradycyjnego modelu request-response HTTP i umożliwiają natychmiastowe przekazywanie aktualizacji.
+WebSocket to~protokół komunikacyjny zdefiniowany w~standardzie RFC~6455, który zapewnia pełnodupleksową (ang.\ \textit{full-duplex}) komunikację dwukierunkową przez pojedyncze, długotrwałe połączenie TCP \cite{bib:RFC6455}. W~przeciwieństwie do~HTTP, gdzie klient zawsze inicjuje komunikację, WebSocket umożliwia serwerowi aktywne wysyłanie wiadomości do~klienta bez wcześniejszego żądania. Protokół WebSocket rozpoczyna się od~tzw.\ handshake HTTP, który następnie jest uaktualniany (ang.\ \textit{upgrade}) do~połączenia WebSocket, co~zapewnia kompatybilność z~istniejącą infrastrukturą webową.
 
-\subsection{Server-Sent Events (SSE)}
+W~ekosystemie .NET implementacja WebSockets jest realizowana za~pomocą biblioteki ASP.NET~Core~SignalR, która dostarcza wysokopoziomową abstrakcję nad protokołem WebSocket oraz automatyczne fallbacki do~starszych technologii (Server-Sent Events, Long Polling) w~przypadku, gdy WebSocket nie jest dostępny \cite{bib:SignalR}. SignalR implementuje wzorzec Hub, który centralizuje logikę komunikacji real-time i~umożliwia wywołania metod zarówno z~serwera do~klienta, jak i~z~klienta do~serwera. Listing~\ref{lst:SignalRHub} przedstawia przykładowy Hub w~SignalR.
+
+\begin{lstlisting}[language={[Sharp]C}, caption={Implementacja SignalR Hub dla komunikacji real-time.}, label=lst:SignalRHub]
+public class NotificationHub : Hub
+{
+    public async Task SendNotification(string user, string message)
+    {
+        await Clients.All.SendAsync("ReceiveNotification", user, message);
+    }
+
+    public override async Task OnConnectedAsync()
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, "Users");
+        await base.OnConnectedAsync();
+    }
+}
+\end{lstlisting}
+
+Zalety WebSockets obejmują: bardzo niską latencję (poniżej 10~ms) dzięki eliminacji narzutu związanego z~nawiązywaniem nowego połączenia dla każdego żądania, efektywne wykorzystanie zasobów sieciowych poprzez ponowne użycie tego samego połączenia TCP, możliwość dwukierunkowej komunikacji inicjowanej zarówno przez klienta, jak i~serwer, oraz wsparcie dla mechanizmów grupowania klientów (ang.\ \textit{groups}), co~ułatwia implementację komunikacji typu multicast.
+
+Do~wad WebSockets należy zaliczyć: trudności ze~skalowaniem horyzontalnym ze~względu na~stanowość połączeń (wymagane są~mechanizmy typu sticky sessions lub backplane), zwiększone zużycie zasobów serwerowych związane z~utrzymywaniem tysięcy równoczesnych połączeń, problemy z~load balancingiem w~niektórych infrastrukturach sieciowych oraz brak wbudowanej obsługi reconnect logic w~przypadku utraty połączenia (chociaż SignalR to~kompensuje). WebSockets są~optymalne dla aplikacji wymagających stałej wymiany danych w~obu kierunkach, lecz mogą być nadmierne dla scenariuszy, gdzie aktualizacje są~rzadkie.
+
+\subsection{Server-Sent Events}
 \label{subsec:ServerSentEvents}
 
-SSE stanowią alternatywę dla WebSockets w scenariuszach jednostronnej komunikacji serwer-klient. Uzasadnienie tego podrozdziału wynika z potrzeby przedstawienia pełnego spektrum opcji komunikacji w czasie rzeczywistym.
+\textit{Server-Sent Events} (SSE) to~technologia umożliwiająca jednokierunkowy streaming danych z~serwera do~klienta przez standardowe połączenie HTTP. W~przeciwieństwie do~WebSocket, SSE nie wymaga uaktualnienia protokołu i~działa w~modelu request-response HTTP, gdzie połączenie pozostaje otwarte, a~serwer przesyła kolejne zdarzenia jako fragmenty odpowiedzi w~formacie \texttt{text/event-stream}. SSE jest wspierane natywnie przez wszystkie nowoczesne przeglądarki poprzez interfejs \texttt{EventSource} w~JavaScript.
+
+SSE jest prostszą alternatywą dla WebSocket w~scenariuszach, gdzie wymagana jest jedynie komunikacja od~serwera do~klienta, takich jak przesyłanie notyfikacji, aktualizacji statusu czy strumieni danych z~IoT. W~ASP.NET~Core implementacja SSE opiera się na~mechanizmie \texttt{Response.WriteAsync} z~ustawionym nagłówkiem \texttt{Content-Type: text/event-stream} oraz wyłączonym buforowaniem odpowiedzi. SSE automatycznie obsługuje reconnect in~przypadku utraty połączenia, co~jest zaletą w~porównaniu do~niskopoziomowych implementacji WebSocket.
+
+Zalety SSE obejmują: prostotę implementacji (bazuje na~standardowym HTTP), automatyczny mechanizm reconnect z~możliwością wznowienia streamu od~ostatnio otrzymanego zdarzenia, wsparcie w~standardowych narzędziach HTTP (debuggery, proxy) oraz brak konieczności specjalnej konfiguracji infrastruktury sieciowej. SSE działa dobrze z~mechanizmami cache'owania i~kompresji HTTP.
+
+Do~wad SSE należą: jednokierunkowość komunikacji (od~serwera do~klienta), ograniczenie liczby równoczesnych połączeń w~niektórych przeglądarkach (typowo 6~połączeń na~domenę w~HTTP/1.1), brak wsparcia dla binarnych formatów danych (SSE przesyła dane tekstowe) oraz większy narzut w~porównaniu do~WebSocket ze~względu na~nagłówki HTTP. SSE są~optymalne dla dashboardów, monitoringu oraz notyfikacji, gdzie serwer jest głównym źródłem aktualizacji.
 
 \subsection{gRPC Streaming}
 \label{subsec:gRPCStreaming}
 
-gRPC oferuje unikalne możliwości streamingu, które łączą wydajność binarnej komunikacji z elastycznością streaming. Ten podrozdział uzasadnia się potrzebą pokazania, jak gRPC może konkurować z WebSockets w aplikacjach wymagających komunikacji w czasie rzeczywistym.
+Jak wspomniano w~sekcji~\ref{subsec:gRPC}, gRPC wspiera zaawansowane wzorce komunikacji oparte na~streamingu. gRPC definiuje trzy typy streamingu: \textit{server streaming} (serwer przesyła sekwencję wiadomości w~odpowiedzi na~jedno żądanie klienta), \textit{client streaming} (klient przesyła sekwencję wiadomości, a~serwer odpowiada pojedynczą wiadomością) oraz \textit{bidirectional streaming} (obie strony przesyłają sekwencje wiadomości niezależnie od~siebie). Wszystkie te wzorce są~realizowane przez jedno połączenie HTTP/2, co~zapewnia wysoką efektywność.
+
+gRPC streaming łączy zalety komunikacji real-time (niską latencję, dwukierunkowość) z~zaletami gRPC (silne typowanie, binarną serializację, multipleksowanie). Jest szczególnie przydatne w~scenariuszach takich jak przesyłanie dużych zbiorów danych w~fragmentach, implementacja long-running operations z~raportowaniem postępu czy synchronizacja stanu między mikroserwisami. W~przeciwieństwie do~WebSocket, gRPC streaming jest zintegrowane z~mechanikami deadline propagation, retry policies oraz distributed tracing, co~ułatwia utrzymanie niezawodności w~systemach rozproszonych.
+
+Zalety gRPC streaming obejmują: wysoką wydajność dzięki HTTP/2 i~protobuf, silne typowanie kontraktów, wbudowaną obsługę flow control i~backpressure, możliwość multipleksowania wielu streamów w~ramach jednego połączenia oraz integrację z~ekosystemem gRPC (authentication, monitoring). gRPC streaming jest naturalnym wyborem dla komunikacji wewnętrznej między mikroserwisami wymagającej przesyłania strumieni danych.
+
+Wady gRPC streaming są~analogiczne do~wad samego gRPC: ograniczona czytelność komunikatów, trudności z~debugowaniem, potrzeba wsparcia HTTP/2 w~infrastrukturze oraz złożoność implementacji w~porównaniu do~prostszych rozwiązań jak SSE. gRPC streaming jest optymalne w~scenariuszach wewnętrznych, gdzie wymagana jest wysoka wydajność i~niezawodność, lecz nie jest odpowiednie dla publicznych API dostępnych dla zewnętrznych klientów webowych.
+
+\section{Podsumowanie}
+\label{sec:PodsumowanieRozdzialu2}
+
+\begin{sloppypar}
+W~niniejszym rozdziale przedstawiono główne mechanizmy komunikacji stosowane w~architekturze mikroserwisowej w~ekosystemie .NET. Omówiono komunikację synchroniczną (REST API, gRPC, GraphQL), komunikację asynchroniczną (Message Brokers, Event-driven Architecture) oraz komunikację w~czasie rzeczywistym (WebSockets, Server-Sent Events, gRPC Streaming). Każdy z~tych mechanizmów ma~swoje specyficzne zastosowania, zalety oraz ograniczenia, które należy uwzględnić podczas projektowania systemu.
+\end{sloppypar}
+
+Tabela~\ref{tab:PorownanieKomunikacji} przedstawia syntetyczne porównanie omawianych mechanizmów pod~względem latencji, stopnia sprzężenia, złożoności implementacji oraz typowych przypadków użycia.
+
+\begin{table}[h!]
+\begin{center}
+\caption{Porównanie mechanizmów komunikacji w~architekturze mikroserwisowej (wartości latencji orientacyjne na~podstawie~\cite{bib:Newman2021}).}
+\label{tab:PorownanieKomunikacji}
+\footnotesize
+\begin{tabular}{|>{\raggedright\arraybackslash}p{2.8cm}|>{\raggedright\arraybackslash}p{2.5cm}|>{\raggedright\arraybackslash}p{2.0cm}|>{\raggedright\arraybackslash}p{2.0cm}|>{\raggedright\arraybackslash}p{4.5cm}|}
+\hline
+\textbf{Mechanizm} & \textbf{Latencja} & \textbf{Sprzężenie} & \textbf{Złożoność} & \textbf{Typowe przypadki użycia} \\
+\hline
+REST API & Średnia (50--200~ms) & Luźne & Niska & Publiczne API, operacje CRUD, integracje zewnętrzne \\
+\hline
+gRPC & Niska (10--50~ms) & Średnie & Średnia & Komunikacja wewnętrzna, wysokowydajne API, integracje wewnętrzne \\
+\hline
+Message Broker & Dostarczenie: <5~ms (LAN); łącznie z~przetwarzaniem: 100--500~ms & Bardzo luźne & Wysoka & Asynchroniczne workflows, eventual consistency, procesy długotrwałe \\
+\hline
+WebSocket (SignalR) & Bardzo niska (<10~ms) & Ścisłe (stanowe) & Wysoka & Chat, notyfikacje real-time, dashboardy na żywo \\
+\hline
+SSE & Niska (10--50~ms) & Średnie & Średnia & Notyfikacje, monitoring, aktualizacje jednostronne \\
+\hline
+gRPC Streaming & Bardzo niska (<10~ms) & Średnie & Wysoka & Streaming danych, long-running operations, synchronizacja stanu \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+Wybór odpowiedniego mechanizmu komunikacji powinien być podyktowany zarówno wymaganiami funkcjonalnymi (latencja, przepustowość, kierunkowość komunikacji), jak i~niefunkcjonalnymi (skalowalność, niezawodność, łatwość utrzymania). W~praktyce systemy mikroserwisowe często wykorzystują kombinację różnych mechanizmów: REST lub gRPC dla operacji synchronicznych wymagających natychmiastowej odpowiedzi, Message Brokery dla procesów asynchronicznych i~długotrwałych, oraz WebSocket lub SSE dla interfejsów użytkownika wymagających aktualizacji w~czasie rzeczywistym.
+
+Szczegółowe zagadnienia związane z~zapewnieniem niezawodności komunikacji, w~tym implementacja wzorców Circuit Breaker, Retry oraz Saga, zostaną omówione w~kolejnych rozdziałach niniejszej pracy. Ponadto w~rozdziałach~\ref{cha:MetodologiaBadan} oraz~\ref{cha:AnalizaWydajnosci} przedstawione zostaną wyniki eksperymentów wydajnościowych porównujących REST API oraz gRPC.

@@ -18,6 +18,18 @@
 \usepackage{emptypage}
 \usepackage{fancyhdr}
 \usepackage[polish]{babel}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=black,
+    urlcolor=blue,
+    citecolor=black,
+    pdftitle={Praca Magisterska},
+    pdfauthor={},
+    pdfsubject={Architektura mikroserwisów},
+    pdfkeywords={mikroserwisy, .NET, architektura}
+}
 \usepackage{listings}
 \usepackage{color}
 \usepackage{enumitem}
@@ -25,6 +37,7 @@
 \usepackage{ulem}
 \usepackage{caption}
 \usepackage{float}
+\usepackage{array}
 
 \lstset{%dotyczy listingów
 frame=single,
