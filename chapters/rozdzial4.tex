@@ -1,32 +1,39 @@
 \cleardoublepage
 
-\chapter{Wzorce projektowe i architektoniczne}
+\chapter{Wzorce projektowe i~architektoniczne}
+
 \label{cha:WzorceProjektowe}
 
-\section{CQRS (Command Query Responsibility Segregation)}
+Jak wykazano w~rozdziale~\ref{cha:WprowadzenieDoMikroserwisow}, architektura mikroserwisowa dekomponuje system informatyczny na~zbiór autonomicznych usług, z~których każda odpowiada za~odrębną dziedzinę biznesową. Taka dekompozycja niesie ze~sobą szereg wyzwań projektowych, takich jak organizacja ścieżek odczytu i~zapisu, ograniczenie kosztu przetwarzania danych oraz zapewnienie odporności poszczególnych komponentów systemu. Odpowiednio dobrane wzorce projektowe i~architektoniczne pozwalają uporządkować te~mechanizmy oraz dostosować je~do specyfiki projektowanego systemu.
+
+Niniejszy rozdział przedstawia wzorce i~mechanizmy zastosowane w~implementowanym na~potrzeby pracy systemie, które mają znaczenie dla jego architektury oraz przeprowadzonych badań wydajnościowych. Omówiono ograniczoną formę wzorca CQRS (sekcja~\ref{sec:CQRS}), organizację pamięci podręcznej zgodnie ze~wzorcem Cache-Aside (sekcja~\ref{sec:CacheAside}) oraz rolę serwera pośredniczącego Envoy Proxy i~mechanizmu ponawiania operacji bazodanowych (sekcja~\ref{sec:EnvoyOdpornoscBazy}). Przedstawione rozwiązania stanowią element infrastruktury wykorzystanej następnie podczas badań porównawczych opisanych w~dalszej części pracy.
+
+% --------------------------------------------------------% -----------------------------------------------------------------------
+% -----------------------------------------------------------------------
+\section{Wzorzec CQRS w~optymalizacji ścieżek przetwarzania}
 \label{sec:CQRS}
+% -----------------------------------------------------------------------
 
-CQRS jest fundamentalnym wzorcem dla mikroserwisów, pozwalającym na separację operacji odczytu i zapisu. Uzasadnienie tego podrozdziału wynika z faktu, że CQRS umożliwia niezależną optymalizację wydajności dla różnych typów operacji, co jest kluczowe w środowisku mikroserwisowym.
+Wzorzec CQRS (ang.\ \textit{Command Query Responsibility Segregation}) zakłada rozdzielenie modelu odpowiedzialnego za~modyfikację stanu systemu (ang.\ \textit{write model}) od~modelu służącego do~odczytu danych (ang.\ \textit{read model})~\cite{bib:YoungCQRS, bib:FowlerCQRS}. Koncepcja ta~stanowi ewolucję zasady CQS (ang.\ \textit{Command Query Separation}) sformułowanej przez Bertranda Meyera na~poziomie obiektowym i~przenosi ją~na~poziom architektury całego systemu. Tradycyjne podejście, polegające na~stosowaniu pojedynczego, kanonicznego modelu domenowego do~obsługi obu operacji, prowadzi do~niekorzystnych kompromisów architektonicznych, ponieważ ścieżki odczytu i~zapisu podlegają skrajnie odmiennym wymaganiom niefunkcjonalnym~\cite{bib:YoungCQRS}. Podczas modyfikacji stanu priorytetem jest zachowanie spójności transakcyjnej, walidacja skomplikowanych reguł biznesowych oraz izolacja agregatów, co~zazwyczaj wiąże się z~dużym narzutem obliczeniowym i~stosowaniem zaawansowanych mechanizmów mapowania obiektowo-relacyjnego (ORM). Z~kolei operacje odczytu wymagają maksymalnej przepustowości, niskich opóźnień oraz pobierania danych w~strukturach zdenormalizowanych, bezpośrednio dopasowanych do~potrzeb widoków klienckich.
 
-\section{Event Sourcing}
-\label{sec:EventSourcing}
+Wdrożenie wzorca CQRS pozwala na~niezależną optymalizację obu tych ścieżek w~warstwie aplikacyjnej i~infrastrukturalnej. Na~poziomie kodu odczyty mogą całkowicie omijać logikę domenową i~narzut mapowania encji, wykonując bezpośrednie, zoptymalizowane zapytania SQL lub odwołując się do~zdenormalizowanych struktur pamięci podręcznej. Na~poziomie architektury CQRS może przybrać postać lekką (ang.\ \textit{single database CQRS}), gdzie oba modele operują na~tym samym schemacie danych, bądź postać pełną, wykorzystującą fizycznie odseparowane magazyny danych. W~wariancie z~osobnymi bazami danych magazyn zapisu optymalizowany jest pod kątem normalizacji i~transakcyjności, natomiast magazyn odczytu pod kątem szybkiego wyszukiwania.
+% -----------------------------------------------------------------------
+\section{Wzorzec Cache-Aside}
+\label{sec:CacheAside}
+% -----------------------------------------------------------------------
 
-Event Sourcing jest ściśle powiązany z CQRS i oferuje unikalne korzyści jak 100\% audit logging oraz możliwość odtworzenia stanu aplikacji. Ten podrozdział uzasadnia się przez konieczność pokazania, jak Event Sourcing rozwiązuje problem atomowego aktualizowania bazy danych i wysyłania wiadomości. Wzorzec ten jest szczególnie istotny w kontekście event-driven architecture w mikroserwisach.
+Wzorzec \textit{Cache-Aside} polega na~bezpośrednim zarządzaniu pamięcią podręczną przez warstwę aplikacji, która odpowiada za~synchronizację pomiędzy magazynem podręcznym a~głównym źródłem danych~\cite{bib:CacheAside}. W~trakcie operacji odczytu aplikacja weryfikuje dostępność żądanego zasobu w~magazynie podręcznym na~podstawie deterministycznie wygenerowanego klucza. W~przypadku trafienia (ang.\ \textit{cache hit}) dane są~natychmiast zwracane z~pamięci operacyjnej bez angażowania relacyjnej bazy danych. W~sytuacji chybienia (ang.\ \textit{cache miss}) aplikacja kieruje zapytanie do~głównej bazy danych, po~czym otrzymany wynik zapisuje w~pamięci podręcznej z~określonym czasem ważności (ang.\ \textit{Time to Live}, TTL) i~dopiero wtedy odsyła go~do~klienta, dzięki czemu kolejne odwołania do~tego samego zasobu są~już serwowane bezpośrednio z~bufora.
 
-\section{Database-per-Service}
-\label{sec:DatabasePerService}
+Zastosowanie tego podejścia przynosi wymierne korzyści architektoniczne, ponieważ w~pamięci podręcznej alokowane są~wyłącznie dane rzeczywiście pożądane przez użytkowników, co~zapobiega marnotrawieniu zasobów na~rzadko odpytywane rekordy. Głównym wyzwaniem pozostaje kwestia unieważniania nieaktualnych wpisów (ang.\ \textit{cache invalidation}), którą realizuje się zazwyczaj poprzez pasywne wygasanie czasowe TTL lub jawne usuwanie i~aktualizowanie odpowiednich kluczy w~momencie wykonywania operacji zapisu lub modyfikacji danych w~głównym magazynie.
+% -----------------------------------------------------------------------
+% -----------------------------------------------------------------------
+% -----------------------------------------------------------------------
+\section{Rola serwera pośredniczącego i~mechanizmy odpornościowe}
+\label{sec:EnvoyOdpornoscBazy}
+% -----------------------------------------------------------------------
 
-Wzorzec Database-per-Service jest fundamentalny dla osiągnięcia niezależności mikroserwisów. Każdy serwis zarządza własną bazą danych, co zapewnia izolację, skalowalność i elastyczność technologiczną. Ten podrozdział uzasadnia się przez konieczność pokazania, jak ten wzorzec wpływa na zarządzanie danymi rozproszonymi oraz jakie wprowadza wyzwania związane z transakcjami i ich spójnością.
+W~rozproszonych architekturach zorientowanych na~usługi serwery pośredniczące (ang.\ \textit{reverse proxy} lub \textit{API Gateway}) pełnią kluczową rolę w~zarządzaniu ruchem przychodzącym, agregacji żądań oraz translacji protokołów komunikacyjnych. Narzędzia takie jak Envoy Proxy, zaimplementowane w~językach natywnych o~wysokiej wydajności, są~powszechnie stosowane do~mostkowania ruchu pomiędzy różnymi standardami sieciowymi, np.\ do~konwersji zapytań przeglądarkowych gRPC-Web na~natywny protokół gRPC oparty o~HTTP/2. Zastosowanie dedykowanego serwera pośredniczącego pozwala na~odseparowanie zadań infrastrukturalnych od~logiki biznesowej usług backendowych, jednak wprowadza dodatkowy przeskok sieciowy (ang.\ \textit{network hop}) oraz potencjalny narzut związany z~przetwarzaniem i~buforowaniem ramek danych.
 
-\section{API Gateway}
-\label{sec:APIGateway}
+Niezależnie od~warstwy routingu i~pośrednictwa sieciowego, kluczowym aspektem projektowania systemów rozproszonych pozostaje odporność na~awarie (ang.\ \textit{resilience}). Zgodnie z~praktykami inżynierii stabilności systemów~\cite{bib:Nygard2018}, mechanizmy odpornościowe dzieli się na~dwie główne kategorie: operujące na~poziomie komunikacji sieciowej oraz na~poziomie dostępu do~trwałych magazynów danych. 
 
-\subsection{Porównanie Ocelot i Envoy}
-\label{subsec:PorowanieOcelotEnvoy}
-
-API Gateway jest kluczowym komponentem architektury mikroserwisowej, centralizującym routing, uwierzytelnianie i monitoring. Porównanie Ocelot (natywnego dla .NET) z Envoy uzasadnia się przez praktyczne potrzeby wyboru odpowiedniego rozwiązania. Envoy oferuje lepszą wydajność (100k RPS vs 10k RPS dla Ocelot) ale wymaga dodatkowej konfiguracji.
-
-\subsection{Circuit Breaker Pattern}
-\label{subsec:CircuitBreaker}
-
-Circuit Breaker jest kluczowy dla zapewnienia odporności systemu mikroserwisowego na awarie. Ten podrozdział uzasadnia się przez konieczność pokazania, jak wzorzec ten zapobiega kaskadowym awariom.
+W~warstwie dostępu do~baz danych powszechnie stosuje się strategie ponawiania operacji (ang.\ \textit{retry patterns}) z~wykładniczym wydłużaniem czasu oczekiwania (ang.\ \textit{exponential backoff}) oraz losowym rozrzutem czasowym (ang.\ \textit{jitter})~\cite{bib:EFCoreResiliency}. Mechanizmy te~adresują problem błędów przemijających (ang.\ \textit{transient faults}), takich jak chwilowe zerwanie połączenia TCP, limity puli połączeń czy przeciążenie serwera bazodanowego, umożliwiając automatyczne wznowienie przerwanej operacji bez propagacji błędu do~użytkownika końcowego.

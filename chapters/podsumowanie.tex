@@ -1,46 +1,60 @@
 \cleardoublepage
-\chapter{Podsumowanie}
+\chapter*{Podsumowanie}
+\addcontentsline{toc}{chapter}{Podsumowanie}
 
-%--------------------------------------
-% początek: wskazówka
-%--------------------------------------
-%„Dyskusja nad dalszym rozwojem pracy. Wnioski. Omówienie wyników. Co zrobiono w~pracy i~jakie uzyskano wyniki? Czy i~w jakim zakresie praca stanowi nowe ujęcie problemu? Sposób wykorzystania pracy (publikacja, udostępnienie instytucjom, materiał źródłowy dla studentów). Co uważa autor za własne osiągnięcia?”~\cite{bib:ZasadyPisania}. Dodatkowo warto zaznaczyć czy udało się osiągnąć założony cel pracy.
-%--------------------------------------
-% koniec: wskazówka
-%--------------------------------------
-
-W ramach niniejszej pracy:
+W~ramach niniejszej pracy:
 
 \begin{itemize}
-\item zebrano wiadomości z~zakresu [Proszę wpisać tematykę],
-\item opisano istniejące rozwiązania z~zakresu [Proszę wpisać],
-\item zaprojektowano autorski system informatyczny [Proszę wpisać pełną nazwę systemu],
-\item zaimplementowano autorski system informatyczny [Proszę wpisać pełną nazwę systemu],
-\item przetestowano [Proszę wpisać, co przetestowano w~pracy].
+\item zebrano i~usystematyzowano wiedzę z~zakresu architektury mikroserwisowej, mechanizmów komunikacji synchronicznej i~asynchronicznej oraz wzorców projektowych dla systemów rozproszonych w~ekosystemie .NET,
+\item dokonano szczegółowej analizy protokołu gRPC-Web i~jego wariantów wdrożeniowych (proxy Envoy, bezpośrednia obsługa w~oprogramowaniu pośredniczącym ASP.NET Core),
+\item zaprojektowano i~zaimplementowano autorski system testowy składający się z~dwóch mikroserwisów .NET~10 (ProductService, OrderService), infrastruktury wspierającej (PostgreSQL, Redis, RabbitMQ, Envoy Proxy) oraz warstwy obserwowalności (Prometheus, Grafana),
+\item zaimplementowano kluczowe wzorce architektoniczne: Cache-Aside (Redis) oraz CQRS z~Minimal API, a~także skonfigurowano serwer Kestrel do~równoległej obsługi trzech protokołów,
+\item opracowano metodykę pomiarową opartą na~rzeczywistej przeglądarce internetowej, w~której czas mierzony jest wewnątrz strony, od~interakcji użytkownika do~naniesienia odpowiedzi na~drzewo dokumentu, co~obejmuje pełną ścieżkę odczuwaną przez użytkownika aplikacji przeglądarkowej,
+\item przeprowadzono 39~konfiguracji pomiarowych w~pięciu niezależnych powtórzeniach z~rotowaną kolejnością protokołów, co~dało 585~wykonanych testów i~171~tysięcy pomiarów, badając wpływ protokołu komunikacji, rozmiaru odpowiedzi, stanu pamięci podręcznej oraz liczby równoległych klientów na~czas odpowiedzi systemu,
+\item poddano wyniki analizie statystycznej, wyznaczając przedziały ufności dla różnic sparowanych w~obrębie przebiegu
 \end{itemize}
 
-Zaprojektowany i~zrealizowany w~pracy autorski [Proszę wpisać pełną nazwę systemu] charakteryzuje się tym, że:
+Główne wnioski z~przeprowadzonych badań eksperymentalnych:
+
+\begin{enumerate}
+\item Warianty gRPC-Web skracają czas odpowiedzi o~26--43\% względem REST, lecz wyłącznie przy nieskompresowanych odpowiedziach przekraczających rozmiar okna odbiorczego protokołu TCP, czyli około 64~kilobajtów. Poniżej tego progu różnice nie przekraczają kilku procent i~pozostają bez praktycznego znaczenia.
+
+\item Zakres stosowalności powyższego wniosku ogranicza kompresja treści. Wykazano, że~kompresja gzip redukuje wolumen dokumentu JSON dwunasto- do~trzynastokrotnie, a~wiadomości binarnej dziesięciokrotnie, przez co przewaga objętościowa formatu binarnego maleje z~33\% do~15--18\%, a~wszystkie badane ładunki, niezależnie od~formatu, mieszczą się po~kompresji w~jednym oknie odbiorczym. W~konfiguracji z~kompresją mechanizm odpowiadający za~zmierzoną przewagę nie zostałby zatem uruchomiony w~całym badanym zakresie rozmiarów odpowiedzi.
+
+\item Zależność przewagi od~rozmiaru odpowiedzi nie ma~charakteru ciągłego, lecz realizuje się skokowo. Sformułowany model wyjaśnia ją~liczbą wymian pakietów niezbędnych do~przesłania odpowiedzi: transmisja wymaga tylu obiegów, ile okien odbiorczych zajmuje ładunek, a~przewaga formatu binarnego polega na~zmniejszeniu tej liczby. Przewidywania modelu zgadzają się z~pomiarem w~dziesięciu niezależnych konfiguracjach.
+
+\item Około 95\% obserwowanej przewagi wynika z~formatu serializacji, a~nie z~zastosowanej wersji protokołu HTTP. Rozdzielenie obu czynników umożliwił wariant z~proxy Envoy, który przenosi ładunek binarny, korzystając po~stronie przeglądarki z~protokołu HTTP/1.1, tak samo jak REST, i~wynikami dorównuje wariantowi opartemu na~HTTP/2, nie zaś ścieżce REST.
+
+\item Serializacja Protocol Buffers redukuje wolumen przesyłanych danych o~32--43\% Wielkość ta~nie zależy od~warunków sieciowych, obciążenia ani od~zastosowanego narzędzia pomiarowego. Jedynym czynnikiem, który ją~zmienia, jest kompresja treści omówiona we~wniosku drugim.
+
+\item Przewaga protokołów binarnych skaluje się z~opóźnieniem sieci, a~nie z~szybkością serwera, ponieważ wyraża się liczbą zaoszczędzonych obiegów pakietu. W~komunikacji przez łącze rozległe o~opóźnieniu 26~ms jest znacząca, natomiast w~sieci lokalnej stałaby się pomijalna.
+
+\item W~operacjach zapisu wybór protokołu nie wpływa na~czas odpowiedzi. Wszystkie badane warianty mieszczą się w~przedziale 83--106~ms przy zmieniającym się pięciokrotnie rozmiarze żądania, ponieważ czas ten zdominowany jest przez stały koszt serwerowy rzędu 60--70~ms, obejmujący transakcję bazodanową.
+
+\item Różnica pomiędzy wariantem gRPC-Web obsługiwanym bezpośrednio a~wariantem z~proxy Envoy nie przekracza sześciu procent. Wobec skali efektu serializacyjnego wybór pomiędzy oboma wariantami wdrożenia ma~znaczenie drugorzędne.
+
+\item Zmienność pomiarów okazała się silnie zależna od~udziału warstwy danych w~czasie odpowiedzi: od~poniżej jednego procenta w~scenariuszach izolujących narzut protokołu do~ponad pięćdziesięciu procent w~scenariuszach wymuszających zapytanie do~bazy oraz w~operacjach zapisu. Wprowadzenie pamięci podręcznej obniża tę~zmienność.
+
+\item Ustalono granicę wiarygodności stanowiska pomiarowego. Przepustowość osiąga wartość graniczną pomiędzy dwudziestoma a~trzydziestoma równoległymi klientami i~powyżej niej przestaje rosnąć, natomiast opóźnienie nadal narasta, ponieważ wszystkie trzy protokoły zatrzymują się na~tej~samej wartości granicznej mimo odmiennych ścieżek przetwarzania po~stronie serwera, czynnik ograniczający zidentyfikowano po~stronie klienta. Macierz badawczą ograniczono w~konsekwencji do~zakresu, w~którym pomiar pozostaje wiarygodny.
+\end{enumerate}
+
+Postawiony cel pracy uznano za~osiągnięty: zaprojektowano i~zrealizowano działający system mikroserwisowy, przeprowadzono na~nim zaplanowany zestaw badań oraz udzielono odpowiedzi na~pytanie o~relację wydajnościową badanych protokołów. Odpowiedź ta~okazała się warunkowa, a~sformułowany warunek, czyli rozmiar odpowiedzi w~odniesieniu do~okna odbiorczego protokołu TCP, jest wielkością mierzalną i~możliwą do~sprawdzenia w~konkretnym zastosowaniu. Wszystkie pięć hipotez rozstrzygnięto, przy czym dwie z~nich wymagały doprecyzowania sformułowania: hipoteza H1 w~zakresie charakteru zależności od~rozmiaru odpowiedzi, a~hipoteza H5 w~zakresie praktycznej istotności wykazanej różnicy.
+
+Postawiona we~wstępie teza znalazła w~przeprowadzonych badaniach potwierdzenie. Przewaga wydajnościowa protokołów opartych na~binarnej serializacji nie okazała się własnością bezwarunkową: ujawnia się wyłącznie wtedy, gdy mniejszy wolumen odpowiedzi zmniejsza liczbę wymian pakietów niezbędnych do~jej przesłania, a~w~pozostałych badanych warunkach (przy małych ładunkach, w~operacjach zapisu oraz, jak wskazuje oszacowanie objętościowe, przy włączonej kompresji treści) różnice pomiędzy protokołami pozostają praktycznie nieistotne.
+
+Zaprojektowany i~zrealizowany system ten charakteryzuje się następującymi cechami:
 
 \begin{itemize}
-\item ... [Proszę wpisać zaletę systemu],
-\item ... [Proszę wpisać zaletę systemu],
-\item .. [Proszę wpisać zaletę systemu].
+\item równoległa obsługa trzech protokołów komunikacji w~ramach jednej aplikacji klienckiej, umożliwiająca ich porównanie przy identycznej logice biznesowej, tych~samych danych oraz niezmienionej ścieżce prezentacji,
+\item podejście Contract-First, w~którym pliki \texttt{.proto} stanowią jedyne źródło prawdy, a~kod serwera (C\#) i~klienta (TypeScript) jest z~nich generowany,
+\item kompleksowa obserwowalność obejmująca metryki, ślady rozproszone oraz pulpity wizualizacyjne, umożliwiająca korelację wyników eksperymentu z~wewnętrznym stanem systemu.
 \end{itemize}
 
-Zaprojektowany i~zrealizowany w~pracy autorski [Proszę wpisać pełną nazwę systemu] można wykorzystać m.in. do:
+Kierunki dalszego rozwoju pracy obejmują:
 
 \begin{itemize}
-\item ... [Proszę wpisać potencjalną możliwość zastosowania],
-\item ... [Proszę wpisać potencjalną możliwość zastosowania],
-\item ... [Proszę wpisać potencjalną możliwość zastosowania].
+\item rozdzielenie stanowiska pomiarowego na~wiele maszyn klienckich, co~pozwoliłoby przenieść granicę wiarygodności opisaną w~ostatnim z~powyższych wniosków i~objąć pomiarem poziomy współbieżności rzędu setek równoległych klientów,
+\item powtórzenie eksperymentu przy różnych wartościach opóźnienia łącza, co~umożliwiłoby empiryczną weryfikację przewidywanej proporcjonalności przewagi protokołów binarnych do~opóźnienia sieci,
+\item powtórzenie macierzy z~włączoną kompresją ciała odpowiedzi na~wszystkich ścieżkach, co~pozwoliłoby zweryfikować pomiarowo przedstawione oszacowanie objętościowe i~ustalić, czy w~takiej konfiguracji różnice pomiędzy protokołami pozostają wykrywalne,
+\item wdrożenie systemu na~platformie Kubernetes (AKS) z~automatycznym skalowaniem horyzontalnym i~badanie wpływu liczby replik na~wydajność.
 \end{itemize}
-
-Zaprojektowany i~zrealizowany w~pracy autorski [Proszę wpisać pełną nazwę systemu] można w~przyszłości rozbudować o~następujące funkcje:
-
-\begin{itemize}
-\item ... [Proszę wpisać potencjalną możliwość rozbudowy],
-\item ... [Proszę wpisać potencjalną możliwość rozbudowy],
-\item ... [Proszę wpisać potencjalną możliwość rozbudowy].
-\end{itemize}
-
-Podsumowując można stwierdzić, że [Proszę wpisać pełną nazwę systemu], ze względu na [Proszę raz jeszcze wymienić podstawową zaletę rozwiązania], może być niezwykle użyteczny w~[Proszę krótko wpisać obszar zastosowań].

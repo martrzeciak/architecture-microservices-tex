@@ -1,103 +1,112 @@
 \cleardoublepage
 
-\chapter{Wprowadzenie do architektury mikroserwisów w ekosystemie .NET}
+\chapter{Wprowadzenie do architektury mikroserwisów w~ekosystemie .NET}
 \label{cha:WprowadzenieDoMikroserwisow}
 
-%--------------------------------------
-% początek: wskazówka
-%--------------------------------------
-%Każdy rozdział powinien mieć zdanie wstępu przed przejściem do podrozdziału. Rysunki powinny być wyśrodkowane, numerowane i~powinny mieć odwołania do literatury lub oznaczenie że zostały opracowane samodzielnie.
-%--------------------------------------
-% koniec: wskazówka
-%--------------------------------------
+Niniejszy rozdział stanowi wprowadzenie do tematyki architektury mikroserwisów
+w~kontekście nowoczesnego wytwarzania oprogramowania, z~uwzględnieniem ekosystemu platformy .NET. Przedstawiono w nim podstawowe cechy
+architektury monolitycznej i~mikroserwisowej, ich najważniejsze zalety i~ograniczenia
+oraz kluczowe pojęcia i~zasady projektowe związane z~budową systemów
+mikroserwisowych.
 
-% W niniejszym rozdziale opisano [Proszę uzupełnić], [Proszę uzupełnić] oraz [Proszę uzupełnić].
-
-% Sposób realizacji [Proszę uzupełnić] przedstawiono na Rys.~\ref{fig:LogoWIiSI}.
-
-% \begin{figure}[h]
-% \centering\includegraphics[width=15cm]{fig_LogoWIiSI.png}
-% %\centering\includegraphics[scale=1.0]{fig_LogoWIiSI.png}
-% \caption{Logo Wydziału Informatyki i~Sztucznej Inteligencji~\cite{bib:LogoWIMiI}.}
-% \label{fig:LogoWIiSI}
-% \end{figure}
-
-% \noindent Można zauważyć, że Rysunek~\ref{fig:LogoWIiSI} dotyczy [Proszę uzupełnić].
-
-% Kod służący do osadzania rysunków w~tekście pracy przedstawiono na Listingu.~\ref{lis:SposobOsadzaniaRysunkow}.
-
-% \begin{lstlisting}[
-%  caption={Kod wstawiania rysunku do tekstu pracy.},
-%  label={lis:SposobOsadzaniaRysunkow}
-% ]
-% \begin{figure}[h]
-% \centering\includegraphics[width=15cm]{NazwaPliku.png}
-% \centering\includegraphics[scale=1.0]{NazwaPliku.png}
-% \caption{Opis pliku.}
-% \label{fig:EtykietaRysunku}
-% \end{figure}
-% \end{lstlisting}
-
-% \noindent Można zauważyć, że Listing~\ref{lis:SposobOsadzaniaRysunkow} dotyczy [Proszę uzupełnić].
-
-% Sposób realizacji [Proszę uzupełnić] można opisać następująco:
-
-% \begin{equation}
-% \label{eq:y_j}
-% {{\bar y}_j}=\frac{{\sum\limits_{r=1}^N {\bar y_{j,r}^B\cdot{\mu_{{{B'}_j}}}\left({\bar y_{j,r}^B}\right)}}}{{\sum\limits_{r=1}^N {{\mu_{{{B'}_j}}}\left({\bar y_{j,r}^B}\right)}}},
-% \end{equation}
-
-% \noindent gdzie $N$ oznacza..., ${\bar y_{j,r}^B}$ oznacza..., itd. Można zauważyć, że wzór (\ref{eq:y_j}) dotyczy [Proszę uzupełnić].
-
-% Porównanie składu tekstu przy pomocy środowisk Tex i~Word przedstawiono w~Tabeli~\ref{tab:PorownanieMozliwosciTexiWord}. Można zauważyć, że [Proszę uzupełnić].
-
-% \begin{table}[t!] %\begin{table*}[t!] %dla dwóch kolumn
-% \setlength\tabcolsep{4.5pt}
-% %\def\arraystretch{0.65}
-% \begin{center}
-% \caption{Porównanie składu tekstu przy pomocy środowisk Tex i~Word.}
-% \label{tab:PorownanieMozliwosciTexiWord}
-% \footnotesize
-% \begin{tabular}{|c|c|c|}
-% \hline
-% \textbf{Kategoria} & \textbf{Środowisko TeX} & \textbf{Środowisko Word} \\
-% \hline\hline
-% Typografia& \begin{tabular}{c}Wysokiej jakości układ tekstu,\\idealny do publikacji.\end{tabular} & \begin{tabular}{c}Dobre formatowanie,\\ale ograniczone\\w~precyzji typograficznej.\end{tabular} \\
-% \hline
-% Matematyka& \begin{tabular}{c}Doskonałe wsparcie dla równań\\i~symboli matematycznych.\end{tabular} & \begin{tabular}{c}Możliwe, ale\\trudniejsze w~edytowaniu.\end{tabular} \\
-% \hline
-% Praca zespołowa& \begin{tabular}{c}Wymaga synchronizacji plików;\\lepsze dla programistów.\end{tabular} & \begin{tabular}{c}Wbudowane narzędzia\\do współpracy, łatwe w~użyciu.\end{tabular} \\
-% \hline
-% Wizualizacja danych& \begin{tabular}{c}Ograniczone możliwości\\bez dodatkowych pakietów.\end{tabular} & \begin{tabular}{c}Silne wsparcie\\dla grafiki i~diagramów.\end{tabular} \\
-% \hline
-% Dokumentacja& \begin{tabular}{c}Idealne do tworzenia\\dokumentacji technicznej.\end{tabular} & \begin{tabular}{c}Dobre dla prostych dokumentów,\\łatwe do formatowania.\end{tabular} \\
-% \hline
-% Krzywa uczenia się& \begin{tabular}{c}Wymaga czasu\\na naukę składni.\end{tabular} & \begin{tabular}{c}Intuicyjny interfejs,\\szybka nauka\\dla początkujących.\end{tabular} \\
-% \hline
-% Zarządzanie referencjami& \begin{tabular}{c}Doskonałe wsparcie\\z~pakietami takimi jak BibTeX.\end{tabular} & \begin{tabular}{c}Wbudowane narzędzia,\\ale mogą być mniej elastyczne.\end{tabular} \\
-% \hline
-% Dostosowywanie& \begin{tabular}{c}Możliwość pełnej kontroli\\nad formatowaniem.\end{tabular} & \begin{tabular}{c}Ograniczone możliwości\\dostosowywania w~porównaniu\\do TeX.\end{tabular} \\
-% \hline
-% \end{tabular}
-% \end{center}
-% \end{table} %\end{table*} %dla dwóch kolumn
-
-\section{Definicja i charakterystyka architektury mikroserwisowej}
+%----------------------------------------------------------------------
+\section{Definicja i~charakterystyka architektury mikroserwisowej}
 \label{sec:DefinicjaMikroserwisow}
+%----------------------------------------------------------------------
 
-Ten podrozdział stanowił będzie fundamentalne wprowadzenie teoretyczne niezbędne dla zrozumienia całej pracy. Architektura mikroserwisowa to podejście do projektowania aplikacji jako zestawu małych, niezależnych usług, z których każda działa w swoim własnym procesie i komunikuje się przez lekkie mechanizmy. Definicja ta jest kluczowa dla czytelnika, ponieważ ustala terminologię i koncepcyjne podstawy dla dalszych rozdziałów.
+Architektura mikroserwisowa (ang.\ \textit{microservices architecture}) polega na~budowie systemu informatycznego jako zbioru niewielkich, autonomicznych usług realizujących ściśle określone funkcje biznesowe. W~ujęciu Fowlera i~Lewisa mikroserwisy stanowią niezależnie wdrażalne jednostki, uruchamiane w~odrębnych procesach i~komunikujące się za~pomocą lekkich mechanizmów sieciowych~\cite{bib:Fowler2014}. Organizacja usług wokół zdolności biznesowych (ang.\ \textit{business capabilities}) sprawia, że~ich granice wyznacza zakres odpowiedzialności dziedzinowej, a~nie podział na~warstwy techniczne. Umożliwia to~niezależne skalowanie, wdrażanie oraz modyfikowanie poszczególnych komponentów.
 
-\section{Porównanie z architekturą monolityczną}
+Nadrzędną cechą definiującą mikroserwis jest jego \textit{niezależna wdrażalność} (ang.\ \textit{independent deployability}), czyli możliwość wdrożenia pojedynczej usługi na~środowisko produkcyjne bez konieczności jednoczesnej aktualizacji pozostałych elementów systemu~\cite{bib:Newman2021}. Warunkiem koniecznym do~jej osiągnięcia jest zachowanie luźnego sprzężenia, polegającego na~minimalizacji wiedzy o~wewnętrznej implementacji innych usług. Do~najczęstszych przyczyn utraty tej autonomii należą współdzielone biblioteki zawierające logikę biznesową oraz bezpośredni dostęp do~bazy danych innego mikroserwisu. Oba te~przypadki wprowadzają ukryte zależności, które w~praktyce wymuszają zsynchronizowane wdrożenia.
+
+Wymiana danych pomiędzy usługami odbywa się za~pomocą lekkich protokołów komunikacyjnych, w~tym HTTP oraz systemów kolejkowych. W~odniesieniu do~protokołu HTTP stopień dojrzałości implementacji stylu REST opisuje model dojrzałości Richardsona (ang.\ \textit{Richardson Maturity Model}), klasyfikujący usługi według wykorzystania zasobów, standardowych metod HTTP oraz mechanizmów hipermedialnych (HATEOAS)~\cite{bib:RichardsonMaturity}. Model ten nie definiuje formalnie architektury REST, lecz systematyzuje stopniowe wdrażanie jej kluczowych założeń.
+
+Formalnych kryteriów dekompozycji systemu dostarcza metodyka projektowania dziedzinowego (ang.\ \textit{Domain-Driven Design}, DDD). Jej kluczowym elementem jest \textit{kontekst ograniczony} (ang.\ \textit{Bounded Context}), rozumiany jako wyodrębniony obszar dziedziny, w~którym obowiązuje jeden, spójny model pojęciowy~\cite{bib:Evans2003}. Odwzorowanie granic kontekstu na~pojedynczy mikroserwis zapewnia spójność odpowiedzialności biznesowej i~stanowi fundament niezależnej wdrażalności. Zasadę tę~zastosowano przy podziale platformy testowej zrealizowanej w~ramach niniejszej pracy.
+
+Projektowanie w~ramach kontekstu ograniczonego wymaga również wypracowania \textit{wspólnego języka} (ang.\ \textit{Ubiquitous Language}), czyli słownika pojęć współdzielonego przez programistów i~ekspertów dziedzinowych~\cite{bib:Evans2003}. Stosowanie wspólnego języka eliminuje niejednoznaczności semantyczne (przykładowo pojęcie „klient” może mieć odmienne atrybuty w~module sprzedaży i~w~module reklamacji) oraz zapobiega zniekształceniom modelu w~kodzie źródłowym. Ponieważ metodyka DDD wyklucza istnienie jednego, uniwersalnego modelu dla całego przedsiębiorstwa, relacje i~sposób przepływu danych pomiędzy odrębnymi kontekstami opisuje się za~pomocą \textit{mapowania kontekstów} (ang.\ \textit{context mapping}). W~miejscach, gdzie modele są~wzajemnie rozbieżne, translację realizuje \textit{warstwa ochronna} (ang.\ \textit{anticorruption layer}), zabezpieczająca wewnętrzny model usługi przed przenikaniem struktur zewnętrznych.
+
+%----------------------------------------------------------------------
+\section{Porównanie z~architekturą monolityczną}
 \label{sec:PorownanieMikroserwisyMonolit}
+%----------------------------------------------------------------------
 
-Porównanie z architekturą monolityczną jest niezbędne dla ukazania kontekstu i motywacji wyboru mikroserwisów. Ten podrozdział uzasadniał się koniecznością pokazania różnic w podejściu do projektowania, wdrażania i skalowania aplikacji. Tradycyjna architektura monolityczna używa pojedynczego modelu danych dla operacji odczytu i zapisu, co może prowadzić do problemów z wydajnością i skalowalością. Mikroserwisy natomiast pozwalają na niezależne skalowanie komponentów i izolację awarii. To porównanie pomaga czytelnikowi zrozumieć, dlaczego organizacje wybierają mikroserwisy i jakie są minusy tej decyzji.
+Architektura monolityczna (ang.\ \textit{monolithic architecture}) zakłada budowę systemu jako pojedynczej, spójnej jednostki wdrożeniowej. Wszystkie moduły funkcjonalne (warstwa prezentacji, logika biznesowa oraz dostęp do~danych) współdzielą jedną bazę danych i~funkcjonują w~ramach pojedynczego procesu systemowego~\cite{bib:Newman2021}. Skalowanie horyzontalne takiego rozwiązania wymaga replikacji całej aplikacji, niezależnie od~tego, który komponent generuje wąskie gardło wydajnościowe. Wraz z~rozrostem bazy kodu wydłużeniu ulega czas kompilacji, testowania i~wdrożenia, a~każda wprowadzana modyfikacja niesie ryzyko destabilizacji całego systemu.
 
-\section{Zalety i wyzwania mikroserwisów}
-\label{sec:ZaletyWyzwaniaMikroserwisow}
+Podejście mikroserwisowe eliminuje te ograniczenia poprzez dekompozycję na~niezależne usługi, co~zmienia zarówno strukturę kodu, jak i~model operacyjny. Zestawienie kluczowych różnic pomiędzy oboma paradygmatami przedstawia tabela~\ref{tab:MonolitMikroserwisy}.
 
-Przedstawienie zalet i wyzwań jest kluczowe dla obiektywnej oceny architektury mikroserwisowej. Zalety obejmują zwiększoną skalowalność, elastyczność technologiczną oraz odporność na awarie. Jednak mikroserwisy wprowadzają również znaczne wyzwania, takie jak złożoność zarządzania danymi rozproszonymi, konieczność implementacji mechanizmów komunikacji międzyserwisowej oraz trudności w testowaniu. Ten podrozdział jest niezbędny dla zrównoważonego przedstawienia tematu i przygotowania czytelnika na dalsze szczegóły techniczne.
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Porównanie architektury monolitycznej i~mikroserwisowej; opracowanie własne na~podstawie~\cite{bib:Newman2021, bib:Richardson2018}}
+\label{tab:MonolitMikroserwisy}
+\begin{tabular}{|p{3.1cm}|p{5.0cm}|p{5.0cm}|}
 
-\section{Ekosystem .NET w kontekście mikroserwisów}
+\hline
+
+\textbf{Wymiar} & \textbf{Architektura monolityczna} & \textbf{Architektura mikroserwisowa} \\
+
+\hline
+
+Jednostka wdrożeniowa 
+& Jeden artefakt obejmujący cały system 
+& Każda usługa może być wdrażana niezależnie \\
+
+\hline
+
+Skalowanie 
+& Replikacja całej aplikacji 
+& Skalowanie wybranych usług proporcjonalnie do~zapotrzebowania \\
+
+\hline
+
+Warstwa danych 
+& Wspólna baza danych dla modułów systemu 
+& Baza danych przypisana do~usługi \\
+
+\hline
+
+Spójność danych 
+& Transakcje ACID w~obrębie wspólnej bazy 
+& Transakcje lokalne oraz mechanizmy zapewniania spójności między usługami \\
+
+\hline
+
+Izolacja awarii 
+& Awaria modułu może wpłynąć na~działanie całego procesu 
+& Awaria pojedynczej usługi może być odizolowana od~pozostałych, wymagane mechanizmy odpornościowe \\
+
+\hline
+
+Stos technologiczny 
+& Zazwyczaj jednolity dla całego systemu 
+& Może być dobierany niezależnie dla poszczególnych usług \\
+
+\hline
+
+Komunikacja 
+& Wywołania wewnątrzprocesowe, bez narzutu komunikacji sieciowej 
+& Wywołania sieciowe, obarczone dodatkowym opóźnieniem i~ryzykiem błędów komunikacji \\
+
+\hline
+
+Złożoność operacyjna 
+& Niższa: pojedynczy proces i~prostszy potok CI/CD 
+& Wyższa: wiele usług, orkiestracja, obserwowalność i~telemetria \\
+
+\hline
+
+\end{tabular}
+
+\end{table}
+
+Przedstawione zestawienie wskazuje, że~wybór architektury mikroserwisowej stanowi kompromis inżynierski, w~którym zyski w~zakresie skalowalności i~niezależności wdrożeń okupione są~znacznym wzrostem złożoności operacyjnej. Szczególne znaczenie ma~przy tym wymiar komunikacji: zastąpienie szybkich wywołań wewnątrzprocesowych wywołaniami sieciowymi przenosi istotną część kosztu wykonania do~warstwy transportowej. Właśnie ten narzut, jego optymalizacja oraz uwarunkowania na~granicy klient--serwer stanowią główny przedmiot badań eksperymentalnych w~dalszej części pracy.
+
+%----------------------------------------------------------------------
+\section{Ekosystem .NET w~kontekście mikroserwisów}
 \label{sec:EkosystemNET}
+%----------------------------------------------------------------------
 
-Uzasadnienie tego podrozdziału wynika z tematu pracy skupiającego się na ekosystemie .NET. Platforma .NET Core oferuje zaawansowane narzędzia do budowy systemów mikroserwisowych, włączając integrację z nowoczesnymi technologiami chmurowymi. ASP.NET Core zapewnia natywne wsparcie dla gRPC, REST API oraz zaawansowanych wzorców architektonicznych. Ten podrozdział ustala technologiczne podstawy dla praktycznej części pracy i pokazuje, dlaczego .NET jest odpowiednim wyborem dla implementacji mikroserwisów.
+Ewolucja platformy .NET od~monolitycznego .NET Framework przez wieloplatformowy .NET Core aż po~wersje zunifikowane ugruntowała jej pozycję jako środowiska do~tworzenia natywnych aplikacji chmurowych (ang.\ \textit{cloud-native})~\cite{bib:MicrosoftDocs2024}. Wersja .NET~10 (edycja LTS z~listopada 2025~roku)~\cite{bib:DotNetSupport}, stanowiąca podstawę implementacyjną niniejszej pracy, rozwija kompilację statyczną \textit{Native AOT}~\cite{bib:NativeAOT} oraz optymalizacje środowiska uruchomieniowego pod~kątem wdrożeń kontenerowych.
+
+\begin{sloppypar}
+Fundamentem mikroserwisów w~ekosystemie .NET jest framework ASP.NET Core z~serwerem Kestrel, interfejsem Minimal API oraz potokiem przetwarzania opartym na~oprogramowaniu pośredniczącym (\textit{middleware})~\cite{bib:MicrosoftDocs2024}. Wysokie pozycje Kestrela w~testach TechEmpower (scenariusz \textit{Fortunes})~\cite{bib:TechEmpower} czynią go optymalnym wyborem dla usług o~wysokich wymaganiach wydajnościowych. Ekosystem ten uzupełniają: biblioteka \texttt{Grpc.AspNetCore}~\cite{bib:GrpcWebAspNet} (natywne wsparcie gRPC i~gRPC-Web), pakiet MassTransit~\cite{bib:MassTransit} (asynchroniczna szyna zdarzeń na~bazie brokera RabbitMQ) oraz Entity Framework Core jako warstwa mapowania obiektowo-relacyjnego.
+\end{sloppypar}

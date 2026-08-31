@@ -1,49 +1,25 @@
-\cleardoublepage %wymuszenie umieszczenia na nieparzystej stronie (dotyczy to tylko wstępu, pierwszego rozdziału, podsumowania i~bibliografii)
-\chapter*{Wstęp}
-\addcontentsline{toc}{chapter}{Wstęp}
+\cleardoublepage
+\chapter{Wstęp}
+\label{cha:Wstep}
 
-%--------------------------------------
-% początek: wskazówka
-%--------------------------------------
-%„Wstęp powinien przedstawiać ogólne informacje na temat, którego dotyczy praca, historię i~zakres zastosowań”~\cite{bib:ZasadyPisania}. We wstępie nie powinno być rysunków, tabel i~wzorów.
-%--------------------------------------
-% koniec: wskazówka
-%--------------------------------------
+Współczesne aplikacje internetowe coraz częściej funkcjonują jako systemy rozproszone, w~których poszczególne funkcjonalności są realizowane przez niezależne usługi. Jednym z~podejść do~budowy takich systemów jest architektura mikroserwisowa, pozwalająca na~podział aplikacji na~mniejsze, niezależne komponenty. Wraz z~takim podziałem pojawia się potrzeba sprawnej wymiany danych pomiędzy usługami oraz pomiędzy warstwą backendową a~aplikacją kliencką.
 
-W ostatnim czasie obserwuje się intensywny rozwój [Proszę uzupełnić].
+W~komunikacji z~aplikacjami internetowymi szeroko stosowanym rozwiązaniem jest styl architektoniczny REST, którego założenia zostały opisane przez Roya Fieldinga~\cite{bib:Fielding2000}. W~praktycznych zastosowaniach dane są często przesyłane w~formacie JSON. Alternatywę stanowi gRPC, wykorzystujące binarny format Protocol Buffers oraz protokół HTTP/2~\cite{bib:gRPCDocs}. Rozwiązanie to zostało zaprojektowane z~myślą o~wydajnej komunikacji pomiędzy usługami, a~badania porównawcze wskazują na~możliwe korzyści związane między innymi z~rozmiarem przesyłanych danych i~czasem odpowiedzi~\cite{bib:Niswar2024}.
 
-Niestety [Proszę wpisać wadę lub niedogodność istniejących rozwiązań].
+Charakter komunikacji w~przeglądarce internetowej powoduje jednak, że~natywne gRPC nie może być wykorzystywane w~niej w~taki sam sposób jak w~środowisku serwerowym. Rozwiązaniem tego problemu jest gRPC-Web, umożliwiające wykorzystanie mechanizmów gRPC w~aplikacjach działających w~przeglądarce~\cite{bib:gRPCWeb}. Może ono być obsługiwane między innymi z~wykorzystaniem Envoy Proxy~\cite{bib:EnvoyProxy} lub bezpośrednio przez serwer aplikacyjny, na~przykład w~środowisku ASP.NET Core~\cite{bib:GrpcWebAspNet}. Różne sposoby realizacji tej komunikacji wprowadzają odmienne charakterystyki techniczne, których wpływ na~wydajność nie jest oczywisty.
 
-W związku z~tym, ciekawym wydaje się zaprojektowanie i~zrealizowanie [Proszę uzupełnić].
+W~praktycznym systemie wynik pomiaru zależy również od~warunków, w~jakich wykonywane są żądania. Znaczenie może mieć między innymi rozmiar przesyłanych danych, liczba równoczesnych klientów, sposób obsługi pamięci podręcznej oraz konieczność wykonania operacji na~bazie danych. Z~tego względu porównanie samych mechanizmów serializacji lub pojedynczych żądań nie pozwala w~pełni ocenić zachowania poszczególnych rozwiązań w~warunkach zwiększonego obciążenia.
 
-\section*{Cel pracy}
-\addcontentsline{toc}{section}{Cel pracy}
+\section{Cel pracy}
+\label{sec:CelPracy}
 
-%--------------------------------------
-% początek: wskazówka
-%--------------------------------------
-%„Pierwszy akapit dotyczy sformułowania problematyki i~dziedziny pracy. W~drugi akapicie opisuje się część teoretyczną – jej cele, a~w trzecim części praktycznej. Przykładowe cele: analiza istniejących metod i~technik, eksperymentalne badania różnych rozwiązań, zaprojektowanie i~wykonanie programu lub systemu komputerowego”~\cite{bib:ZasadyPisania}.
-%--------------------------------------
-% koniec: wskazówka
-%--------------------------------------
+Głównym celem pracy jest zaprojektowanie, implementacja oraz eksperymentalna walidacja systemu mikroserwisowego w~ekosystemie .NET~10, umożliwiającego porównawczą analizę wydajności protokołów komunikacji na~granicy pomiędzy aplikacją przeglądarkową a~warstwą usług.
 
-Celem niniejszej pracy jest zaprojektowanie i~zrealizowanie [Proszę uzupełnić].
+\begin{sloppypar}
+W~pracy postawiono następującą tezę: zastosowanie gRPC-Web w~komunikacji przeglądarki z~warstwą usług pozwala uzyskać lepszą wydajność niż klasyczny REST oparty na~JSON, jednak przewaga ta nie jest uniwersalna i~zależy od~charakterystyki obciążenia, w~szczególności od~rozmiaru przesyłanych danych oraz poziomu współbieżności.
+\end{sloppypar}
 
-\section*{Zakres pracy}
-\addcontentsline{toc}{section}{Zakres pracy}
+\section{Zakres pracy}
+\label{sec:ZakresPracy}
 
-Zakres pracy obejmuje:
-
-\begin{itemize}
-\item zebranie wiadomości z~zakresu [Proszę uzupełnić],
-
-\item porównanie [Proszę uzupełnić],
-
-\item opracowanie założeń projektowych dotyczących [Proszę uzupełnić],
-
-\item implementację [Proszę uzupełnić],
-
-\item przetestowanie [Proszę uzupełnić].
-\end{itemize}
-
-% W Rozdziale~\ref{cha:RozdzialWprowadzajacy} pracy opisano/ podsumowano/ opisano/ rozważano/ skoncentrowano się na [Proszę uzupełnić]. Natomiast w~Rozdziale [Proszę uzupełnić] opisano/ podsumowano/ opisano/ rozważano/ skoncentrowano się na [Proszę uzupełnić]. itd.
+W~rozdziale~\ref{cha:WprowadzenieDoMikroserwisow} przedstawiono fundamenty architektury mikroserwisowej, porównanie z~modelem monolitycznym oraz specyfikę ekosystemu .NET. Rozdział~\ref{cha:MechanizmyKomunikacji} omawia mechanizmy komunikacji synchronicznej i~asynchronicznej wraz z~architekturą frameworka gRPC. W~rozdziale~\ref{cha:gRPCWeb} scharakteryzowano ograniczenia natywnego gRPC w~przeglądarkach, architekturę protokołu gRPC-Web oraz jego implementację we~frameworku Angular. Rozdział~\ref{cha:WzorceProjektowe} prezentuje wzorce architektoniczne zastosowane w~systemie, w~tym CQRS, Cache-Aside, rolę serwera pośredniczącego oraz mechanizmy odpornościowe bazy danych. Rozdział~\ref{cha:StudiumPrzypadku} opisuje architekturę badanego systemu testowego, proces wdrożenia w~środowisku chmurowym oraz warstwę obserwowalności. W~rozdziale~\ref{cha:MetodologiaBadan} sformułowano hipotezy badawcze, projekt aplikacji testowej, procedury pomiarowe oraz macierz scenariuszy badawczych. Rozdział~\ref{cha:AnalizaWydajnosci} zawiera porównawczą analizę wydajności protokołów gRPC-Web i~REST oraz weryfikację hipotez. Pracę zamyka podsumowanie zestawiające osiągnięte rezultaty, wnioski inżynierskie oraz kierunki dalszego rozwoju zrealizowanej platformy.

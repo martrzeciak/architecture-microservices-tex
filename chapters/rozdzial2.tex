@@ -1,53 +1,85 @@
 \cleardoublepage
 
-\chapter{Mechanizmy komunikacji w architekturze mikroserwisowej}
+\chapter{Mechanizmy komunikacji w~architekturze mikroserwisowej}
+
 \label{cha:MechanizmyKomunikacji}
+
+Jak przedstawiono w~rozdziale~\ref{cha:WprowadzenieDoMikroserwisow}, architektura mikroserwisowa zakłada podział systemu na~niezależne usługi odpowiedzialne za~określone obszary funkcjonalne. Każdy mikroserwis funkcjonuje jako odrębny proces, co~sprawia, że~realizacja złożonych procesów biznesowych wymaga komunikacji pomiędzy poszczególnymi usługami. Wybór odpowiedniego mechanizmu wymiany danych ma~istotne znaczenie dla wydajności, skalowalności i~niezawodności całego systemu~\cite{bib:Richardson2018}.
+
+Mechanizmy komunikacji stosowane w~architekturze mikroserwisowej można podzielić ze~względu na~sposób wymiany danych na~komunikację synchroniczną oraz asynchroniczną. W~pierwszym przypadku usługa oczekuje na~odpowiedź w~ramach obsługi żądania, natomiast w~drugim wymiana danych odbywa się niezależnie od~bezpośredniej odpowiedzi odbiorcy, najczęściej za~pośrednictwem brokera wiadomości. Oba podejścia znajdują zastosowanie w~różnych scenariuszach i~charakteryzują się odmiennymi właściwościami.
+
+
+%----------------------------------------------------------------------
+
+\section{Komunikacja asynchroniczna}
+
+\label{sec:KomunikacjaAsynchroniczna}
+
+%----------------------------------------------------------------------
+
+Komunikacja asynchroniczna zakłada rozdzielenie momentu wysłania wiadomości od~jej przetworzenia przez odbiorcę. Nadawca nie musi oczekiwać na~bezpośrednią odpowiedź usługi, a~wiadomość może zostać przechowana przez pośredniczący broker i~przetworzona w~późniejszym czasie. Podejście to~ogranicza bezpośrednie zależności pomiędzy usługami oraz umożliwia niezależne przetwarzanie wiadomości w~warunkach zmiennego obciążenia.
+W~ekosystemie .NET komunikacja asynchroniczna może być realizowana z~wykorzystaniem brokerów wiadomości oraz bibliotek zapewniających abstrakcję nad ich obsługą.
+
+%----------------------------------------------------------------------
 
 \section{Komunikacja synchroniczna}
 \label{sec:KomunikacjaSynchroniczna}
 
-\subsection{REST API w ASP.NET Core}
+%----------------------------------------------------------------------
+
+Komunikacja synchroniczna opiera się na~modelu żądanie--odpowiedź, w~którym nadawca wysyła żądanie do~odbiorcy i~oczekuje na~jego przetworzenie oraz zwrócenie odpowiedzi. Podejście to~jest powszechnie stosowane zarówno w~komunikacji pomiędzy aplikacjami internetowymi a~usługami backendowymi, jak i~pomiędzy mikroserwisami.
+W~ekosystemie .NET komunikacja synchroniczna może być realizowana z~wykorzystaniem różnych mechanizmów, w~tym stylu REST oraz mechanizmów RPC.
+
+\subsection{REST API w~ASP.NET Core}
 \label{subsec:RESTAPI}
 
-REST pozostaje najpopularniejszym stylem architektonicznym dla komunikacji między mikroserwisami. Uzasadnienie tego podrozdziału wynika z konieczności przedstawienia tradycyjnego podejścia, które będzie później porównywane z gRPC w części badawczej pracy. REST wykorzystuje protokół HTTP/1.1 i jest intuicyjny dla programistów webowych. ASP.NET Core oferuje bogate wsparcie dla tworzenia REST API z funkcjami takimi jak automatyczna walidacja modeli, routing oraz integracja z OpenAPI.
+\textit{Representational State Transfer} (REST) to~styl architektoniczny sformalizowany przez Roya Fieldinga~\cite{bib:Fielding2000}, definiujący zestaw reguł dla rozproszonych systemów hipermedialnych. W~architekturze mikroserwisowej REST stanowi najpowszechniejszy mechanizm komunikacji synchronicznej ze~względu na~prostotę, uniwersalność oraz dojrzałość ekosystemu narzędziowego~\cite{bib:Newman2021, bib:Fowler2014}. Opiera się na~wykorzystaniu metod protokołu HTTP (GET, POST, PUT, DELETE) do~operacji na~zasobach identyfikowanych przez URI, których reprezentację najczęściej stanowi format JSON.
 
-\subsection{gRPC - architektura i implementacja}
+Fielding zdefiniował sześć podstawowych ograniczeń stylu REST: architekturę klient--serwer, bezstanowość, buforowalność odpowiedzi, warstwowość systemu, opcjonalny kod na~żądanie oraz jednolity interfejs~\cite{bib:Fielding2000}. W~praktyce inżynierskiej kluczowy element jednolitego interfejsu, jakim jest sterowanie stanem aplikacji przez hipermedia (HATEOAS), bywa pomijany na~rzecz prostszego modelu żądanie--odpowiedź.
+
+W~środowisku .NET interfejsy REST API mogą być implementowane za pomocą platformy ASP.NET Core. Framework udostępnia między innymi model \textit{Minimal API}~\cite{bib:MinimalApi}, umożliwiający definiowanie punktów końcowych bez konieczności stosowania kontrolerów. Listing~\ref{lst:RESTMinimal} przedstawia przykładową implementację asynchronicznego pobierania rekordu.
+
+\begin{lstlisting}[language={[Sharp]C}, caption={Definicja punktu końcowego REST z~wykorzystaniem Minimal API w~.NET~10}, label=lst:RESTMinimal]
+app.MapGet("/api/products/{id}", async (ProductDbContext db, string id) =>
+{
+    var product = await db.Products
+        .AsNoTracking()
+        .FirstOrDefaultAsync(p => p.Id == id);
+        
+    return product is null ? Results.NotFound() : Results.Ok(product);
+});
+\end{lstlisting}
+
+Do~głównych zalet stylu REST należą bezstanowość ułatwiająca skalowanie horyzontalne, natywna obsługa buforowania odpowiedzi w~infrastrukturze sieciowej oraz czytelność formatu JSON. Do~ograniczeń zalicza się narzut objętościowy danych tekstowych, brak ścisłego kontraktu binarnego oraz zjawisko nadmiernej komunikacji (ang.\ \textit{chatty API}).
+
+\section{gRPC -- architektura i~implementacja}
 \label{subsec:gRPC}
 
-Ten podrozdział jest kluczowy dla aspektu badawczego pracy. gRPC wykorzystuje HTTP/2 i Protocol Buffers, co zapewnia 5-10 razy większą przepustowość niż REST. Framework ten oferuje unikalne funkcje jak np. silne typowanie interfejsów. Szczegółowe omówienie architektury gRPC jest niezbędne dla zrozumienia wyników testów wydajnościowych, które będą przeprowadzone w części empirycznej pracy.
+gRPC to~framework komunikacji wykorzystujący protokół HTTP/2 oraz format serializacji Protocol Buffers, opracowany przez Google i~udostępniony jako projekt open-source w~2015~roku \cite{bib:gRPCDocs}. W~porównaniu do~REST wykorzystuje binarną serializację danych oraz mechanizmy HTTP/2, w~tym multipleksowanie wielu wywołań w~ramach jednego połączenia TCP. Z~tego względu jest często stosowany w~komunikacji pomiędzy mikroserwisami, gdzie istotne są~wydajność i~niskie opóźnienia.
 
-\subsection{GraphQL jako alternatywa}
-\label{subsec:GraphQL}
+Centralnym elementem gRPC jest kontrakt definiowany za~pomocą języka Protocol Buffers, określający typy danych oraz operacje dostępne w~usłudze \cite{bib:ProtocolBuffers}. Definicja zapisana w~pliku \texttt{.proto} może zostać wykorzystana do~automatycznej generacji kodu klienta i~serwera. Przykładową definicję serwisu przedstawiono na~listingu~\ref{lst:gRPCProto}.
 
-GraphQL zasługuje na uwagę jako alternatywne podejście do projektowania API, które może wpływać na wydajność komunikacji. Ten podrozdział uzasadnia się potrzebą przedstawienia kompletnego spektrum opcji komunikacji synchronicznej.
+\begin{lstlisting}[caption={Definicja serwisu gRPC w~formacie Protocol Buffers}, label=lst:gRPCProto]
+syntax = "proto3";
 
-\section{Komunikacja asynchroniczna}
-\label{sec:KomunikacjaAsynchroniczna}
+package product;
 
-\subsection{Message Brokers (RabbitMQ, Azure Service Bus)}
-\label{subsec:MessageBrokers}
+service ProductService {
+  rpc GetProduct (ProductRequest) returns (ProductResponse);
+  rpc StreamProducts (ProductRequest) returns (stream ProductResponse);
+}
 
-Komunikacja asynchroniczna jest fundamentalna dla osiągnięcia luźnego sprzężenia w architekturze mikroserwisowej. Message brokers eliminują bezpośrednie zależności między serwisami i umożliwiają implementację wzorców event-driven. RabbitMQ i Azure Service Bus są wiodącymi rozwiązaniami w ekosystemie .NET, oferującymi różne mechanizmy dostarczania wiadomości i gwarancje spójności.
+message ProductRequest {
+  string id = 1;
+}
 
-\subsection{Event-driven Architecture}
-\label{subsec:EventDrivenArchitecture}
+message ProductResponse {
+  string id = 1;
+  string name = 2;
+  double price = 3;
+}
+\end{lstlisting}
 
-Event-driven architecture stanowi kluczowy wzorzec dla mikroserwisów, umożliwiając reaktywne przetwarzanie zdarzeń. Ten podrozdział uzasadnia się koniecznością pokazania, jak zdarzenia mogą zastąpić bezpośrednie wywołania API i zwiększyć elastyczność systemu. Wzorzec ten jest szczególnie istotny w kontekście Event Sourcing, który będzie omówiony w dalszej części pracy.
-
-\section{Komunikacja w czasie rzeczywistym}
-\label{sec:KomunikacjaCzasRzeczywisty}
-
-\subsection{WebSockets w aplikacjach internetowych}
-\label{subsec:WebSockets}
-
-WebSockets są kluczowe dla komunikacji w czasie rzeczywistym, oferując pełnodupleksową komunikację między klientem a serwerem. WebSockets eliminują ograniczenia tradycyjnego modelu request-response HTTP i umożliwiają natychmiastowe przekazywanie aktualizacji.
-
-\subsection{Server-Sent Events (SSE)}
-\label{subsec:ServerSentEvents}
-
-SSE stanowią alternatywę dla WebSockets w scenariuszach jednostronnej komunikacji serwer-klient. Uzasadnienie tego podrozdziału wynika z potrzeby przedstawienia pełnego spektrum opcji komunikacji w czasie rzeczywistym.
-
-\subsection{gRPC Streaming}
-\label{subsec:gRPCStreaming}
-
-gRPC oferuje unikalne możliwości streamingu, które łączą wydajność binarnej komunikacji z elastycznością streaming. Ten podrozdział uzasadnia się potrzebą pokazania, jak gRPC może konkurować z WebSockets w aplikacjach wymagających komunikacji w czasie rzeczywistym.
+\begin{sloppypar}
+W~ekosystemie .NET obsługa gRPC jest dostępna za~pośrednictwem pakietu \texttt{Grpc.AspNetCore}, który integruje framework z~platformą ASP.NET~Core. HTTP/2 zapewnia między innymi multipleksowanie wielu strumieni oraz kontrolę przepływu \cite{bib:RFC9113}. Kompresja nagłówków za~pomocą algorytmu HPACK dodatkowo ogranicza ilość przesyłanych danych \cite{bib:RFC7541}. W~połączeniu z~binarną serializacją Protocol Buffers pozwala to~zmniejszyć rozmiar komunikatów w~porównaniu z~formatem JSON.
+\end{sloppypar}

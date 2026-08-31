@@ -3,29 +3,515 @@
 \chapter{Porównawcza analiza wydajności gRPC vs REST}
 \label{cha:AnalizaWydajnosci}
 
-\section{Przeprowadzenie testów wydajnościowych}
-\label{sec:TestyWydajnosciowe}
+Niniejszy rozdział przedstawia wyniki eksperymentu przeprowadzonego zgodnie z~metodologią opisaną w~rozdziale. Analiza rozpoczyna się od~wielkości niezależnych od~warunków sieciowych: wolumenu przesyłanych danych oraz wynikającego z~niego modelu liczby wymian pakietów. Dopiero one pozwalają zinterpretować zmierzone czasy odpowiedzi. Następnie omówione zostają kolejno scenariusze Echo, Products i~Orders, rozdzielenie wpływu serializacji od~wpływu wersji protokołu HTTP, granica przepustowości stanowiska pomiarowego, powtarzalność wyników wraz z~przedziałami ufności wyznaczonymi dla zmierzonych różnic oraz mechanizmy kontrolne potwierdzające wiarygodność uzyskanych rezultatów. Rozdział zamyka weryfikacja hipotez oraz rekomendacje architektoniczne wraz z~wytycznymi wdrożeniowymi.
 
-\subsection{Różne rozmiary payload'ów}
-\label{subsec:RozneRozmiary}
+% -----------------------------------------------------------------------
+\section{Wolumen przesyłanych danych}
+\label{sec:WolumenDanych}
+% -----------------------------------------------------------------------
 
-\subsection{Różne poziomy obciążenia}
-\label{subsec:RozneObciazenia}
+Rozmiary odpowiedzi wyznaczono pomiarowo na~wdrożonym systemie, zestawiając liczbę bajtów zwracanych przez punkt końcowy REST oraz przez usługę gRPC dla identycznego zapytania. Wyniki przedstawia tabela~\ref{tab:WolumenDanych}.
 
-\subsection{Modele komunikacji (synchroniczna, strumieniowa)}
-\label{subsec:ModelKomunikacji}
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Zmierzony rozmiar odpowiedzi [B] i~redukcja uzyskana serializacją binarną}
+\label{tab:WolumenDanych}
+\begin{tabular}{|l|c|r|r|c|}
+\hline
+\textbf{Scenariusz} & \textbf{Rekordów} & \textbf{JSON} & \textbf{Protocol Buffers} & \textbf{Redukcja} \\
+\hline
+Products & 10   & 1\,328   & 752      & 43,4\% \\
+Products & 200  & 26\,405  & 14\,998  & 43,2\% \\
+Products & 500  & 66\,556  & 38\,054  & 42,8\% \\
+Products & 1000 & 133\,134 & 76\,200$^{*}$  & 42,8\%$^{*}$ \\
+Products & 2000 & 265\,159 & 151\,700$^{*}$ & 42,8\%$^{*}$ \\
+\hline
+Echo     & 10   & 1\,771   & 1\,190   & 32,8\% \\
+Echo     & 200  & 36\,242  & 24\,104  & 33,5\% \\
+\hline
+\multicolumn{5}{|l|}{\footnotesize $^{*}$ wartość oszacowana przez ekstrapolację zmierzonego współczynnika redukcji} \\
+\hline
+\end{tabular}
+\end{table}
 
-\section{Analiza wyników}
-\label{sec:AnalizaWynikow}
+Serializacja binarna redukuje wolumen przesyłanych danych o~42,8--43,4\% w~scenariuszu Products oraz o~32,8--33,5\% w~scenariuszu Echo. Stabilność współczynnika względem liczby rekordów potwierdza jego systematyczny charakter.
 
-\subsection{Przepustowość (transakcje na sekundę)}
-\label{subsec:Przepustowosc}
+\subsection{Wpływ kompresji treści na~wolumen danych}
+\label{subsec:Kompresja}
 
-\subsection{Opóźnienia i czas odpowiedzi}
-\label{subsec:Opoznienia}
+Wszystkie rozmiary przedstawione w~tabeli~\ref{tab:WolumenDanych} dotyczą treści nieskompresowanej. W~badanym systemie kompresja ciała odpowiedzi nie została włączona na~żadnej ze~ścieżek: usługi nie korzystają z~oprogramowania pośredniczącego kompresji, a~konfiguracja serwera pośredniczącego nie zawiera filtra kompresora. W~takim przypadku żaden z~badanych wariantów nie jest uprzywilejowany. Odpowiada on~przy tym domyślnym ustawieniom platformy ASP.NET Core oraz szkieletu gRPC dla~.NET. Konsekwencje tego wyboru dla zakresu wniosków wymagają jednak omówienia, ponieważ w~praktyce wdrożeniowej dokumenty JSON podawane są~najczęściej z~kompresją realizowaną przez serwer aplikacyjny, odwrotne proxy lub sieć dostarczania treści.
 
-\subsection{Wykorzystanie zasobów systemowych}
-\label{subsec:WykorzystanieZasobow}
+Wpływ kompresji oszacowano ilościowo dla scenariusza Echo, którego ładunek generowany jest w~sposób deterministyczny. Poprawność odtworzenia zweryfikowano przez porównanie z~rozmiarami zmierzonymi na~wdrożonym systemie: dla 200~rekordów uzyskano 36\,246~B wobec zmierzonych 36\,242~B w~formacie JSON oraz 24\,079~B wobec 24\,104~B w~formacie binarnym, czyli odchylenie nieprzekraczające 0,1\%. Wyniki kompresji algorytmem gzip przedstawia tabela~\ref{tab:Kompresja}.
 
-\section{Porównanie z WebSockets i gRPC-Web}
-\label{sec:PorowanieWebSockets}
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Rozmiar ładunku scenariusza Echo bez~kompresji i~po~kompresji gzip [B] oraz wynikająca z~niego liczba okien odbiorczych}
+\label{tab:Kompresja}
+\begin{tabular}{|c|r|r|r|r|c|c|}
+\hline
+\textbf{Rek.} & \textbf{JSON} & \textbf{JSON gz} & \textbf{protobuf} & \textbf{protobuf gz} & \textbf{Okien JSON gz} & \textbf{Okien protobuf} \\
+\hline
+200  & 36\,246  & 2\,964  & 24\,079  & 2\,523  & 0,05 & 0,37 \\
+500  & 91\,247  & 7\,129  & 60\,679  & 5\,986  & 0,11 & 0,93 \\
+2000 & 370\,255 & 27\,715 & 246\,682 & 22\,686 & 0,42 & 3,76 \\
+\hline
+\end{tabular}
+\end{table}
+
+Zestawienie prowadzi do~dwóch wniosków o~istotnym znaczeniu dla zakresu stosowalności wyników.
+
+Po~pierwsze, kompresja redukuje wolumen formatu tekstowego 12--13-krotnie, natomiast formatu binarnego 9,5--11-krotnie. Po~jej zastosowaniu przewaga objętościowa serializacji binarnej maleje z~33\% do~15--18\%.
+Po~drugie, i~ważniejsze, po~kompresji wszystkie badane ładunki mieszczą się w~jednym oknie odbiorczym: przy 2000~rekordach skompresowany dokument JSON zajmuje 0,42~okna, wobec 3,76~okna wymaganych przez nieskompresowaną wiadomość binarną. Zgodnie z~modelem przedstawionym w~sekcji~\ref{sec:ModelOkna} oznacza to, że~mechanizm odpowiadający za~wykazaną w~niniejszej pracy przewagę, czyli zmniejszenie liczby wymian pakietów, w~konfiguracji z~kompresją nie zostałby uruchomiony w~całym badanym zakresie rozmiarów odpowiedzi. Pozostałaby wyłącznie różnica wynikająca z~kosztu serializacji i~deserializacji. Przewaga czasowa wykazana w niniejszym rozdziale dotyczy zatem transferów nieskompresowanych; jej przeniesienie na wdrożenie z~kompresją włączoną wymagałoby odrębnego pomiaru.
+
+% -----------------------------------------------------------------------
+\section{Model liczby wymian pakietów}
+\label{sec:ModelOkna}
+% -----------------------------------------------------------------------
+
+Zmierzona charakterystyka łącza (sekcja~\ref{subsec:CharakterystykaLacza}) ujawniła, że~przepustowość pojedynczego połączenia wynosi około 20~Mbit/s, mimo że~przepustowość zagregowana przekracza 270~Mbit/s. Iloczyn przepustowości i~opóźnienia dla tego połączenia wynosi
+
+\begin{equation}
+20~\mathrm{Mbit/s} \cdot 0{,}0262~\mathrm{s} \approx 65\,500~\mathrm{B} \approx 64~\mathrm{KiB},
+\label{eq:BDP}
+\end{equation}
+
+co~odpowiada rozmiarowi okna odbiorczego protokołu TCP bez~zastosowania skalowania okna~\cite{bib:RFC9293}. Przy oknie mniejszym od~iloczynu przepustowości i~opóźnienia przepustowość osiągalna w~jednym połączeniu wynika z~rozmiaru okna, nie z~pojemności łącza. Czynnikiem ograniczającym pojedyncze żądanie nie jest zatem pojemność łącza, lecz ilość danych, jaką nadawca może wysłać przed otrzymaniem potwierdzenia: po~wypełnieniu okna transmisja wstrzymuje się do~nadejścia potwierdzenia od~odbiorcy.
+
+Zgodność wartości 64~KiB z~iloczynem przepustowości i~opóźnienia nie jest
+dowodem, lecz przesłanką: obie wielkości powiązane są~tożsamością
+$B = W / \mathrm{RTT}$: tym~samym równaniem co~w~równaniu~(\ref{eq:BDP}),
+zapisanym względem~$B$ zamiast~$W$, a~wyznaczenie jednej z~drugiej
+stanowi jedynie przeliczenie. Rozstrzygające jest natomiast to, że~wielkość ta~przewiduje niezależnie zmierzone czasy odpowiedzi dla ładunków o~różnym rozmiarze, co~wykazano w~dalszej części sekcji. Należy przy tym zaznaczyć, że~identyczny schodkowy przebieg dawałby mechanizm powolnego startu protokołu TCP, w~którym okno zatoru narasta w~kolejnych obiegach pakietu. Rozstrzygnięcie, który z~obu mechanizmów jest tu~czynnikiem wiodącym, wymagałoby przechwycenia ruchu na~poziomie pakietów, czego nie wykonano, dla wniosków pracy jest to~jednak bez znaczenia, ponieważ oba prowadzą do~tego~samego przewidywania: koszt transmisji rośnie skokowo, o~wielokrotność opóźnienia obiegu pakietu, wraz z~przekraczaniem kolejnych wielokrotności rozmiaru okna.
+
+Z~zależności tej wynika model przewidujący czas transmisji odpowiedzi. Przesłanie odpowiedzi o~rozmiarze $s$ wymaga $\lceil s / 64~\mathrm{KiB} \rceil$ okien, a~każde okno ponad pierwsze kosztuje jedno dodatkowe opóźnienie obiegu pakietu. Przewidywana liczba dodatkowych obiegów wynosi zatem
+
+\begin{equation}
+n_{\mathrm{RTT}} = \left\lceil \frac{s}{64~\mathrm{KiB}} \right\rceil - 1.
+\label{eq:WindowModel}
+\end{equation}
+
+Model ten poddano weryfikacji ilościowej, przyjmując za~punkt odniesienia konfigurację o~200~rekordach, w~której odpowiedź obu formatów mieści się w~jednym oknie. Nadwyżkę czasu względem tego punktu odniesienia podzielono przez zmierzone opóźnienie obiegu pakietu (26,2~ms). Wyniki przedstawia tabela~\ref{tab:WeryfikacjaModelu}.
+
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Weryfikacja modelu -- przewidywana i~zmierzona liczba dodatkowych obiegów pakietu}
+\label{tab:WeryfikacjaModelu}
+\begin{tabular}{|l|c|r|c|c|c|}
+\hline
+\textbf{Scenariusz} & \textbf{Rekordów} & \textbf{Rozmiar [B]} & \textbf{Okien} & \textbf{Przewid.} & \textbf{Zmierz.} \\
+\hline
+Echo, JSON      & 500  & 90\,500$^{*}$   & 1,38 & 1 & 1,04 \\
+Echo, JSON      & 2000 & 362\,000$^{*}$  & 5,52 & 5 & 5,15 \\
+Echo, protobuf  & 500  & 60\,500$^{*}$   & 0,92 & 0 & 0,10 \\
+Echo, protobuf  & 2000 & 242\,000$^{*}$  & 3,69 & 3 & 3,29 \\
+\hline
+Products, JSON      & 500  & 66\,556   & 1,02 & 1 & 0,97 \\
+Products, JSON      & 1000 & 133\,134  & 2,03 & 2 & 1,89 \\
+Products, JSON      & 2000 & 265\,159  & 4,05 & 4 & 3,83 \\
+Products, protobuf  & 500  & 38\,054   & 0,58 & 0 & 0,08 \\
+Products, protobuf  & 1000 & 76\,200$^{*}$   & 1,16 & 1 & 1,06 \\
+Products, protobuf  & 2000 & 151\,700$^{*}$  & 2,31 & 2 & 2,19 \\
+\hline
+\multicolumn{6}{|l|}{\footnotesize $^{*}$ wartość wyznaczona przez ekstrapolację zmierzonego rozmiaru pojedynczego rekordu} \\
+\hline
+\end{tabular}
+\end{table}
+
+Zgodność jest bardzo dobra we~wszystkich dziesięciu przypadkach: różnica pomiędzy wartością przewidywaną a~zmierzoną nie przekracza 0,2~obiegu, a~w~żadnym przypadku nie zmienia liczby całkowitej. Model wyjaśnia w~szczególności zjawisko, którego nie sposób wyjaśnić samą przepustowością: różnica 30~kilobajtów pomiędzy formatami przy 500~rekordach scenariusza Echo odpowiadałaby przy przepustowości zagregowanej niespełna jednej milisekundy, a~przy przepustowości pojedynczego strumienia, około dwunastu milisekund, natomiast zmierzona różnica wynosi 26~ms, czyli dokładnie jeden obieg pakietu.
+
+Przewaga serializacji binarnej nie jest ciągłą funkcją rozmiaru odpowiedzi, lecz realizuje się skokowo: wyłącznie wtedy, gdy mniejszy ładunek wymaga mniejszej liczby okien. Ponadto wielkość tej przewagi jest proporcjonalna do~opóźnienia łącza, nie do~szybkości serwera: w~sieci lokalnej, gdzie opóźnienie obiegu pakietu jest mniejsze od~milisekundy, ten~sam mechanizm dawałby korzyść pomijalną.
+
+% -----------------------------------------------------------------------
+\section{Analiza narzutu protokołu (Echo)}
+\label{sec:AnalizaEcho}
+% -----------------------------------------------------------------------
+
+Scenariusze Echo izolują koszt protokołu od~kosztu warstwy danych. Tabela~\ref{tab:EchoLatency} przedstawia zmierzone mediany opóźnień wraz ze~współczynnikami zmienności.
+
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Mediana opóźnienia w~scenariuszach Echo [ms]; w~nawiasach współczynnik zmienności median pięciu przebiegów}
+\label{tab:EchoLatency}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{VU} & \textbf{Rekordów} & \textbf{REST} & \textbf{Envoy} & \textbf{Direct} & \textbf{Direct vs REST} \\
+\hline
+10 & 10   & 31,0 (0,7\%) & 32,6 (4,6\%) & 30,1 (2,9\%) & $-$3\% \\
+10 & 100  & 32,1 (2,9\%) & 32,2 (1,5\%) & 30,8 (3,4\%) & $-$4\% \\
+10 & 200  & 32,6 (1,1\%) & 33,3 (1,5\%) & 31,3 (1,3\%) & $-$4\% \\
+10 & 500  & 59,8 (1,0\%) & 35,2 (1,8\%) & 33,8 (2,3\%) & $\mathbf{-43\%}$ \\
+10 & 2000 & 167,6 (0,7\%) & 120,8 (1,8\%) & 117,4 (1,6\%) & $\mathbf{-30\%}$ \\
+\hline
+20 & 10   & 37,1 (5,7\%) & 34,8 (4,0\%) & 32,5 (3,6\%) & $-$12\% \\
+20 & 100  & 39,0 (4,3\%) & 35,6 (6,9\%) & 33,0 (3,3\%) & $-$15\% \\
+20 & 200  & 37,0 (5,6\%) & 34,9 (1,7\%) & 33,8 (3,0\%) & $-$9\% \\
+20 & 500  & 60,6 (1,7\%) & 39,1 (6,0\%) & 35,5 (11,5\%) & $\mathbf{-41\%}$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/chart_browser_echo.png}
+\caption{Mediana opóźnienia w~scenariuszach Echo względem liczby rekordów w~odpowiedzi}
+\label{fig:WykresEcho}
+\end{figure}
+
+Zależność tę~przedstawia rysunek~\ref{fig:WykresEcho}. Dane pozwalają na~sformułowanie trzech obserwacji.
+
+Po~pierwsze, do~200~rekordów włącznie różnice pomiędzy protokołami pozostają niewielkie, od~trzech do~piętnastu procent, przy wartościach bezwzględnych rzędu jednej do~pięciu milisekund. Zgodnie z~modelem z~sekcji~\ref{sec:ModelOkna} odpowiedzi tego rozmiaru mieszczą się w~jednym oknie w~obu formatach; liczba obiegów pakietu jest zatem identyczna, a~pozostała różnica wynika z~narzutu ramkowania i~warstwy transportowej.
+
+Po~drugie, przejście z~200 na~500~rekordów powoduje skokową zmianę obrazu. Opóźnienie REST rośnie z~32,6 do~59,8~ms, czyli o~27,2~ms, natomiast opóźnienie wariantu Direct -- z~31,3 do~33,8~ms, czyli o~2,5~ms. Przewaga wariantu binarnego osiąga w~tej konfiguracji 43\%. Jest to~najczystsze potwierdzenie modelu okna w~całym eksperymencie: przyrost REST odpowiada dokładnie jednemu opóźnieniu obiegu pakietu, ponieważ dokument JSON o~rozmiarze 90,5~kilobajta nie mieści się w~jednym oknie, natomiast wiadomość binarna o~rozmiarze 60,5~kilobajta -- mieści.
+
+Po~trzecie, przy 2000~rekordach przewaga wynosi 30\%, czyli zbliża się do~zmierzonego współczynnika redukcji wolumenu danych. Powyżej kilku okien liczba obiegów staje się w~przybliżeniu proporcjonalna do~rozmiaru odpowiedzi, a~przewaga czasowa zbiega wówczas do~przewagi objętościowej.
+
+Współczynniki zmienności nie przekraczają w~tej grupie 6,9\%, z~jednym wyjątkiem na~poziomie 11,5\%. Wszystkie omówione relacje zachodzą konsekwentnie w~każdym z~pięciu przebiegów.
+
+% -----------------------------------------------------------------------
+\section{Analiza wydajności odczytu (Products)}
+\label{sec:AnalizaProducts}
+% -----------------------------------------------------------------------
+
+Scenariusze Products badają wydajność w~realistycznym kontekście odczytu katalogu, z~pełnym łańcuchem obejmującym pamięć podręczną lub bazę danych, deserializację w~przeglądarce oraz aktualizację interfejsu.
+
+\subsection{Odczyt z~ciepłą pamięcią podręczną}
+\label{subsec:ProductsWarm}
+
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Mediana opóźnienia w~scenariuszach Products, ciepła pamięć podręczna [ms]; w~nawiasach współczynnik zmienności median pięciu przebiegów}
+\label{tab:ProductsWarm}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{VU} & \textbf{PageSize} & \textbf{REST} & \textbf{Envoy} & \textbf{Direct} & \textbf{Direct vs REST} \\
+\hline
+10 & 10   & 33,6 (6,7\%) & 34,9 (2,0\%) & 31,7 (2,7\%) & $-$6\% \\
+10 & 100  & 39,2 (8,0\%) & 41,7 (6,3\%) & 39,0 (2,6\%) & $-$1\% \\
+10 & 200  & 40,3 (3,7\%) & 42,0 (5,7\%) & 39,0 (5,0\%) & $-$3\% \\
+10 & 500  & 65,8 (0,6\%) & 42,3 (4,5\%) & 41,1 (3,5\%) & $\mathbf{-38\%}$ \\
+10 & 1000 & 89,9 (1,4\%) & 69,4 (4,5\%) & 66,9 (1,0\%) & $\mathbf{-26\%}$ \\
+10 & 2000 & 140,6 (1,6\%) & 97,5 (1,8\%) & 96,5 (1,4\%) & $\mathbf{-31\%}$ \\
+\hline
+20 & 10   & 40,9 (4,6\%) & 37,5 (6,2\%) & 34,4 (1,4\%) & $-$16\% \\
+20 & 100  & 45,5 (2,9\%) & 45,2 (3,0\%) & 43,6 (7,2\%) & $-$4\% \\
+20 & 200  & 46,2 (3,0\%) & 45,9 (3,0\%) & 44,4 (4,5\%) & $-$4\% \\
+20 & 500  & 71,8 (1,5\%) & 48,4 (2,8\%) & 44,4 (3,1\%) & $\mathbf{-38\%}$ \\
+20 & 1000 & 94,3 (2,4\%) & 70,5 (1,6\%) & 70,2 (2,2\%) & $\mathbf{-26\%}$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\textwidth]{figures/chart_browser_products.png}
+\caption{Mediana opóźnienia w~scenariuszach Products z~ciepłą pamięcią podręczną, dla dziesięciu i~dwudziestu równoległych klientów; słupki błędu odpowiadają 95\% przedziałowi ufności wartości centralnej.}
+\label{fig:WykresProducts}
+\end{figure}
+
+Obraz uzyskany w~scenariuszu Echo przenosi się na~realną ścieżkę odczytu bez istotnych zmian, co~ilustruje rysunek~\ref{fig:WykresProducts}. Do~200~produktów na~stronę różnice mieszczą się w~przedziale od~jednego do~szesnastu procent, natomiast od~500~produktów przewaga wariantów binarnych stabilizuje się na~poziomie 26--38\%. Zgodność z~przewidywaniami modelu (tabela~\ref{tab:WeryfikacjaModelu}) jest w~tej grupie równie dobra jak w~scenariuszu Echo.
+
+Wynik ten jest istotny metodycznie, ponieważ scenariusz Products obejmuje wszystkie składniki obecne w~docelowym zastosowaniu: dostęp do~pamięci podręcznej, serializację po~stronie serwera, transmisję, deserializację w~silniku JavaScript oraz aktualizację drzewa dokumentu. Utrzymanie się przewagi w~tych warunkach wskazuje, że~nie jest ona artefaktem uproszczonego scenariusza.
+
+Pomiar przy dwudziestu klientach daje ten~sam obraz relacji przy systematycznie wyższych wartościach bezwzględnych. Powtarzalność wyników w~tej grupie jest wysoka: współczynnik zmienności nie przekracza ośmiu procent. Charakterystyczne jest przy tym, że~najwyższa zmienność występuje przy najmniejszych ładunkach, gdzie mierzona wartość jest zdominowana przez opóźnienie propagacji, a~zatem podlega wahaniom warunków sieciowych w~większym stopniu względnym.
+
+\subsection{Odczyt z~zimną pamięcią podręczną}
+\label{subsec:ProductsCold}
+
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Mediana opóźnienia w~scenariuszach Products, zimna pamięć podręczna [ms]; w~nawiasach współczynnik zmienności.}
+\label{tab:ProductsCold}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{VU} & \textbf{PageSize} & \textbf{REST} & \textbf{Envoy} & \textbf{Direct} \\
+\hline
+10 & 10   & 36,8 (51,3\%) & 38,5 (46,7\%) & 36,7 (41,4\%) \\
+10 & 100  & 84,9 (25,7\%) & 83,8 (24,4\%) & 80,1 (28,5\%) \\
+10 & 200  & 82,8 (27,0\%) & 47,6 (40,9\%) & 89,9 (4,7\%) \\
+10 & 500  & 76,7 (14,2\%) & 55,6 (33,5\%) & 75,6 (33,2\%) \\
+10 & 1000 & 100,5 (4,6\%) & 91,9 (3,5\%) & 90,0 (11,0\%) \\
+10 & 2000 & 187,5 (13,5\%) & 111,3 (7,7\%) & 116,0 (6,2\%) \\
+\hline
+20 & 500  & 89,1 (10,0\%) & 62,4 (30,9\%) & 78,3 (21,6\%) \\
+20 & 1000 & 106,3 (8,9\%) & 109,2 (10,8\%) & 111,3 (17,7\%) \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\textwidth]{figures/chart_browser_products_cold.png}
+\caption{Mediana opóźnienia w~scenariuszach Products z~zimną pamięcią podręczną; słupki błędu odpowiadają 95\% przedziałowi ufności wartości centralnej}
+\label{fig:WykresProductsCold}
+\end{figure}
+
+Grupa ta~wymaga ostrożnej interpretacji. Wymuszenie zapytania do~bazy danych przy każdym żądaniu zwiększa nie tylko opóźnienie, lecz przede wszystkim jego zmienność: współczynnik zmienności osiąga w~skrajnych przypadkach 51\%, wobec kilku procent w~scenariuszach z~ciepłą pamięcią podręczną. W~konsekwencji przy małych stronach wyników kolejność protokołów jest niestabilna: w~konfiguracji o~200~produktach zmierzone mediany wynoszą 82,8, 47,6 i~89,9~ms, a~uporządkowanie to~nie powtarza się w~konfiguracji o~10~produktach. Różnice te~mieszczą się w~granicach zmienności tej grupy i~nie pozwalają wskazać szybszego protokołu. Zależność tę~wraz z~przedziałami ufności wartości centralnej przedstawia rysunek~\ref{fig:WykresProductsCold}.
+
+Przy dużych stronach wyników, gdzie przewaga wariantów binarnych przewyższa poziom szumu. Przy 2000~produktach REST osiąga 187,5~ms, wariant z~proxy 111,3~ms, a~wariant bezpośredni 116,0~ms, przy współczynniku zmienności nieprzekraczającym 13,5\%.
+
+Wniosek metodyczny jest następujący: przy małych ładunkach zmienność
+wynikająca z~zimnej pamięci podręcznej przewyższa różnicę wynikającą
+z~protokołu, przez co ta~grupa nie stanowi użytecznego narzędzia
+porównawczego. Do~izolowania wpływu protokołu służy scenariusz Echo,
+natomiast do~oceny zachowania w~warunkach realnych -- scenariusz
+z~ciepłą pamięcią podręczną.
+
+% -----------------------------------------------------------------------
+\section{Analiza wydajności zapisu (Orders)}
+\label{sec:AnalizaOrders}
+% -----------------------------------------------------------------------
+
+Scenariusze Orders angażują pełen łańcuch transakcyjny: walidację oraz zapis encji zamówienia wraz z~pozycjami.
+
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Mediana opóźnienia w~scenariuszach Orders [ms]; w~nawiasach współczynnik zmienności}
+\label{tab:OrdersLatency}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{VU} & \textbf{Pozycji} & \textbf{REST} & \textbf{Envoy} & \textbf{Direct} \\
+\hline
+10 & 1   & 85,4 (29,9\%) & 40,6 (50,7\%) & 35,6 (54,8\%) \\
+10 & 10  & 94,2 (3,5\%)  & 89,1 (29,9\%) & 89,6 (40,3\%) \\
+10 & 50  & 94,5 (2,5\%)  & 96,1 (0,7\%)  & 91,8 (22,0\%) \\
+10 & 200 & 203,4 (39,1\%) & 225,9 (32,3\%) & 237,8 (32,1\%) \\
+\hline
+20 & 1   & 79,3 (39,8\%) & 43,8 (40,1\%) & 43,1 (47,9\%) \\
+20 & 10  & 83,5 (35,0\%) & 89,9 (26,7\%) & 89,7 (4,9\%) \\
+20 & 50  & 106,2 (40,0\%) & 101,2 (6,9\%) & 165,8 (21,6\%) \\
+20 & 200 & 384,9 (16,6\%) & 334,7 (28,3\%) & 268,2 (28,4\%) \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\textwidth]{figures/chart_browser_orders.png}
+\caption{Mediana opóźnienia w~scenariuszach Orders względem liczby pozycji zamówienia; słupki błędu odpowiadają 95\% przedziałowi ufności wartości centralnej}
+\label{fig:WykresOrders}
+\end{figure}
+
+Scenariusze zapisu nie wykazują spójnej różnicy pomiędzy protokołami. Przy dziesięciu i~pięćdziesięciu pozycjach zamówienia wszystkie trzy warianty mieszczą się w~przedziale 83,5--106,2~ms, mimo że~rozmiar żądania zmienia się pięciokrotnie. Przy dwustu pozycjach kolejność jest odmienna dla dwóch badanych poziomów obciążenia, a~współczynniki zmienności sięgają czterdziestu procent. Zestawienie median wraz z~przedziałami ufności wartości centralnej przedstawia rysunek~\ref{fig:WykresOrders}.
+
+Wyjaśnienie wynika bezpośrednio z~modelu przedstawionego w~sekcji~\ref{sec:ModelOkna} oraz z~charakteru ścieżki zapisu. Żądania w~tym scenariuszu są~niewielkie: nawet dwieście pozycji zamówienia to~około siedemnastu kilobajtów, czyli znacznie mniej niż okno odbiorcze. Liczba obiegów pakietu jest zatem identyczna dla wszystkich formatów, a~mechanizm dający przewagę w~odczycie nie ma~tu~zastosowania. Jednocześnie czas odpowiedzi zdominowany jest przez stały koszt serwerowy: transakcję bazodanową obejmującą zapis encji.
+
+Obserwacja ta~stanowi wynik negatywny, lecz metodycznie istotny: wskazuje granicę stosowalności wniosków wyprowadzonych ze~scenariuszy odczytu. Optymalizacja warstwy transportowej nie przyniesie korzyści w~operacjach, których czas wyznaczany jest przez trwałe utrwalanie danych.
+
+% -----------------------------------------------------------------------
+\section{Rozdzielenie wpływu serializacji od~wpływu wersji protokołu HTTP}
+\label{sec:Dekompozycja}
+% -----------------------------------------------------------------------
+
+Ścieżka bezpośrednia korzysta z~protokołu HTTP/2, natomiast REST -- z~HTTP/1.1. Zmierzona różnica pomiędzy nimi zawiera zatem dwa zmieszane czynniki: mniejszy wolumen danych oraz odmienną wersję protokołu transportowego. Rozdzielenie ich umożliwia wariant z~proxy Envoy, który przenosi ładunek binarny, korzystając po~stronie przeglądarki z~protokołu HTTP/1.1, tak samo jak REST. Stanowi on~tym samym grupę kontrolną: różnica pomiędzy REST a~Envoy odzwierciedla wpływ samej serializacji, ponieważ obie ścieżki korzystają z~nieszyfrowanego protokołu HTTP/1.1 i~różnią się oraz pominięcie serwera pośredniczącego.
+
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Dekompozycja przewagi na~składnik serializacyjny i~transportowy [ms]}
+\label{tab:Dekompozycja}
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\textbf{Konfiguracja} & \textbf{REST} & \textbf{Envoy} & \textbf{Direct} & \textbf{Serializ.} & \textbf{Transport} \\
+\hline
+Echo, 2000 rek., VU=10      & 167,6 & 120,8 & 117,4 & $-$28\% & $-$2\% \\
+Products, PS=500, VU=10     & 65,8  & 42,3  & 41,1  & $-$36\% & $-$2\% \\
+Products, PS=1000, VU=10    & 89,9  & 69,4  & 66,9  & $-$23\% & $-$3\% \\
+Products, PS=2000, VU=10    & 140,6 & 97,5  & 96,5  & $-$31\% & $-$1\% \\
+Products, PS=500, VU=20     & 71,8  & 48,4  & 44,4  & $-$33\% & $-$6\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/chart_browser_dekompozycja.png}
+\caption{Udział składnika serializacyjnego oraz transportowego w~skróceniu czasu odpowiedzi względem REST; wartości procentowe odniesiono do~mediany opóźnienia REST}
+\label{fig:WykresDekompozycja}
+\end{figure}
+
+Wynik, przedstawiony graficznie na~rysunku~\ref{fig:WykresDekompozycja}, jest jednoznaczny. W~konfiguracji o~500~produktach na~stronę z~łącznej przewagi 24,7~ms aż~23,5~ms przypada na~zmianę formatu serializacji, a~zaledwie 1,2~ms na~wersję protokołu HTTP wraz z~pominięciem serwera pośredniczącego. Udział składnika serializacyjnego w~całkowitej przewadze wynosi zatem około 95\%. Zależność ta~powtarza się we~wszystkich badanych konfiguracjach: składnik transportowy nie przekracza sześciu procent, podczas gdy składnik serializacyjny mieści się w~przedziale 23--36\%.
+
+Gdyby dominującym czynnikiem była wersja protokołu HTTP, wariant z~proxy, korzystający z~protokołu HTTP/1.1, osiągałby wyniki zbliżone do~REST. Zmierzone wartości wskazują jednak, że~wariant ten dorównuje ścieżce bezpośredniej, a~nie ścieżce REST. Obserwacja ta~stanowi bezpośrednie potwierdzenie hipotezy H3 i~jednocześnie odpowiedź na~zarzut, że~porównanie zestawia protokół binarny po~HTTP/2 z~formatem tekstowym po~HTTP/1.1.
+
+% -----------------------------------------------------------------------
+\section{Skalowanie z~liczbą klientów i~granica stanowiska pomiarowego}
+\label{sec:GranicaNarzedzia}
+% -----------------------------------------------------------------------
+
+Zakres badanych poziomów obciążenia wyznaczono na~podstawie odrębnego pomiaru, którego celem było ustalenie, do~jakiej liczby równoległych klientów stanowisko pomiarowe pozostaje wiarygodne. Wyniki dla konfiguracji o~100~produktach na~stronę i~ciepłej pamięci podręcznej przedstawia tabela~\ref{tab:Skalowanie}.
+
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Skalowanie z~liczbą równoległych klientów -- mediana opóźnienia [ms] i~przepustowość [operacji/s]}
+\label{tab:Skalowanie}
+\begin{tabular}{|c|c|c|c|c|c|c|}
+\hline
+\textbf{VU} & \multicolumn{3}{c|}{\textbf{Mediana opóźnienia [ms]}} & \multicolumn{3}{c|}{\textbf{Przepustowość [oper./s]}} \\
+\hline
+ & \textbf{REST} & \textbf{Envoy} & \textbf{Direct} & \textbf{REST} & \textbf{Envoy} & \textbf{Direct} \\
+\hline
+10 & 38,1  & 41,4  & 39,5  & 40,7 & 40,7 & 38,3 \\
+20 & 50,9  & 50,0  & 44,5  & 40,8 & 58,7 & 59,3 \\
+30 & 64,8  & 61,8  & 54,9  & 72,3 & 69,9 & 68,3 \\
+50 & 140,3 & 122,5 & 113,2 & 75,4 & 63,8 & 64,6 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\textwidth]{figures/chart_browser_nasycenie.png}
+\caption{Opóźnienie i~przepustowość względem liczby równoległych klientów; szary pas oznacza wspólny pułap przepustowości, różowy -- położenie punktu przegięcia}
+\label{fig:WykresNasycenie}
+\end{figure}
+
+Zestawienie, zilustrowane na~rysunku~\ref{fig:WykresNasycenie}, ujawnia klasyczny obraz nasycenia. Przepustowość wypłaszcza się na~poziomie około siedemdziesięciu operacji na~sekundę, osiągając wartość graniczną pomiędzy dwudziestoma a~trzydziestoma klientami, natomiast opóźnienie nadal narasta, z~38 do~140~ms. Powyżej punktu przegięcia zwiększanie współbieżności wydłuża wyłącznie czas oczekiwania w~kolejce, bez korzyści przepustowościowej.
+
+Rozstrzygnięcie, po~której stronie znajduje się czynnik ograniczający, opiera się na~następującej przesłance: wszystkie trzy protokoły zatrzymują się na~tej~samej wartości granicznej, mimo że~po~stronie serwera realizowane są~odmiennymi ścieżkami kodu: ścieżka REST zwraca gotowy dokument z~pamięci podręcznej, natomiast ścieżki binarne wykonują deserializację i~ponowną serializację. Gdyby ograniczenie leżało po~stronie systemu testowanego, ścieżki te~różniłyby się wartością graniczną. Wspólny pułap wskazuje zatem na~czynnik po~stronie klienta: rywalizację o~zasoby pomiędzy kilkudziesięcioma kontekstami przeglądarki.
+
+Wniosek ten stanowił podstawę ograniczenia macierzy badawczej do~dziesięciu i~dwudziestu klientów, to~jest poniżej punktu przegięcia. Przyjęto zasadę, że~wąższy zakres współbieżności z~wynikami wiarygodnymi jest wartościowszy niż zakres szerszy z~wynikami opisującymi ograniczenia narzędzia.
+
+% -----------------------------------------------------------------------
+\section{Powtarzalność pomiarów i~przedziały ufności}
+\label{sec:Zmiennosc}
+% -----------------------------------------------------------------------
+
+Pięciokrotne wykonanie całej macierzy umożliwia ocenę powtarzalności. Tabela~\ref{tab:Zmiennosc} przedstawia rozkład współczynnika zmienności median przebiegów w~poszczególnych grupach scenariuszy.
+
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Współczynnik zmienności median pięciu przebiegów, w~podziale na~grupy scenariuszy}
+\label{tab:Zmiennosc}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Grupa scenariuszy} & \textbf{Minimum} & \textbf{Typowo} & \textbf{Maksimum} \\
+\hline
+Echo                          & 0,7\% & 1,5--5\% & 11,5\% \\
+Products, ciepła pamięć       & 0,6\% & 2--6\%   & 8,0\% \\
+Products, zimna pamięć        & 3,5\% & 10--30\% & 51,3\% \\
+Orders                        & 0,7\% & 20--40\% & 54,8\% \\
+\hline
+\end{tabular}
+\end{table}
+
+Rozkład ten układa się w~interpretowalny wzorzec, zgodny z~udziałem warstwy
+danych w~czasie odpowiedzi. Najwyższą powtarzalność wykazują scenariusze
+Echo, nieodwołujące się do~bazy ani pamięci podręcznej, oraz scenariusze
+odczytu z~ciepłą pamięcią podręczną. Scenariusze wymuszające zapytanie do~bazy
+oraz scenariusze zapisu charakteryzują się zmiennością o~rząd wielkości
+wyższą, ponieważ angażują mechanizmy trwałego utrwalania danych, dziennik
+transakcji oraz blokady wierszy.
+
+% -----------------------------------------------------------------------
+\subsection{Przedziały ufności i~rozstrzygalność zmierzonych różnic}
+\label{sec:PrzedzialyUfnosci}
+% -----------------------------------------------------------------------
+
+Zestawienia przedstawione w~poprzednich sekcjach podają wartości centralne wraz z~miarą rozrzutu. Ocena, czy zaobserwowana różnica jest rzeczywista, wymaga natomiast miary niepewności samej wartości centralnej.
+
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Przedziały ufności 95\% dla wartości centralnej opóźnienia [ms]; $k=5$ przebiegów, $t=2{,}776$}
+\label{tab:PrzedzialyCentralne}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Konfiguracja} & \textbf{REST} & \textbf{Envoy} & \textbf{Direct} \\
+\hline
+Echo, 200 rek., VU=10      & 32,5 $\pm$ 0,4 & 33,4 $\pm$ 0,6 & 31,4 $\pm$ 0,5 \\
+Echo, 500 rek., VU=10      & 59,7 $\pm$ 0,8 & 35,2 $\pm$ 0,8 & 34,0 $\pm$ 1,0 \\
+Echo, 2000 rek., VU=10     & 168,0 $\pm$ 1,5 & 120,4 $\pm$ 2,7 & 117,5 $\pm$ 2,4 \\
+Echo, 500 rek., VU=20      & 60,6 $\pm$ 1,3 & 39,7 $\pm$ 3,0 & 37,0 $\pm$ 5,3 \\
+\hline
+Products, PS=200, VU=10    & 40,6 $\pm$ 1,9 & 42,0 $\pm$ 3,0 & 39,2 $\pm$ 2,4 \\
+Products, PS=500, VU=10    & 65,8 $\pm$ 0,5 & 42,3 $\pm$ 2,4 & 40,8 $\pm$ 1,8 \\
+Products, PS=1000, VU=10   & 90,0 $\pm$ 1,5 & 69,9 $\pm$ 3,9 & 66,9 $\pm$ 0,8 \\
+Products, PS=2000, VU=10   & 140,8 $\pm$ 2,7 & 97,5 $\pm$ 2,2 & 96,8 $\pm$ 1,6 \\
+Products, PS=500, VU=20    & 71,9 $\pm$ 1,3 & 48,7 $\pm$ 1,7 & 44,4 $\pm$ 1,7 \\
+Products, PS=1000, VU=20   & 94,8 $\pm$ 2,8 & 70,7 $\pm$ 1,4 & 70,3 $\pm$ 1,9 \\
+\hline
+Orders, 10 poz., VU=10     & 93,2 $\pm$ 4,1 & 81,3 $\pm$ 30,2 & 73,7 $\pm$ 36,9 \\
+Orders, 50 poz., VU=10     & 93,5 $\pm$ 3,0 & 96,0 $\pm$ 0,8 & 86,2 $\pm$ 23,5 \\
+Orders, 10 poz., VU=20     & 72,0 $\pm$ 31,3 & 83,0 $\pm$ 27,5 & 89,1 $\pm$ 5,4 \\
+Orders, 50 poz., VU=20     & 112,7 $\pm$ 55,9 & 101,2 $\pm$ 8,6 & 160,3 $\pm$ 43,0 \\
+\hline
+\end{tabular}
+\end{table}
+
+W~scenariuszach Echo oraz w~odczycie z~ciepłą pamięcią podręczną połówkowa szerokość przedziału nie przekracza kilku milisekund, natomiast w~scenariuszach zapisu sięga kilkudziesięciu, przekraczając w~skrajnym przypadku połowę samej wartości centralnej.
+
+Zasadnicze znaczenie ma~jednak zestawienie różnic pomiędzy protokołami w~układzie sparowanym. Wartość dodatnia oznacza, że~pierwszy z~wymienionych protokołów jest wolniejszy, a~zestawienie to~pozwala sformułować cztery wnioski.
+
+\begin{table}[htb]
+\centering
+\footnotesize
+\caption{Przedziały ufności 95\% dla różnic sparowanych w~obrębie przebiegu [ms]; wartość dodatnia oznacza dłuższy czas odpowiedzi pierwszego z~protokołów}
+\label{tab:PrzedzialyRoznic}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Konfiguracja} & \textbf{REST--Envoy} & \textbf{REST--Direct} & \textbf{Envoy--Direct} & \textbf{Rozstrz.} \\
+\hline
+Echo, 200 rek., VU=10      & $-$0,9 $\pm$ 0,9 & 1,1 $\pm$ 0,7 & 2,0 $\pm$ 0,3 & tak \\
+Echo, 500 rek., VU=10      & 24,5 $\pm$ 1,0 & 25,8 $\pm$ 1,6 & 1,2 $\pm$ 0,9 & tak \\
+Echo, 2000 rek., VU=10     & 47,6 $\pm$ 3,8 & 50,5 $\pm$ 3,3 & 2,9 $\pm$ 3,4 & tak \\
+Echo, 500 rek., VU=20      & 20,9 $\pm$ 2,7 & 23,6 $\pm$ 5,7 & 2,7 $\pm$ 7,2 & tak \\
+\hline
+Products, PS=200, VU=10    & $-$1,4 $\pm$ 3,8 & 1,4 $\pm$ 2,5 & 2,7 $\pm$ 2,4 & nie \\
+Products, PS=500, VU=10    & 23,4 $\pm$ 2,4 & 24,9 $\pm$ 1,6 & 1,5 $\pm$ 1,4 & tak \\
+Products, PS=1000, VU=10   & 20,1 $\pm$ 4,3 & 23,1 $\pm$ 1,2 & 3,0 $\pm$ 3,7 & tak \\
+Products, PS=2000, VU=10   & 43,3 $\pm$ 4,9 & 44,0 $\pm$ 3,5 & 0,8 $\pm$ 2,2 & tak \\
+Products, PS=500, VU=20    & 23,2 $\pm$ 1,4 & 27,4 $\pm$ 1,5 & 4,2 $\pm$ 1,8 & tak \\
+Products, PS=1000, VU=20   & 24,1 $\pm$ 3,6 & 24,5 $\pm$ 1,9 & 0,4 $\pm$ 3,1 & tak \\
+\hline
+Orders, 10 poz., VU=10     & 12,0 $\pm$ 32,5 & 19,5 $\pm$ 35,5 & 7,6 $\pm$ 31,9 & nie \\
+Orders, 50 poz., VU=10     & $-$2,4 $\pm$ 3,1 & 7,4 $\pm$ 25,4 & 9,8 $\pm$ 23,8 & nie \\
+Orders, 10 poz., VU=20     & $-$11,0 $\pm$ 21,3 & $-$17,1 $\pm$ 28,9 & $-$6,1 $\pm$ 22,6 & nie \\
+Orders, 50 poz., VU=20     & 11,5 $\pm$ 60,1 & $-$47,6 $\pm$ 76,0 & $-$59,1 $\pm$ 45,2 & nie \\
+\hline
+\multicolumn{5}{|l|}{\footnotesize Kolumna \textit{Rozstrz.} odnosi się do~różnicy REST--Direct} \\
+\hline
+\end{tabular}
+\end{table}
+
+Po~pierwsze, w~każdej konfiguracji odczytu od~500~rekordów przewaga wariantów binarnych jest rozstrzygnięta z~dużym marginesem: przedział dla różnicy REST--Direct wynosi na~przykład $24{,}9 \pm 1{,}6$~ms przy 500~produktach oraz $50{,}5 \pm 3{,}3$~ms przy 2000~rekordach scenariusza Echo. Stosunek wielkości efektu do~połówkowej szerokości przedziału przekracza w~tych konfiguracjach dziesięć, co~czyni wniosek odpornym również na~przyjęte założenie o~rozkładzie.
+
+Po~drugie, w~zakresie małych ładunków obraz jest bardziej złożony, niż wskazywałaby sama wielkość różnicy. W~scenariuszu Products przy 200~produktach różnica REST--Direct wynosi $1{,}4 \pm 2{,}5$~ms, a~zatem, nie jest rozstrzygnięta. W~scenariuszu Echo przy tej~samej liczbie rekordów różnica $1{,}1 \pm 0{,}7$~ms i pozostaje jednocześnie bez znaczenia praktycznego wobec opóźnienia obiegu pakietu wynoszącego 26,2~ms. Rozdzielenie istotności statystycznej od~praktycznej jest w~tym zakresie konieczne: wynik ten oznacza, że~różnica istnieje i~jest powtarzalna.
+
+Po~trzecie, różnica pomiędzy oboma wariantami gRPC-Web jest rozstrzygnięta jedynie w~pięciu z~dziesięciu konfiguracji odczytu, a~jej wielkość mieści się w~przedziale od~$0{,}4 \pm 3{,}1$ do~$4{,}2 \pm 1{,}8$~ms. Wielkość efektu jest zatem porównywalna z~niepewnością jego oszacowania, co~stanowi uzasadnienie wniosku o~drugorzędnym znaczeniu wyboru pomiędzy wariantem bezpośrednim a~wariantem z~proxy.
+
+Po~czwarte, w~scenariuszach zapisu żadna z~różnic nie jest rozstrzygnięta. Przedziały są~w~tej grupie od~kilku do~kilkudziesięciu razy szersze niż w~odczycie. Jedyny wyjątek dotyczy pary Envoy--Direct przy pięćdziesięciu pozycjach i~dwudziestu klientach ($-59{,}1 \pm 45{,}2$~ms), lecz znak tej różnicy jest przeciwny niż w~pozostałych komórkach tej grupy, a~jej wartość wynika z~jednego odstającego przebiegu. Obserwacji tej nie można zatem interpretować jako właściwości protokołu.
+
+% -----------------------------------------------------------------------
+\section{Weryfikacja hipotez badawczych}
+\label{sec:WeryfikacjaHipotez}
+% -----------------------------------------------------------------------
+
+\begin{sloppypar}
+\textbf{H1 (warianty gRPC-Web osiągają niższe opóźnienie niż REST, a~przewaga rośnie z~rozmiarem odpowiedzi):} hipoteza potwierdzona z~zastrzeżeniem dotyczącym charakteru zależności. Przewaga występuje i~jest znaczna: 26--43\% przy odpowiedziach od~500~rekordów. Zależność od~rozmiaru odpowiedzi nie jest jednak ciągła, jak zakładano, lecz skokowa: ujawnia się dopiero po~przekroczeniu rozmiaru okna odbiorczego, a~w~zakresie do~200~rekordów pozostaje w~granicach kilku procent. Poprawne sformułowanie hipotezy musi zatem odnosić się nie do~rozmiaru odpowiedzi jako takiego, lecz do~liczby okien niezbędnych do~jej przesłania.
+\end{sloppypar}
+
+\begin{sloppypar}
+\textbf{H2 (przy małych odpowiedziach różnice są~nieistotne):} hipoteza potwierdzona. Przy odpowiedziach do~200~rekordów różnice wynoszą od~jednego do~szesnastu procent, przy wartościach bezwzględnych od~jednej do~pięciu milisekund, wobec opóźnienia obiegu pakietu wynoszącego 26,2~ms. Samo opóźnienie propagacji stanowi w~tym zakresie od~około pięćdziesięciu
+siedmiu procent czasu odpowiedzi przy dwudziestu równoległych klientach
+i~dwustu rekordach do~siedemdziesięciu ośmiu procent przy dziesięciu
+klientach i~dziesięciu rekordach. Właściwym wnioskiem jest zatem nie tyle brak różnicy, ile jej praktyczna nieistotność.
+\end{sloppypar}
+
+\begin{sloppypar}
+\textbf{H3 (przewaga wynika z~redukcji wolumenu danych, nie z~wersji protokołu HTTP):} hipoteza potwierdzona. Dekompozycja przedstawiona w~sekcji~\ref{sec:Dekompozycja} wykazała, że~składnik serializacyjny odpowiada za~około 95\% obserwowanej przewagi, natomiast składnik obejmujący wersję protokołu HTTP oraz pominięcie serwera pośredniczącego, za~nie więcej niż sześć procent. Wariant z~proxy Envoy, korzystający z~protokołu HTTP/1.1, dorównuje wariantowi bezpośredniemu, a~nie ścieżce REST
+\end{sloppypar}
+
+\begin{sloppypar}
+\textbf{H4 (w~operacjach zapisu różnice zanikają):} hipoteza potwierdzona. Przy dziesięciu i~pięćdziesięciu pozycjach zamówienia wszystkie warianty mieszczą się w~przedziale 83,5--106,2~ms. Przyczyną jest dominacja stałego kosztu serwerowego oraz fakt, że~żądania zapisu nie przekraczają rozmiaru okna odbiorczego, a~zatem mechanizm dający przewagę w~odczycie nie ma~zastosowania.
+\end{sloppypar}
+
+\textbf{H5 (wariant Direct osiąga niższe opóźnienie niż wariant z~proxy Envoy):} hipoteza potwierdzona, lecz o~znaczeniu marginalnym. Wariant bezpośredni jest szybszy w~każdej konfiguracji odczytu z~ciepłą pamięcią podręczną oraz w~każdej konfiguracji scenariusza Echo, jednak przewaga nie przekracza sześciu procent. W~grupie scenariuszy z~zimną pamięcią podręczną relacja ta~nie zachodzi konsekwentnie co należy przypisać zmienności warstwy danych. Wybór pomiędzy oboma wariantami wdrożenia gRPC-Web ma~znaczenie drugorzędne.

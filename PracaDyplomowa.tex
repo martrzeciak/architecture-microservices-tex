@@ -6,6 +6,25 @@
 %--------------------------------------
 
 \documentclass{PracaDyplomowa}
+\graphicspath{{figures/}}
+
+% Wymóg formalny: w~spisie treści nie mogą występować pozycje trzeciego poziomu
+% (np. 1.1.1). Podrozdziały niższego rzędu pozostają w~tekście jako nagłówki
+% nienumerowane i~nie są~wykazywane w~spisie treści.
+\setcounter{secnumdepth}{1}
+\setcounter{tocdepth}{1}
+
+% Praca zawiera wiele długich, niepodzielnych tokenów (nazwy klas, nagłówki
+% HTTP, adresy URL). Bez tego zapasu TeX wypuszcza takie wiersze poza margines.
+\emergencystretch=3em
+
+% Praca przekracza 100 stron, wobec czego numery stron w~spisach są~trzycyfrowe
+% i~nie mieszczą się w~domyślnym polu szerokości 1,55~em.
+\makeatletter
+\renewcommand{\@pnumwidth}{1.9em}
+\makeatother
+
+\usepackage{tikz} % schematy ścieżek komunikacji
 
 %--------------------------------------
 % początek: wskazówka
@@ -21,7 +40,7 @@
 %--------------------------------------
 \author{Mariusz Trzeciak}
 
-\title{Architektura mikroserwisów i rozwiązania chmurowe w ekosystemie .NET}
+\title{Architektura mikroserwisów i~rozwiązania chmurowe w~ekosystemie .NET}
 
 \titleeng{Microservices Architecture and Cloud Solutions in the .NET Ecosystem}
 
@@ -33,7 +52,7 @@
 
 \promotor{dr inż. Bartosz Kowalczyk}
 
-\dedykacja{Niniejszym chciałbym serdecznie podziękować\\…\\za bezcenne wsparcie udzielone mi\\w trakcie trwania studiów.}
+\dedykacja{Niniejszym chciałbym serdecznie podziękować\\Promotorowi, dr~inż.\ Bartoszowi Kowalczykowi,\\za~cenne wskazówki i~cierpliwość\\w~trakcie realizacji niniejszej pracy.}
 %--------------------------------------
 % koniec: do uzupełnienia
 %--------------------------------------
@@ -52,12 +71,14 @@
 \include{chapters/rozdzial5}
 \include{chapters/rozdzial6}
 \include{chapters/rozdzial7}
-\include{chapters/rozdzial8}
 \include{chapters/podsumowanie}
 
 \cleardoublepage
 \begin{thebibliography}{99}
 \addcontentsline{toc}{chapter}{\bibname}
+% Adresy URL są niepodzielnymi ciągami znaków; przy justowaniu wystawałyby poza
+% margines, dlatego spis literatury składany jest z~wyrównaniem do~lewej.
+\raggedright
 
 %--------------------------------------
 % początek: wskazówka
@@ -74,22 +95,89 @@
 % koniec: wskazówka
 %--------------------------------------
 
-\bibitem{bib:ZasadyPisania} Zasady pisania prac dyplomowych, https://wiisi.pcz.pl/student-wiisi/vademecum-studenta/praca-dyplomowa, stan na dzień: 26.10.2024
+% --- Wstęp ---
 
-\bibitem{bib:LogoWIMiI} Strona internetowa Wydziału Informatyki i~Sztucznej Inteligencji, https://wiisi.pcz.pl, stan na dzień: 26.10.2024
+\bibitem{bib:Niswar2024} Niswar M., Safruddin R.A., Bustamin A., Aswad I., \textit{Performance Evaluation of Microservices Communication with REST, GraphQL, and gRPC}, International Journal of Electronics and Telecommunications
+
+% --- Rozdział 1 ---
+
+\bibitem{bib:Newman2021} Newman S., \textit{Building Microservices. Designing Fine-Grained Systems}, wyd.~2, O'Reilly Media, 2021.
+
+\bibitem{bib:Fowler2014} Fowler M., Lewis J., Microservices -- a definition of this new architectural term, https://martinfowler.com/articles/microservices.html, stan na dzień: 23.08.2026
+
+\bibitem{bib:Richardson2018} Richardson C., \textit{Microservices Patterns. With Examples in Java}, Manning Publications, 2018.
+
+\bibitem{bib:Evans2003} Evans E., \textit{Domain-Driven Design: Tackling Complexity in the Heart of Software}, Addison-Wesley Professional, 2003.
+
+\bibitem{bib:MicrosoftDocs2024} Microsoft Corporation, .NET documentation, https://learn.microsoft.com/pl-pl/dotnet/, stan na dzień: 23.08.2026
+
+\bibitem{bib:MicrosoftEShop2024} Microsoft Corporation, eShop -- a .NET reference application implementing an e-commerce site, https://github.com/dotnet/eShop, stan na dzień: 23.06.2026
+
+\bibitem{bib:TechEmpower} TechEmpower, TechEmpower Framework Benchmarks, runda~23 (luty 2025), https://www.techempower.com/benchmarks/, stan na dzień: 23.08.2026
+
+\bibitem{bib:DotNetSupport} Microsoft Corporation, .NET and .NET Core Support Policy, https://dotnet.microsoft.com/platform/support/policy/dotnet-core, stan na dzień: 23.08.2026
+
+\bibitem{bib:NativeAOT} Microsoft Corporation, Native AOT deployment, https://learn.microsoft.com/dotnet/core/deploying/native-aot/, stan na dzień: 23.08.2026
+
+\bibitem{bib:OpenTelemetry2024} OpenTelemetry Authors, OpenTelemetry Documentation, https://opentelemetry.io/docs/, stan na dzień: 23.08.2026
+
+% --- Rozdział 2 ---
+
+\bibitem{bib:Fielding2000} Fielding R., \textit{Architectural Styles and the Design of Network-based Software Architectures}, Doctoral Dissertation, University of California, Irvine, 2000.
+
+\bibitem{bib:RichardsonMaturity} Fowler M., Richardson Maturity Model, https://martinfowler.com/articles/richardsonMaturityModel.html, stan na dzień: 23.08.2026
+
+\bibitem{bib:RFC7541} Peon R., Ruellan H., HPACK: Header Compression for HTTP/2, RFC 7541, https://www.rfc-editor.org/rfc/rfc7541, stan na dzień: 23.08.2026
+
+\bibitem{bib:gRPCDocs} gRPC Documentation, https://grpc.io/docs/, stan na dzień: 23.08.2026
+
+\bibitem{bib:ProtocolBuffers} Google Developers, Protocol Buffers Documentation, https://protobuf.dev/, stan na dzień: 23.08.2026
+
+\bibitem{bib:MassTransit} MassTransit Project, MassTransit Documentation, https://masstransit.io/, stan na dzień: 23.08.2026
+
+% --- Rozdział 3 ---
+
+\bibitem{bib:gRPCWeb} gRPC-Web -- gRPC for Web Clients, https://grpc.io/docs/platforms/web/, stan na dzień: 23.08.2026
+
+\bibitem{bib:EnvoyProxy} Envoy Proxy Documentation, https://www.envoyproxy.io/docs/, stan na dzień: 23.08.2026
+
+\bibitem{bib:ProtocolWeb} gRPC-Web Wire Format (PROTOCOL-WEB), https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-WEB.md, stan na dzień: 23.08.2026
+
+\bibitem{bib:GrpcWebAspNet} gRPC-Web in ASP.NET Core gRPC apps, Microsoft Corporation, https://learn.microsoft.com/aspnet/core/grpc/grpcweb, stan na dzień: 23.08.2026
+
+\bibitem{bib:RFC9113} Thomson M., Benfield C., HTTP/2, RFC 9113, https://www.rfc-editor.org/rfc/rfc9113, stan na dzień: 23.08.2026
+
+\bibitem{bib:ProtoGen} Google Developers, Protocol Buffers Reference Guides, https://protobuf.dev/reference/, stan na dzień: 23.08.2026
+
+\bibitem{bib:WigginsFactors} Wiggins A., The Twelve-Factor App, https://12factor.net/, stan na dzień: 23.08.2026
+
+% --- Rozdział 4 ---
+
+\bibitem{bib:YoungCQRS} Young G., CQRS Documents, https://cqrs.files.wordpress.com/2010/11/cqrs\_documents.pdf, stan na dzień: 23.08.2026
+
+\bibitem{bib:FowlerCQRS} Fowler M., CQRS, https://martinfowler.com/bliki/CQRS.html, stan na dzień: 23.08.2026
+
+\bibitem{bib:Nygard2018} Nygard M.T., \textit{Release It! Design and Deploy Production-Ready Software}, wyd.~2, Pragmatic Bookshelf, 2018.
+
+\bibitem{bib:MinimalApi} Microsoft Corporation, APIs overview -- Minimal APIs in ASP.NET Core, https://learn.microsoft.com/aspnet/core/fundamentals/minimal-apis/overview, stan na dzień: 23.08.2026
+
+\bibitem{bib:CacheAside} Microsoft Corporation, Cache-Aside pattern, Azure Architecture Center, https://learn.microsoft.com/azure/architecture/patterns/cache-aside, stan na dzień: 23.08.2026
+
+\bibitem{bib:EFCoreResiliency} Microsoft Corporation, Connection Resiliency -- EF Core, https://learn.microsoft.com/ef/core/miscellaneous/connection-resiliency, stan na dzień: 23.08.2026
+
+% --- Rozdziały 5--7 ---
+
+\bibitem{bib:Playwright} Microsoft Corporation, Playwright Documentation, https://playwright.dev/docs/intro, stan na dzień: 23.08.2026
+
+\bibitem{bib:ConnectRPC} Buf Technologies, Connect for Web Documentation, https://connectrpc.com/docs/web/getting-started/, stan na dzień: 23.08.2026
+
+\bibitem{bib:CDP} Google LLC, Chrome DevTools Protocol, https://chromedevtools.github.io/devtools-protocol/, stan na dzień: 23.08.2026
+
+\bibitem{bib:RFC9293} Eddy W., Transmission Control Protocol (TCP), RFC 9293, https://www.rfc-editor.org/rfc/rfc9293, stan na dzień: 23.08.2026
+
+\bibitem{bib:Jain1991} Jain R., \textit{The Art of Computer Systems Performance Analysis: Techniques for Experimental Design, Measurement, Simulation, and Modeling}, John Wiley \& Sons, 1991.
 
 \end{thebibliography}
-
-\chapter*{Dodatek. Zawartość dołączonej płyty}
-\addcontentsline{toc}{chapter}{Dodatek. Zawartość dołączonej płyty}
-
-Do niniejszej pracy dołączono płytę z~następującą zawartością:
-
-\begin{itemize}
-\item Dokument pracy w~formatach tex i~pdf.
-
-\item Kod źródłowy zaprojektowanego i~zrealizowanego w~ramach pracy systemu.
-\end{itemize}
 
 \listoffigures
 \addcontentsline{toc}{chapter}{\listfigurename}
@@ -103,37 +191,35 @@ Do niniejszej pracy dołączono płytę z~następującą zawartością:
 \chapter*{Streszczenie}
 \addcontentsline{toc}{chapter}{Streszczenie}
 
-Praca pt. \textit{„Tytuł pracy”} nawiązuje do bardzo aktualnych zagadnień współczesnej informatyki, a~mianowicie do [Proszę wpisać ogólną tematykę pracy]. W~ostatnim czasie obserwuje się intensywny rozwój [Proszę wpisać ogólne wprowadzenie do tematu]. Jednocześnie [Proszę wpisać wady lub niedogodności takiego rozwiązania]. W~rozważanej pracy podjęto zatem próbę rozwiązania tego problemu. W~szczególności zebrano wiadomości z~zakresu [Proszę wpisać tematykę], porównano [Proszę wpisać, jakie rozwiązania działające porównano], opracowano [Proszę wpisać, co opracowano w~pracy], zrealizowano [Proszę wpisać, co zrealizowano w~pracy], przetestowano [Proszę wpisać, co przetestowano w~pracy]. Zaprojektowany i~zaimplementowany system charakteryzuje się następującymi cechami: [Proszę uzupełnić], [Proszę uzupełnić], [Proszę uzupełnić]. Dzięki temu zaprojektowany i~zaimplementowany system może być wykorzystany w~praktyce np. do: [Proszę wpisać potencjalną możliwość zastosowania], [Proszę wpisać potencjalną możliwość zastosowania], [Proszę wpisać potencjalną możliwość zastosowania].
-
-Do realizacji praktycznej części pracy wykorzystano najnowsze narzędzia i~technologie informatyczne, w~tym m.in. [Proszę wpisać nazwę technologii], [Proszę wpisać nazwę technologii], [Proszę wpisać nazwę technologii].
-
-Zaprojektowany i~zaimplementowany system można w~przyszłości przykładowo rozbudować o~następujące funkcje: [Proszę wpisać], [Proszę wpisać] i~[Proszę wpisać].
+Praca pt.\ \textit{„Architektura mikroserwisów i~rozwiązania chmurowe w~ekosystemie .NET”} poświęcona jest projektowaniu, implementacji oraz empirycznej analizie wydajności systemu rozproszonego zbudowanego w~oparciu o~platformę .NET~10. W~ostatnim czasie obserwuje się intensywny rozwój protokołu gRPC jako alternatywy dla powszechnie stosowanego REST w~komunikacji między mikroserwisami. Jednocześnie środowisko przeglądarek internetowych wymaga stosowania wariantu \textit{gRPC-Web}, którego wydajność w~komunikacji klient--backend pozostaje słabo zbadana empirycznie. W~rozważanej pracy podjęto zatem próbę wypełnienia tej luki badawczej. W~szczególności zebrano wiadomości z~zakresu architektury mikroserwisów, mechanizmów komunikacji synchronicznej i~asynchronicznej oraz wzorców projektowych w~ekosystemie .NET, porównano trzy warianty komunikacji dostępne dla aplikacji przeglądarkowej: REST (HTTP/1.1 z~serializacją JSON), gRPC-Web przez proxy Envoy oraz gRPC-Web obsługiwany bezpośrednio w~ASP.NET Core, zrealizowano system testowy złożony z~dwóch mikroserwisów (\textit{ProductService} i~\textit{OrderService}), wdrożony na~serwerze chmury Hetzner, a~także opracowano metodykę pomiarową opartą na~rzeczywistej przeglądarce internetowej, w~której czas mierzony jest od~interakcji użytkownika do~naniesienia odpowiedzi na~drzewo dokumentu. Przeprowadzono 39~konfiguracji pomiarowych w~pięciu niezależnych powtórzeniach z~rotowaną kolejnością protokołów, co~dało 585~wykonanych testów i~171~tysięcy pomiarów, przy rozmiarach ładunku od~10 do~2000 rekordów oraz scenariuszach obejmujących izolowany narzut protokołu, odczyt katalogu i~zapis zamówienia. Zaprojektowany i~zaimplementowany system charakteryzuje się następującymi cechami: podejściem \textit{contract-first} opartym na~\textit{Protocol Buffers} zapewniającym silną typizację w~całym stosie technologicznym, kompleksową obserwowalnością obejmującą metryki (Prometheus, Grafana). Przeprowadzone badania wykazały, że~warianty gRPC-Web skracają czas odpowiedzi o~26--43\% względem REST, lecz wyłącznie przy nieskompresowanych odpowiedziach przekraczających rozmiar okna odbiorczego protokołu TCP; przy typowych ładunkach interfejsu użytkownika oraz w~operacjach zapisu różnice pozostają nieistotne. Wykazano ponadto, że~kompresja treści redukuje wolumen dokumentu JSON dwunasto- do~trzynastokrotnie i~sprowadza wszystkie badane ładunki poniżej rozmiaru jednego okna odbiorczego, co~wyznacza granicę stosowalności powyższego wniosku. Sformułowano model wyjaśniający tę~zależność liczbą wymian pakietów wynikającą z~wolumenu odpowiedzi, którego przewidywania zgadzają się z~pomiarem z~dokładnością do~0,2~obiegu pakietu. Wykazano ponadto, że~około 95\% obserwowanej przewagi wynika z~binarnej serializacji redukującej wolumen danych o~42--43\%, a~nie z~zastosowanej wersji protokołu HTTP, oraz że~korzyść ta~skaluje się z~opóźnieniem sieci, nie z~szybkością serwera.
 
 \chapter*{Summary}
 \addcontentsline{toc}{chapter}{Summary}
 
-Proszę umieścić tłumaczenie polskiej wersji streszczenia.
+The thesis entitled \textit{``Microservices Architecture and Cloud Solutions in the .NET Ecosystem''} is devoted to the design, implementation, and empirical performance analysis of a distributed system built on the .NET~10 platform. Recently, rapid growth and adoption of the gRPC protocol have been observed as an alternative to the widely used REST for inter-microservice communication. At the same time, the web browser environment necessitates the use of the \textit{gRPC-Web} variant, whose performance in client--backend communication remains insufficiently investigated empirically. This study therefore aims to address and fill this research gap. In particular, the thesis synthesizes knowledge in microservices architecture, synchronous and asynchronous communication mechanisms, and design patterns within the .NET ecosystem; compares three communication variants available to web browser applications: REST (HTTP/1.1 with JSON serialization), gRPC-Web via an Envoy proxy, and gRPC-Web natively hosted in ASP.NET Core; implements a benchmark testbed consisting of two microservices (\textit{ProductService} and \textit{OrderService}) deployed on a Hetzner Cloud server; and establishes a measurement methodology based on a real web browser, where end-to-end latency is measured from the initial user interaction to the rendering of the response into the Document Object Model (DOM) tree. A total of 39~measurement configurations were executed across five independent repetitions with rotated protocol ordering, yielding 585~test runs and 171~thousand individual measurements, spanning payload sizes from 10 to 2000 records across scenarios covering isolated protocol overhead, catalog read, and order placement. The designed and implemented system is characterized by: a \textit{contract-first} approach based on \textit{Protocol Buffers} providing strong typing across the entire technology stack, and comprehensive observability encompassing metrics (Prometheus, Grafana). The empirical evaluation revealed that gRPC-Web variants reduce response times by 26--43\% compared to REST, but exclusively for uncompressed responses exceeding the initial TCP receive window size; for typical user interface payloads and write operations, the differences remain negligible. Furthermore, it was demonstrated that response compression reduces JSON document size by a factor of 12--13, bringing all evaluated payloads below the threshold of a single receive window, thereby defining the boundary of practical applicability for the aforementioned performance advantage. A model accounting for this relationship based on the number of network round-trips dictated by payload volume was formulated, with predictions aligning with empirical measurements within 0.2~packet round-trips. In addition, it was established that approximately 95\% of the observed performance gain is attributable to binary serialization reducing data volume by 42--43\%, rather than the underlying HTTP transport version, and that this benefit scales primarily with network latency rather than server compute capacity.
 
 \chapter*{Słowa kluczowe}
 \addcontentsline{toc}{chapter}{Słowa kluczowe}
 
-\noindent informatyka;
+\noindent mikroserwisy;
 
-\noindent zaprojektowanie autorskiego systemu informatycznego;
+\noindent gRPC-Web;
 
-\noindent implementacja autorskiego systemu informatycznego;
+\noindent REST API;
 
-\noindent przetestowanie autorskiego systemu informatycznego;
+\noindent Protocol Buffers;
 
-\noindent [Proszę wpisać słowo dotyczące tematyki pracy];
+\noindent ASP.NET Core;
 
-\noindent [Proszę wpisać słowo dotyczące kluczowej funkcjonalności systemu];
+\noindent Envoy Proxy;
 
-\noindent [Proszę wpisać słowo dotyczące użytej technologii];
+\noindent testy wydajnościowe;
 
-\noindent [Proszę wpisać słowo dotyczące użytej technologii];
+\noindent architektura rozproszona;
 
-\noindent [Proszę wpisać słowo dotyczące użytej technologii]
+\noindent .NET 10;
+
+\noindent HTTP/2;
 
 \oswiadczenie % tego elementu ma nie być w~spisie treści
 

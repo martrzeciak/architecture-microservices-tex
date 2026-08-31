@@ -1,40 +1,140 @@
 \cleardoublepage
 
-\chapter{gRPC-Web i komunikacja frontend-backend}
+\chapter{gRPC-Web i~komunikacja frontend-backend}
+
 \label{cha:gRPCWeb}
 
-\section{Ograniczenia natywnego gRPC w przeglądarkach}
+Mechanizm gRPC, omówiony szczegółowo w~rozdziale~\ref{cha:MechanizmyKomunikacji}, zapewnia wysoką wydajność oraz silne typowanie w~komunikacji pomiędzy usługami backendowymi. Natywny protokół gRPC opiera się jednak na~mechanizmach HTTP/2, których możliwości nie są~w~pełni dostępne z~poziomu przeglądarek internetowych. Ograniczenie to~wynika ze~sposobu, w~jaki przeglądarki udostępniają aplikacjom internetowym dostęp do~warstwy sieciowej. Interfejsy programistyczne, takie jak \textit{Fetch API} oraz \textit{XMLHttpRequest}, nie zapewniają bezpośredniej kontroli nad ramkami HTTP/2 ani dostępu do~nagłówków końcowych (ang.\ \textit{trailing headers}), wykorzystywanych przez protokół gRPC.
+
+W~konsekwencji opracowano mechanizm gRPC-Web, umożliwiający aplikacjom uruchamianym w~przeglądarce komunikację z~usługami wykorzystującymi gRPC. W~zależności od~zastosowanej implementacji komunikacja ta~może być realizowana za~pośrednictwem serwera pośredniczącego lub bezpośrednio przez warstwę obsługującą gRPC-Web po~stronie usługi. Niniejszy rozdział przedstawia ograniczenia natywnego gRPC w~kontekście środowiska przeglądarkowego (sekcja~\ref{sec:OgraniczeniagRPC}), architekturę rozwiązania gRPC-Web wraz z~rolą serwera pośredniczącego (sekcja~\ref{sec:ArchitekturagRPCWeb}) oraz sposób jego wykorzystania w~aplikacji frontendowej (sekcja~\ref{sec:ImplementacjagRPCWeb}).
+
+% -----------------------------------------------------------------------
+
+\section{Ograniczenia natywnego gRPC w~przeglądarkach}
+
 \label{sec:OgraniczeniagRPC}
 
-Przeglądarki nie oferują wystarczającej kontroli nad żądaniami HTTP/2, aby wspierać pełną specyfikację gRPC. Brak dostępu do surowych ramek HTTP/2 oraz trailing headers uniemożliwia natywną implementację gRPC w JavaScript. Ten podrozdział jest kluczowy dla zrozumienia, dlaczego potrzebne są dodatkowe rozwiązania.
+% -----------------------------------------------------------------------
+
+Protokół gRPC w~swojej natywnej postaci wykorzystuje mechanizmy transportowe HTTP/2, w~tym ramki typu \texttt{HEADERS} przesyłane po~zakończeniu ciała odpowiedzi. Mechanizm ten, określany jako nagłówki końcowe (ang.\ \textit{trailing headers}), służy do~przekazywania metadanych dotyczących statusu wywołania procedury zdalnej po~przesłaniu treści odpowiedzi. Zgodnie ze~specyfikacją gRPC~\cite{bib:gRPCDocs}, status wywołania jest przekazywany za~pomocą metadanych końcowych, w~szczególności nagłówka \texttt{grpc-status}, natomiast opis błędu może być przekazywany za~pomocą nagłówka \texttt{grpc-message}.
+
+Problem wynika z~ograniczeń środowiska przeglądarkowego. Interfejs \textit{Fetch API}, zdefiniowany przez specyfikację WHATWG, oraz interfejs \textit{XMLHttpRequest} nie zapewniają aplikacji bezpośredniego dostępu do~warstwy transportowej HTTP/2. W~szczególności kod JavaScript wykonywany w~przeglądarce nie może bezpośrednio odczytywać nagłówków końcowych odpowiedzi HTTP/2. Oznacza to, że mimo możliwości zestawienia połączenia HTTP/2 przeglądarka nie udostępnia aplikacji mechanizmu pozwalającego na~bezpośrednią obsługę wszystkich elementów wymaganych przez natywny protokół gRPC.
+
+Dodatkowym ograniczeniem jest sposób zarządzania połączeniami HTTP/2 przez przeglądarkę. Przeglądarka samodzielnie zarządza połączeniami oraz multipleksowaniem strumieni, podczas gdy natywny gRPC zakłada możliwość wykorzystania mechanizmów HTTP/2 w~sposób niedostępny dla standardowych interfejsów JavaScript.
+
+Wymienione ograniczenia sprawiają, że~natywny gRPC nie może być wykorzystywany bezpośrednio przez kod wykonywany w~przeglądarce w~taki sam sposób jak w~przypadku klientów backendowych. Rozwiązaniem tego problemu jest gRPC-Web, który dostosowuje sposób transportowania komunikatów gRPC do~możliwości środowiska przeglądarkowego.
+
+Tabela~\ref{tab:gRPCComparison} przedstawia porównanie natywnego gRPC, gRPC-Web oraz REST w~kontekście komunikacji pomiędzy przeglądarką a~warstwą backendową.
+
+\begin{table}[htb]
+
+\begin{center}
+
+\caption{Porównanie natywnego gRPC, gRPC-Web oraz REST w~kontekście komunikacji frontend-backend}
+
+\label{tab:gRPCComparison}
+
+\footnotesize
+
+\begin{tabular}{|l|>{\raggedright\arraybackslash}p{3cm}|>{\raggedright\arraybackslash}p{3cm}|>{\raggedright\arraybackslash}p{3cm}|}
+
+\hline
+
+\textbf{Cecha} & \textbf{Natywny gRPC} & \textbf{gRPC-Web} & \textbf{REST} \\
+
+\hline
+
+Wsparcie przeglądarek & Brak & Tak & Tak (natywne) \\
+
+\hline
+
+Wersja HTTP & HTTP/2 & HTTP/1.1 lub HTTP/2 & HTTP/1.1 lub HTTP/2 \\
+
+\hline
+
+Typ strumieniowania & Dwukierunkowe & Tylko server-side & Brak (SSE opcjonalnie) \\
+
+\hline
+
+Kontrakt i~typy & Obowiązkowy, Protobuf & Obowiązkowy, Protobuf & Opcjonalny (OpenAPI), JSON \\
+
+\hline
+
+Wymagane proxy & Nie & Opcjonalne & Nie \\
+
+\hline
+
+Złożoność konfiguracji & Niska & Średnia & Niska \\
+
+\hline
+
+\end{tabular}
+
+\end{center}
+
+\end{table}
+
+Jak wynika z~tabeli~\ref{tab:gRPCComparison}, gRPC-Web zachowuje istotne właściwości natywnego gRPC, w~szczególności wykorzystanie kontraktu opartego na~\textit{Protocol Buffers}~\cite{bib:ProtocolBuffers}. Jednocześnie dostosowuje sposób transportowania komunikatów do~ograniczeń środowiska przeglądarkowego, między innymi poprzez rezygnację z~dwukierunkowego strumieniowania. W~ekosystemie .NET możliwe jest zastosowanie zarówno serwera pośredniczącego, takiego jak Envoy, jak i~bezpośredniej obsługi gRPC-Web przez usługę ASP.NET Core.
+
+% -----------------------------------------------------------------------
 
 \section{Architektura gRPC-Web}
+
 \label{sec:ArchitekturagRPCWeb}
 
-\subsection{Rola proxy w komunikacji gRPC-Web}
-\label{subsec:RolaProxy}
+Istotną różnicą pomiędzy natywnym gRPC a~gRPC-Web jest sposób przekazywania informacji o~statusie wywołania. W~natywnym gRPC informacje te~są~przekazywane w~nagłówkach końcowych HTTP/2. W~gRPC-Web zostały one umieszczone w~specjalnej ramce znajdującej się wewnątrz ciała odpowiedzi HTTP. Zgodnie ze~specyfikacją gRPC-Web ramka końcowa jest poprzedzona bajtem flagi o~wartości \texttt{0x80}, natomiast ramki zawierające właściwe komunikaty oznaczane są~wartością \texttt{0x00}~\cite{bib:ProtocolWeb}.
 
-gRPC-Web wymaga warstwy translacyjnej między przeglądarką a backendem gRPC. Ten podrozdział uzasadnia się koniecznością wyjaśnienia, jak proxy tłumaczy uproszczone żądania gRPC-Web na natywny protokół gRPC. 
+Takie rozwiązanie pozwala na~przesyłanie komunikatów gRPC z~wykorzystaniem mechanizmów dostępnych dla aplikacji przeglądarkowych. Warstwa gRPC-Web może być obsługiwana bezpośrednio przez serwer aplikacyjny albo przez dedykowany serwer pośredniczący. W~niniejszej pracy wykorzystano oba warianty, co~umożliwia ich późniejsze porównanie pod względem wydajności.
 
-\subsection{Envoy Proxy i nginx jako reverse proxy}
-\label{subsec:EnvoyNginx}
+W~wariancie wykorzystującym Envoy przeglądarka wysyła żądania gRPC-Web do~serwera pośredniczącego. Envoy, wyposażony w~filtr \texttt{grpc\_web}, odpowiada za~przekształcenie komunikacji pomiędzy formatem gRPC-Web używanym przez klienta a~natywnym gRPC wykorzystywanym przez usługę backendową. W~wariancie Direct dodatkowa warstwa proxy nie występuje, ponieważ obsługa gRPC-Web realizowana jest bezpośrednio przez aplikację ASP.NET Core.
 
-Envoy i nginx to najpopularniejsze rozwiązania proxy dla gRPC-Web.
+% -----------------------------------------------------------------------
 
-\section{Implementacja gRPC-Web w aplikacjach frontendowych}
+\section{Implementacja we~frameworku Angular}
+
 \label{sec:ImplementacjagRPCWeb}
 
-\subsection{Integracja z frameworkami JavaScript}
-\label{subsec:IntegracjaJavaScript}
+% -----------------------------------------------------------------------
 
-Brak natywnego wsparcia dla gRPC-Web w popularnych frameworkach frontendowych stanowi praktyczne wyzwanie. Ten podrozdział uzasadnia się potrzebą pokazania, jak integrować gRPC-Web z React, Angular czy Vue.js oraz jakie są związane z tym trudności i ograniczenia.
+Opisane warianty gRPC-Web wymagają klienta działającego w~rzeczywistym środowisku przeglądarkowym. W~niniejszej pracy rolę tę~pełni aplikacja frontendowa wykorzystująca framework \textit{Angular 20}. Aplikacja odpowiada zarówno za~prezentację danych, jak i~obsługę komunikacji z~backendem. Jej architektura została przygotowana w~taki sposób, aby umożliwić przełączanie pomiędzy badanymi wariantami komunikacji bez zmiany warstwy prezentacji.
 
-\subsection{Pakiety npm i konfiguracja}
-\label{subsec:PakietyNPM}
+Do~obsługi gRPC-Web wykorzystano bibliotekę \textit{Connect RPC} opracowaną przez firmę Buf~\cite{bib:ConnectRPC}. Biblioteka udostępnia klienta gRPC-Web dla aplikacji wykorzystujących moduły ECMAScript oraz współpracuje z~generowanym kodem TypeScript. W~porównaniu z~klasyczną biblioteką \texttt{grpc-web} rozwiązanie to~lepiej integruje się z~procesem budowania zastosowanym w~badanej aplikacji.
 
-Szczegółowe omówienie wymaganych pakietów npm (@types/google-protobuf, grpc-web) jest uzasadnione przez praktyczny aspekt implementacji. Ten podrozdział pomoże czytelnikom zrozumieć konkretne kroki niezbędne do wdrożenia gRPC-Web w projektach frontendowych.
+% -----------------------------------------------------------------------
 
-\section{GraphQL Gateway dla gRPC}
-\label{sec:GraphQLGateway}
+\subsection{Generowanie kodu i~Connect RPC}
 
-Integracja GraphQL z gRPC przez grpc-graphql-gateway oferuje alternatywne podejście do ekspozycji usług gRPC.
+\label{subsec:ConnectRPC}
+
+% -----------------------------------------------------------------------
+
+Komunikacja wykorzystująca gRPC-Web została oparta na~kontrakcie zdefiniowanym w~języku Protocol Buffers. Na~podstawie plików \texttt{.proto} generowany jest kod TypeScript wykorzystywany następnie przez aplikację Angular. W~procesie tym wykorzystano kompilator Protocol Buffers~\cite{bib:ProtoGen} oraz wtyczki \texttt{protoc-gen-es} i~\texttt{protoc-gen-connect-es}. Pierwsza z~nich odpowiada za~generowanie definicji komunikatów, natomiast druga za~generowanie deskryptorów usług wykorzystywanych przez bibliotekę Connect RPC.
+
+Listing~\ref{lst:ProtoGenConnect} przedstawia konfigurację generowania kodu klienckiego.
+
+\begin{lstlisting}[
+  language=bash,
+  caption={Generowanie kodu klienckiego dla Connect RPC},
+  label=lst:ProtoGenConnect
+]
+
+# Instalacja bibliotek klienckich i wtyczek generatora
+
+npm install @connectrpc/connect @connectrpc/connect-web
+
+npm install --save-dev @bufbuild/protoc-gen-es \
+  @connectrpc/protoc-gen-connect-es
+
+# Wywolanie generatora
+
+grpc_tools_node_protoc \
+  --plugin=protoc-gen-es=node_modules/.bin/protoc-gen-es \
+  --es_out=src/generated-connect \
+  --plugin=protoc-gen-connect-es=node_modules/.bin/protoc-gen-connect-es \
+  --connect-es_out=src/generated-connect \
+  -I ../../protos \
+  ../../protos/product.proto ../../protos/order.proto
+
+\end{lstlisting}
+
+Wywołanie generatora zostało umieszczone w~skrypcie npm, dzięki czemu proces generowania kodu może być wykonywany w~sposób powtarzalny podczas budowania projektu. Podejście to~zapewnia również spójność pomiędzy kontraktem zapisanym w~plikach Protocol Buffers a~kodem wykorzystywanym przez aplikację frontendową.
