@@ -363,3 +363,20 @@ Porównania pomiędzy protokołami przeprowadzono w~układzie sparowanym. Poniew
 Przyjęto następujące kryterium rozstrzygalności: różnicę uznaje się za~rozstrzygniętą, jeżeli jej przedział ufności nie zawiera zera. Kryterium to~zastąpiło wcześniejszą regułę opartą na~progu procentowym, ponieważ wiąże ocenę wprost ze~zmiennością danych, a~nie z~wartością przyjętą arbitralnie.
 
 Test rangowy dla par nie został zastosowany, ponieważ przy pięciu obserwacjach najmniejsza osiągalna dwustronna wartość prawdopodobieństwa wynosi 0,0625, a~zatem test ten nie mógłby wykazać istotności na~przyjętym poziomie niezależnie od~wielkości efektu. Z~tego względu raportowane są~przedziały ufności, nie wartości prawdopodobieństwa testowego.
+
+% -----------------------------------------------------------------------
+\section{Ograniczenia metodologiczne}
+\label{sec:OgraniczeniaMetodologiczne}
+% -----------------------------------------------------------------------
+
+Przyjęta metodyka pozwala porównać badane protokoły w~kontrolowanych i~powtarzalnych warunkach, lecz wyznacza również granice uogólniania wyników. Ograniczenia te~nie podważają porównań wykonanych w~ramach eksperymentu, ale określają sytuacje, w~których przeniesienie wniosków na~inne systemy wymaga dodatkowej walidacji.
+
+Zakres uogólniania wyników ogranicza fakt, że~badanie przeprowadzono dla jednej implementacji systemu, jednego stosu technologicznego (.NET~10, Angular~20 i~Chromium) oraz jednej konfiguracji sprzętowej. Dzięki identycznej logice biznesowej i~wspólnej aplikacji klienckiej ograniczono liczbę zmiennych zakłócających, jednak wyniki nie opisują wszystkich implementacji REST i~gRPC-Web ani zachowania innych silników przeglądarek. W~szczególności koszt serializacji, deserializacji i~aktualizacji widoku może zależeć od~bibliotek klienckich, modelu danych i~środowiska wykonawczego.
+
+Warunki sieciowe stanowią odrębne ograniczenie, ponieważ pomiary wykonano dla jednej rzeczywistej ścieżki pomiędzy stanowiskiem klienckim a~serwerem. Jej opóźnienie obiegu pakietu wynosiło 26,2--26,9~ms, a~przepustowość pojedynczego strumienia około 20~Mbit/s. Wykazany mechanizm zależy od~liczby okien odbiorczych i~kosztu kolejnych obiegów pakietu, dlatego wartości bezwzględnych oraz procentowej przewagi nie należy bezpośrednio przenosić na~sieci lokalne, połączenia mobilne ani łącza o~innym iloczynie opóźnienia i~przepustowości.
+
+Na~zakres interpretacji wpływa również brak kompresji ciała odpowiedzi na~badanych ścieżkach. Zapewniło to~symetrię porównania, ale ogranicza zakres wniosków o~opóźnieniu do~transferów nieskompresowanych. Analiza objętościowa w~sekcji~\ref{subsec:Kompresja} wskazuje, że~po~zastosowaniu gzip wszystkie badane ładunki mieściłyby się w~jednym oknie odbiorczym, lecz wpływ kompresji na~czas odpowiedzi nie został zmierzony eksperymentalnie. Nie uwzględniono więc także kosztu procesora związanego z~kompresją i~dekompresją.
+
+Zakres analizowanego obciążenia obejmuje dziesięciu i~dwudziestu równoległych klientów. Wyższe poziomy współbieżności wyłączono po~ustaleniu, że~powyżej dwudziestu klientów przepustowość ogranicza stanowisko pomiarowe, a~nie system testowany. Wyniki opisują zatem opóźnienie przed osiągnięciem granicy narzędzia, lecz nie pozwalają wnioskować o~maksymalnej przepustowości serwera ani zachowaniu systemu przy setkach równoległych użytkowników. Z~tego samego względu przepustowość, przy adaptacyjnym czasie namysłu, pozostaje porównywalna pomiędzy protokołami wyłącznie w~obrębie tej~samej komórki macierzy.
+
+Badane scenariusze odzwierciedlają wybrane operacje systemu: generowanie odpowiedzi w~pamięci, odczyt katalogu oraz transakcyjny zapis zamówienia. Kontrolowany zbiór danych i~stałe kształty komunikatów zwiększają wewnętrzną wiarygodność porównania, ale nie obejmują całego zróżnicowania systemów produkcyjnych, takich jak odmienne rozkłady rozmiarów odpowiedzi, inne strategie buforowania czy dodatkowe warstwy pośredniczące. Przed zastosowaniem wniosków w~innym systemie konieczne jest zatem zmierzenie rzeczywistych rozmiarów komunikatów, charakterystyki łącza oraz udziału warstwy danych w~czasie odpowiedzi.

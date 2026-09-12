@@ -515,3 +515,38 @@ klientach i~dziesięciu rekordach. Właściwym wnioskiem jest zatem nie tyle bra
 \end{sloppypar}
 
 \textbf{H5 (wariant Direct osiąga niższe opóźnienie niż wariant z~proxy Envoy):} hipoteza potwierdzona, lecz o~znaczeniu marginalnym. Wariant bezpośredni jest szybszy w~każdej konfiguracji odczytu z~ciepłą pamięcią podręczną oraz w~każdej konfiguracji scenariusza Echo, jednak przewaga nie przekracza sześciu procent. W~grupie scenariuszy z~zimną pamięcią podręczną relacja ta~nie zachodzi konsekwentnie co należy przypisać zmienności warstwy danych. Wybór pomiędzy oboma wariantami wdrożenia gRPC-Web ma~znaczenie drugorzędne.
+
+% -----------------------------------------------------------------------
+\section{Rekomendacje i~wytyczne wdrożeniowe}
+\label{sec:RekomendacjeArchitektoniczne}
+% -----------------------------------------------------------------------
+
+Uzyskane wyniki nie uzasadniają bezwarunkowego zastąpienia REST przez gRPC-Web. Wskazują natomiast mierzalne kryteria, na~podstawie których można dobrać mechanizm komunikacji do~charakterystyki konkretnego systemu. Decyzja powinna wynikać z~rozmiaru przesyłanych danych, parametrów łącza, dominującego rodzaju operacji oraz wymagań eksploatacyjnych.
+
+\subsection{Rekomendacje architektoniczne}
+
+\begin{enumerate}
+    \item \textbf{Rozmiar odpowiedzi należy oceniać względem efektywnego okna transmisji.} Zastosowanie formatu binarnego przynosi istotną korzyść wtedy, gdy zmniejszenie wolumenu ogranicza liczbę wymian pakietów. W~badanym środowisku efekt pojawiał się przy nieskompresowanych odpowiedziach od~około 500~rekordów i~osiągał 26--43\%. Dla małych odpowiedzi różnice pozostawały na~poziomie pojedynczych milisekund, dlatego sam wybór gRPC-Web nie powinien być traktowany jako uniwersalna optymalizacja.
+
+    \item \textbf{Przed zmianą protokołu należy zmierzyć ładunek po~kompresji.} Kompresja gzip zmniejszyła w~oszacowaniu przewagę objętościową Protocol Buffers z~około 33\% do~15--18\% i~sprowadziła wszystkie analizowane odpowiedzi poniżej rozmiaru jednego okna. W~systemach podających dokumenty JSON z~kompresją właściwym pierwszym krokiem jest zatem pomiar rzeczywistego rozmiaru odpowiedzi, a~następnie test opóźnienia w~docelowej sieci. Jeżeli ładunek nadal przekracza próg jednego okna, należy rozważyć również paginację, ograniczenie pól odpowiedzi lub zmianę sposobu agregacji danych.
+
+    \item \textbf{Charakter operacji jest ważniejszy niż sam format komunikatu.} W~odczycie dużych zbiorów koszt transmisji może dominować i~uzasadniać zastosowanie gRPC-Web. W~operacjach zapisu angażujących transakcję bazodanową różnice pomiędzy protokołami nie były rozstrzygalne, ponieważ czas odpowiedzi wyznaczała warstwa persystencji. W~takich ścieżkach priorytetem powinny być optymalizacja zapytań, zakres transakcji i~organizacja zapisu, natomiast protokół należy dobierać ze~względu na~kontrakt, interoperacyjność i~koszt utrzymania.
+
+    \item \textbf{Wybór pomiędzy wariantem bezpośrednim a~proxy powinien wynikać z~topologii systemu.} Różnica wydajnościowa pomiędzy gRPC-Web Direct a~wariantem z~Envoy nie przekraczała sześciu procent i~była wielokrotnie mniejsza od~efektu serializacji. Obsługa bezpośrednia upraszcza ścieżkę żądania i~ogranicza liczbę komponentów, natomiast serwer pośredniczący może być uzasadniony, gdy architektura wymaga wspólnej warstwy routingu i~centralnej konfiguracji ruchu. Nie należy rezygnować z~proxy wyłącznie na~podstawie oczekiwania znaczącego skrócenia czasu odpowiedzi.
+
+    \item \textbf{Pamięć podręczna powinna być traktowana również jako mechanizm stabilizacji czasu odpowiedzi.} W~scenariuszach z~ciepłą pamięcią podręczną współczynnik zmienności wynosił typowo 2--6\%, natomiast przy wymuszonym dostępie do~bazy wzrastał do~10--30\%, a~maksymalnie do~51,3\%. Cache-Aside poprawia więc nie tylko wartość centralną opóźnienia, lecz także jego przewidywalność. Wymaga to~jednocześnie jawnej polityki unieważniania danych oraz osobnego monitorowania ścieżek trafienia i~chybienia.
+\end{enumerate}
+
+\subsection{Wytyczne wdrożeniowe}
+
+\begin{enumerate}
+    \item \textbf{Test wydajnościowy należy prowadzić w~warunkach odpowiadających docelowemu wdrożeniu.} Powinien on~obejmować rzeczywistą przeglądarkę, końcową konfigurację TLS, kompresji i~serwerów pośredniczących oraz reprezentatywne opóźnienie sieci. Pomiar wyłącznie wewnątrz centrum danych może ukryć efekt zależny od~liczby obiegów pakietu, natomiast test bez kompresji może zawyżyć przewagę formatu binarnego względem konfiguracji produkcyjnej.
+
+    \item \textbf{Należy oddzielić ograniczenia systemu od~ograniczeń generatora obciążenia.} Wspólny pułap przepustowości wszystkich protokołów ujawnił w~badaniu nasycenie stanowiska klienckiego. Przed interpretacją wyników trzeba więc wykonać pomiar skalowania i~wyznaczyć punkt przegięcia. Badania większej współbieżności powinny wykorzystywać wiele maszyn generujących ruch, przy zachowaniu pomiaru czasu wewnątrz strony i~kontroli obciążenia każdej z~nich.
+
+    \item \textbf{Porównywane ścieżki muszą zachowywać symetrię funkcjonalną.} Powinny wykonywać tę~samą logikę biznesową, korzystać z~tych~samych danych i~kończyć pomiar w~tym~samym punkcie cyklu renderowania. Należy też pomiarowo potwierdzić negocjowaną wersję HTTP, liczbę połączeń, rozmiar odpowiedzi i~stan pamięci podręcznej. Bez tej kontroli wynik może opisywać różnicę implementacji, a~nie protokołu.
+
+    \item \textbf{Warstwę obserwowalności należy wykorzystać do~weryfikacji przyczyn, nie jako zamiennik pomiaru klienckiego.} Metryki serwerowe powinny obejmować co~najmniej czas obsługi żądania, liczbę żądań, wykorzystanie zasobów oraz zachowanie środowiska uruchomieniowego. Ich zestawienie z~czasem mierzonym w~przeglądarce pozwala rozróżnić koszt przetwarzania po~stronie usługi od~transmisji, deserializacji i~aktualizacji interfejsu.
+
+    \item \textbf{Decyzję protokołową należy okresowo ponawiać po~zmianach systemu.} Zmiana modelu odpowiedzi, poziomu kompresji, lokalizacji użytkowników, konfiguracji proxy lub sposobu korzystania z~pamięci podręcznej może przesunąć granicę, przy której format binarny daje korzyść. Kryterium wdrożeniowym powinien być zatem wynik powtarzalnego testu dla reprezentatywnych scenariuszy, a~nie właściwość przypisana protokołowi niezależnie od~kontekstu.
+\end{enumerate}
