@@ -11,7 +11,7 @@ Niniejszy rozdział przedstawia system zrealizowany na~potrzeby pracy. Omówiona
 \label{sec:ArchitekturaSystemu}
 % -----------------------------------------------------------------------
 
-Na~potrzeby przeprowadzenia eksperymentów wydajnościowych zrealizowano autorski system e-commerce, którego model domenowy został zainspirowany referencyjną architekturą mikrousług firmy Microsoft (będącą następcą projektu \textit{eShopOnContainers})~\cite{bib:MicrosoftEShop2024}. Implementacja została w~pełni podporządkowana celom badawczym, skupiając się na~precyzyjnym porównaniu wybranych protokołów i~wariantów komunikacji sieciowej. Architektura systemu składa się z~trzech głównych warstw: warstwy prezentacji w~postaci aplikacji przeglądarkowej, warstwy usług biznesowych złożonej z~mikroserwisów opartych na~platformie .NET~10 oraz warstwy infrastrukturalnej obejmującej relacyjne bazy danych, pamięć podręczną i~komponenty obserwowalności.
+Na~potrzeby przeprowadzenia eksperymentów wydajnościowych zrealizowano autorski system e-commerce. Implementacja została w~pełni podporządkowana celom badawczym, skupiając się na~precyzyjnym porównaniu wybranych protokołów i~wariantów komunikacji sieciowej. Architektura systemu składa się z~trzech głównych warstw: warstwy prezentacji w~postaci aplikacji przeglądarkowej, warstwy usług biznesowych złożonej z~mikroserwisów opartych na~platformie .NET~10 oraz warstwy infrastrukturalnej obejmującej relacyjne bazy danych, pamięć podręczną i~komponenty obserwowalności.
 
 Środowisko eksperymentalne zostało rozproszone pomiędzy dwie fizyczne maszyny: warstwa mikroserwisów wraz z~całą infrastrukturą pomocniczą została uruchomiona na~zewnętrznym serwerze, natomiast aplikacja kliencka działała lokalnie, na~stacji roboczej pełniącej rolę węzła pomiarowego.
 
@@ -23,9 +23,9 @@ Przyjęte podejście powinno zagwarantować, że~pomiary odzwierciedlają komple
 System realizuje podział na~dwa mikroserwisy zgodnie z~zasadą \textit{Bounded Context}~\cite{bib:Evans2003}:
 
 \begin{itemize}
-    \item \textbf{ProductService} (kontekst: katalog produktów) -- odpowiada za~operacje odczytu katalogu, implementuje wzorzec Cache-Aside oraz punkt końcowy izolujący narzut protokołu. Dane przechowywane w~dedykowanej bazie \texttt{eshop\_products} obejmują 2000~produktów rozłożonych na~dziesięć kategorii.
+    \item \textbf{ProductService} (kontekst: katalog produktów) -- odpowiada za~operacje odczytu katalogu, implementuje wzorzec Cache-Aside oraz punkt końcowy izolujący narzut protokołu. Dane przechowywane w~dedykowanej bazie produktów obejmują 2000~produktów rozłożonych na~dziesięć kategorii.
     \item \textbf{OrderService} (kontekst: proces zamówień) -- odpowiada za~tworzenie
-    zamówień: waliduje żądanie, zapisuje encję zamówienia wraz z~jego pozycjami. Dane przechowywane w~dedykowanej bazie \texttt{eshop\_orders}.
+    zamówień: waliduje żądanie, zapisuje encję zamówienia wraz z~jego pozycjami. Dane przechowywane w~dedykowanej bazie zamówień.
 \end{itemize}
 
 Każdy mikroserwis jest autonomiczną jednostką wdrożeniową z~własnym obrazem kontenera, konfiguracją połączeń oraz migracjami bazy danych realizowanymi w~podejściu Code-First.

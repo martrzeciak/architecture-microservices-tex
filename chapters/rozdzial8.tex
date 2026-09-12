@@ -1,16 +1,16 @@
 \cleardoublepage
 
-\chapter{Studium przypadku: aplikacja eShop}
+\chapter{Studium przypadku: aplikacja opracowana na~potrzeby pracy}
 \label{cha:StudiumPrzypadku}
 
-Niniejszy rozdział prezentuje studium przypadku systemu eShop -- platformy testowej zbudowanej na~potrzeby niniejszej pracy, stanowiącej jednocześnie przedmiot badań eksperymentalnych opisanych w~rozdziałach~\ref{cha:MetodologiaBadan} i~\ref{cha:AnalizaWydajnosci}. Opis stanowi rozwinięcie sekcji~\ref{sec:ProjektAplikacji}, w~której przedstawiono wyłącznie te~elementy projektu, które są~niezbędne do~interpretacji pomiarów. Umiejscowienie rozdziału po~analizie wyników jest przy tym celowe: znaczna część omawianych tu~rozstrzygnięć implementacyjnych podlega ocenie właśnie w~świetle zmierzonych wartości -- dotyczy to~w~szczególności wpływu pamięci podręcznej na~charakterystykę odczytu oraz mechanizmów kontrolnych potwierdzających wiarygodność wyników. Omówiona zostaje architektura systemu (sekcja~\ref{sec:ArchitekturaSystemu}), implementacja kluczowych wzorców projektowych z~rozdziału~\ref{cha:WzorceProjektowe} (sekcja~\ref{sec:ImplementacjaWzorcow}), wdrożenie i~eksploatacja w~środowisku chmurowym wraz z~uzasadnieniem przyjętego modelu infrastruktury (sekcja~\ref{sec:WdrozenieChmurowe}), konsekwencje zmierzonych zależności dla decyzji wdrożeniowych (sekcja~\ref{sec:WnioskiWdrozeniowe}) oraz walidacja rozwiązania (sekcja~\ref{sec:TestowanieWalidacja}).
+Niniejszy rozdział prezentuje studium przypadku aplikacji opracowanej na~potrzeby niniejszej pracy, stanowiącej jednocześnie przedmiot badań eksperymentalnych opisanych w~rozdziałach~\ref{cha:MetodologiaBadan} i~\ref{cha:AnalizaWydajnosci}. Opis stanowi rozwinięcie sekcji~\ref{sec:ProjektAplikacji}, w~której przedstawiono wyłącznie te~elementy projektu, które są~niezbędne do~interpretacji pomiarów. Umiejscowienie rozdziału po~analizie wyników jest przy tym celowe: znaczna część omawianych tu~rozstrzygnięć implementacyjnych podlega ocenie właśnie w~świetle zmierzonych wartości -- dotyczy to~w~szczególności wpływu pamięci podręcznej na~charakterystykę odczytu oraz mechanizmów kontrolnych potwierdzających wiarygodność wyników. Omówiona zostaje architektura systemu (sekcja~\ref{sec:ArchitekturaSystemu}), implementacja kluczowych wzorców projektowych z~rozdziału~\ref{cha:WzorceProjektowe} (sekcja~\ref{sec:ImplementacjaWzorcow}), wdrożenie i~eksploatacja w~środowisku chmurowym wraz z~uzasadnieniem przyjętego modelu infrastruktury (sekcja~\ref{sec:WdrozenieChmurowe}), konsekwencje zmierzonych zależności dla decyzji wdrożeniowych (sekcja~\ref{sec:WnioskiWdrozeniowe}) oraz walidacja rozwiązania (sekcja~\ref{sec:TestowanieWalidacja}).
 
 % -----------------------------------------------------------------------
-\section{Architektura systemu eShop}
+\section{Architektura aplikacji opracowanej na~potrzeby pracy}
 \label{sec:ArchitekturaSystemu}
 % -----------------------------------------------------------------------
 
-System eShop inspirowany jest aplikacją referencyjną \textit{eShop} firmy Microsoft, będącą następcą projektu \textit{eShopOnContainers}~\cite{bib:MicrosoftEShop2024}, lecz stanowi autorską implementację skoncentrowaną na~porównaniu protokołów komunikacji. Architektura składa się z~trzech warstw: warstwy prezentacji w~postaci aplikacji przeglądarkowej, warstwy usług biznesowych złożonej z~mikroserwisów .NET~10 oraz warstwy infrastrukturalnej obejmującej bazy danych, pamięć podręczną i~komponenty obserwowalności.
+Aplikacja opracowana na~potrzeby pracy stanowi autorską implementację skoncentrowaną na~porównaniu protokołów komunikacji. Jej architektura składa się z~trzech warstw: warstwy prezentacji w~postaci aplikacji przeglądarkowej, warstwy usług biznesowych złożonej z~mikroserwisów .NET~10 oraz warstwy infrastrukturalnej obejmującej bazy danych, pamięć podręczną i~komponenty obserwowalności.
 
 Cechą wyróżniającą przyjęte rozwiązanie jest podwójna rola aplikacji przeglądarkowej. Stanowi ona jednocześnie warstwę prezentacji systemu oraz klienta pomiarowego w~eksperymencie opisanym w~rozdziale~\ref{cha:MetodologiaBadan}, obsługując wszystkie trzy ścieżki komunikacji przedstawione na~rysunku~\ref{fig:SciezkiKomunikacji}.
 
@@ -22,8 +22,8 @@ Warstwy te~rozłożone są~na~dwie maszyny: warstwa usług wraz z~infrastruktur�
 System realizuje podział na~dwa mikroserwisy zgodnie z~zasadą \textit{Bounded Context}~\cite{bib:Evans2003}:
 
 \begin{itemize}
-    \item \textbf{ProductService} (kontekst: katalog produktów) -- odpowiada za~operacje odczytu katalogu, implementuje wzorzec Cache-Aside, udostępnia procedurę strumieniowania gRPC oraz punkt końcowy izolujący narzut protokołu. Dane przechowywane w~dedykowanej bazie \texttt{eshop\_products} obejmują 2000~produktów rozłożonych na~dziesięć kategorii o~nierównomiernej liczności.
-    \item \textbf{OrderService} (kontekst: proces zamówień) -- odpowiada za~tworzenie zamówień. Dane przechowywane w~dedykowanej bazie \texttt{eshop\_orders}.
+    \item \textbf{ProductService} (kontekst: katalog produktów) -- odpowiada za~operacje odczytu katalogu, implementuje wzorzec Cache-Aside, udostępnia procedurę strumieniowania gRPC oraz punkt końcowy izolujący narzut protokołu. Dane przechowywane w~dedykowanej bazie produktów obejmują 2000~produktów rozłożonych na~dziesięć kategorii o~nierównomiernej liczności.
+    \item \textbf{OrderService} (kontekst: proces zamówień) -- odpowiada za~tworzenie zamówień. Dane przechowywane w~dedykowanej bazie zamówień.
 \end{itemize}
 
 Każdy mikroserwis jest autonomiczną jednostką wdrożeniową z~własnym obrazem kontenera, konfiguracją połączeń oraz migracjami bazy danych realizowanymi w~podejściu Code-First.
@@ -79,7 +79,7 @@ Cały system uruchamiany jest za~pomocą Docker Compose, orkiestrującego dziewi
 \begin{table}[htb]
 \centering
 \footnotesize
-\caption{Limity zasobów kontenerów w~konfiguracji wdrożeniowej systemu eShop}
+\caption{Limity zasobów kontenerów w~konfiguracji wdrożeniowej badanego systemu}
 \label{tab:DockerServices}
 \begin{tabular}{|l|l|c|c|}
 \hline
@@ -104,7 +104,7 @@ Suma limitów przekracza liczbę rdzeni dostępnych na~serwerze, co~stanowi świ
 \label{sec:ImplementacjaWzorcow}
 % -----------------------------------------------------------------------
 
-System eShop demonstruje praktyczne zastosowanie wzorców opisanych w~rozdziale~\ref{cha:WzorceProjektowe}: Cache-Aside oraz strumieniowania serwerowego.
+Badany system demonstruje praktyczne zastosowanie wzorców opisanych w~rozdziale~\ref{cha:WzorceProjektowe}: Cache-Aside oraz strumieniowania serwerowego.
 
 \subsection{Wzorzec Cache-Aside w~ProductService}
 \label{subsec:CacheAsideImpl}
@@ -364,7 +364,7 @@ Zestawienie to~wskazuje, że~wynik pracy ma~znaczenie nie tylko dla wyboru mecha
 \label{sec:TestowanieWalidacja}
 % -----------------------------------------------------------------------
 
-Walidacja systemu eShop obejmuje poprawność funkcjonalną, wiarygodność wyników eksperymentalnych oraz zgodność zaobserwowanego zachowania systemu z~założeniami przyjętymi na~etapie projektowania.
+Walidacja badanego systemu obejmuje poprawność funkcjonalną, wiarygodność wyników eksperymentalnych oraz zgodność zaobserwowanego zachowania systemu z~założeniami przyjętymi na~etapie projektowania.
 
 \subsection{Walidacja wyników eksperymentu}
 \label{subsec:WalidacjaWynikow}
@@ -420,4 +420,4 @@ Szacunek ten należy traktować jako przybliżony, ponieważ zestawiane scenariu
 
 Jest to~świadomy kompromis architektoniczny. Gwarancja atomowości zapisu danych biznesowych oraz komunikatu zdarzenia eliminuje klasę błędów polegających na~utracie zdarzeń przy awarii występującej pomiędzy zatwierdzeniem transakcji a~publikacją komunikatu. Rozwiązanie alternatywne w~postaci dwufazowego zatwierdzania transakcji wprowadziłoby wyższy narzut oraz zależność od~dostępności koordynatora transakcji~\cite{bib:Richardson2018}.
 
-Studium przypadku systemu eShop potwierdza, że~wzorce omówione w~części teoretycznej pracy mogą być skutecznie zaimplementowane w~ekosystemie .NET~10 z~akceptowalnym narzutem wydajnościowym. Wniosek nadrzędny jest jednak inny i~wykracza poza katalog wzorców: charakterystyka wydajnościowa systemu rozproszonego wyznaczana jest przede wszystkim przez właściwości warstwy, która w~danym scenariuszu stanowi wąskie gardło. W~operacjach zapisu jest to~warstwa persystencji wraz z~wzorcami zapewniającymi spójność, w~odczycie dużych zbiorów danych -- liczba wymian pakietów wynikająca z~wolumenu odpowiedzi, w~odczycie małych ładunków -- opóźnienie propagacji sieciowej. Wybór protokołu komunikacji wpływa wyłącznie na~drugi z~tych przypadków, co~powinno wyznaczać zarówno kolejność działań optymalizacyjnych, jak i~oczekiwania wobec ich rezultatów.
+Studium przypadku aplikacji opracowanej na~potrzeby pracy potwierdza, że~wzorce omówione w~części teoretycznej pracy mogą być skutecznie zaimplementowane w~ekosystemie .NET~10 z~akceptowalnym narzutem wydajnościowym. Wniosek nadrzędny jest jednak inny i~wykracza poza katalog wzorców: charakterystyka wydajnościowa systemu rozproszonego wyznaczana jest przede wszystkim przez właściwości warstwy, która w~danym scenariuszu stanowi wąskie gardło. W~operacjach zapisu jest to~warstwa persystencji wraz z~wzorcami zapewniającymi spójność, w~odczycie dużych zbiorów danych -- liczba wymian pakietów wynikająca z~wolumenu odpowiedzi, w~odczycie małych ładunków -- opóźnienie propagacji sieciowej. Wybór protokołu komunikacji wpływa wyłącznie na~drugi z~tych przypadków, co~powinno wyznaczać zarówno kolejność działań optymalizacyjnych, jak i~oczekiwania wobec ich rezultatów.
