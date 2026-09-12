@@ -25,6 +25,7 @@
 \makeatother
 
 \usepackage{tikz} % schematy ścieżek komunikacji
+\usepackage{longtable}
 
 %--------------------------------------
 % początek: wskazówka
@@ -61,6 +62,83 @@
 
 \frontpage
 \tableofcontents
+
+\chapter*{Wykaz skrótów}
+\addcontentsline{toc}{chapter}{Wykaz skrótów}
+
+{\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|p{2.8cm}|p{10.8cm}|}
+\hline
+\textbf{Skrót} & \textbf{Rozwinięcie} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Skrót} & \textbf{Rozwinięcie} \\
+\hline
+\endhead
+ACID & Atomicity, Consistency, Isolation, Durability -- właściwości transakcji bazodanowych. \\
+\hline
+AKS & Azure Kubernetes Service. \\
+\hline
+ALPN & Application-Layer Protocol Negotiation -- mechanizm negocjowania protokołu warstwy aplikacyjnej. \\
+\hline
+API & Application Programming Interface -- interfejs programistyczny aplikacji. \\
+\hline
+BDP & Bandwidth-Delay Product -- iloczyn przepustowości łącza i~jego opóźnienia. \\
+\hline
+CDP & Chrome DevTools Protocol. \\
+\hline
+CI/CD & Continuous Integration / Continuous Delivery -- ciągła integracja i~ciągłe dostarczanie oprogramowania. \\
+\hline
+CORS & Cross-Origin Resource Sharing -- mechanizm współdzielenia zasobów między źródłami. \\
+\hline
+CPU & Central Processing Unit -- jednostka centralna procesora. \\
+\hline
+DDD & Domain-Driven Design -- projektowanie sterowane dziedziną. \\
+\hline
+DOM & Document Object Model -- model obiektowy dokumentu. \\
+\hline
+gRPC & Framework zdalnego wywoływania procedur. \\
+\hline
+HATEOAS & Hypermedia As The Engine Of Application State. \\
+\hline
+HPACK & Header Compression for HTTP/2 -- algorytm kompresji nagłówków HTTP/2. \\
+\hline
+HTTP & Hypertext Transfer Protocol -- protokół przesyłania hipertekstu. \\
+\hline
+JSON & JavaScript Object Notation -- tekstowy format wymiany danych. \\
+\hline
+ORM & Object-Relational Mapping -- mapowanie obiektowo-relacyjne. \\
+\hline
+PS & Page Size -- liczba rekordów na~stronie wyników. \\
+\hline
+RAM & Random Access Memory -- pamięć operacyjna. \\
+\hline
+REST & Representational State Transfer -- styl architektoniczny usług sieciowych. \\
+\hline
+RFC & Request for Comments -- dokument normalizacyjny Internet Engineering Task Force. \\
+\hline
+RPC & Remote Procedure Call -- zdalne wywoływanie procedur. \\
+\hline
+RTT & Round-Trip Time -- czas obiegu pakietu między klientem a~serwerem. \\
+\hline
+SSE & Server-Sent Events -- mechanizm przesyłania zdarzeń z~serwera do~klienta. \\
+\hline
+TCP & Transmission Control Protocol -- protokół transportowy zapewniający niezawodne dostarczanie danych. \\
+\hline
+TLS & Transport Layer Security -- protokół zabezpieczający komunikację sieciową. \\
+\hline
+TTL & Time To Live -- czas ważności wpisu w~pamięci podręcznej. \\
+\hline
+URI & Uniform Resource Identifier -- identyfikator zasobu. \\
+\hline
+URL & Uniform Resource Locator -- adres zasobu w~sieci. \\
+\hline
+VU & Virtual User -- wirtualny użytkownik generujący obciążenie. \\
+\hline
+\end{longtable}
+}
 
 % Rozdziały
 \include{chapters/wstep}
