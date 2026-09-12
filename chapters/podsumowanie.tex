@@ -8,7 +8,7 @@ W~ramach niniejszej pracy:
 \item zebrano i~usystematyzowano wiedzę z~zakresu architektury mikroserwisowej, mechanizmów komunikacji synchronicznej i~asynchronicznej oraz wzorców projektowych dla systemów rozproszonych w~ekosystemie .NET,
 \item dokonano szczegółowej analizy protokołu gRPC-Web i~jego wariantów wdrożeniowych (proxy Envoy, bezpośrednia obsługa w~oprogramowaniu pośredniczącym ASP.NET Core),
 \item zaprojektowano i~zaimplementowano autorski system testowy składający się z~dwóch mikroserwisów .NET~10 (ProductService, OrderService), infrastruktury wspierającej (PostgreSQL, Redis, RabbitMQ, Envoy Proxy) oraz warstwy obserwowalności (Prometheus, Grafana),
-\item zaimplementowano kluczowe wzorce architektoniczne: Cache-Aside (Redis) oraz CQRS z~Minimal API, a~także skonfigurowano serwer Kestrel do~równoległej obsługi trzech protokołów,
+\item zaimplementowano wzorzec Cache-Aside z~wykorzystaniem Redis, a~także skonfigurowano serwer Kestrel do~równoległej obsługi trzech protokołów,
 \item opracowano metodykę pomiarową opartą na~rzeczywistej przeglądarce internetowej, w~której czas mierzony jest wewnątrz strony, od~interakcji użytkownika do~naniesienia odpowiedzi na~drzewo dokumentu, co~obejmuje pełną ścieżkę odczuwaną przez użytkownika aplikacji przeglądarkowej,
 \item przeprowadzono 39~konfiguracji pomiarowych w~pięciu niezależnych powtórzeniach z~rotowaną kolejnością protokołów, co~dało 585~wykonanych testów i~171~tysięcy pomiarów, badając wpływ protokołu komunikacji, rozmiaru odpowiedzi, stanu pamięci podręcznej oraz liczby równoległych klientów na~czas odpowiedzi systemu,
 \item poddano wyniki analizie statystycznej, wyznaczając przedziały ufności dla różnic sparowanych w~obrębie przebiegu.

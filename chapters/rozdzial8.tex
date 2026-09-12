@@ -107,7 +107,7 @@ Suma limitów przekracza liczbę rdzeni dostępnych na~serwerze, co~stanowi świ
 \label{sec:ImplementacjaWzorcow}
 % -----------------------------------------------------------------------
 
-System eShop demonstruje praktyczne zastosowanie wzorców opisanych w~rozdziale~\ref{cha:WzorceProjektowe}: Cache-Aside, Transactional Outbox, Saga, CQRS z~Minimal API oraz strumieniowania serwerowego.
+System eShop demonstruje praktyczne zastosowanie wzorców opisanych w~rozdziale~\ref{cha:WzorceProjektowe}: Cache-Aside, Transactional Outbox, Saga oraz strumieniowania serwerowego.
 
 \subsection{Wzorzec Cache-Aside w~ProductService}
 \label{subsec:CacheAsideImpl}
@@ -301,15 +301,6 @@ public class OrderProcessingSaga : MassTransitStateMachine<OrderSagaState>
 Maszyna stanów definiuje przejście ze~stanu początkowego \texttt{Initial} do~stanu \texttt{AwaitingPayment}, a~następnie, zależnie od~przebiegu procesu, do~stanu \texttt{Completed} albo \texttt{Cancelled}, wraz z~zakończeniem instancji po~zdarzeniu \texttt{OrderCompleted}. Stan instancji utrwalany jest w~tabeli \texttt{OrderSagas} za~pośrednictwem repozytorium EF~Core, co~zapewnia odporność na~awarie procesu: po~restarcie usługi Saga wznawia przetwarzanie od~ostatniego zapisanego stanu.
 
 Zakres faktycznego wykorzystania tej maszyny w~zrealizowanym systemie jest przy tym węższy od~jej definicji, ponieważ jedynym publikowanym zdarzeniem jest \texttt{OrderCreated}. Instancja Sagi powstaje zatem, koreluje zdarzenie początkowe i~pozostaje w~stanie \texttt{AwaitingPayment}, natomiast dalsze przejścia stanowią kod nieosiągalny. Zagadnienie to~wraz z~jego konsekwencjami dla interpretacji pomiarów omówiono w~rozdziale~\ref{cha:WzorceProjektowe}.
-
-\subsection{CQRS z~Minimal API}
-\label{subsec:CQRSImpl}
-
-System realizuje wzorzec CQRS~\cite{bib:YoungCQRS} w~zakresie omówionym w~sekcji~\ref{sec:CQRS}, to~jest poprzez separację ścieżek odczytu i~zapisu na~poziomie mikroserwisów, bez~odrębnego modelu odczytu utrzymywanego projekcjami. Ścieżka odczytu w~\texttt{ProductService} optymalizowana jest pod~kątem wydajności: przez wyłączenie śledzenia zmian, wzorzec Cache-Aside, paginację oraz pulę kontekstów bazodanowych. Ścieżka zapisu w~\texttt{OrderService} optymalizowana jest natomiast pod~kątem spójności, przez transakcje, wzorzec Outbox oraz maszynę stanów.
-
-Model Minimal API pozwala pominąć warstwę kontrolerów~\cite{bib:MinimalApi}: każdy punkt końcowy definiowany jest jako wyrażenie lambda rejestrowane bezpośrednio w~obiekcie aplikacji, wraz z~jawnie wskazanymi zależnościami. Upraszcza to~kod oraz skraca ścieżkę przetwarzania żądania o~mechanizmy wiązania właściwe kontrolerom; wpływu tej różnicy na~czas odpowiedzi nie mierzono, ponieważ jest ona wspólna dla wszystkich badanych ścieżek komunikacji.
-
-Wyniki eksperymentu wskazują, że~separacja ta~ma~uzasadnienie empiryczne: obie ścieżki wykazują nie tylko odmienne wartości opóźnień, lecz przede wszystkim odmienną charakterystykę: ścieżka odczytu reaguje na~zmianę protokołu komunikacji, ścieżka zapisu pozostaje na~nią~niewrażliwa (sekcja~\ref{sec:AnalizaOrders}).
 
 \subsection{Strumieniowanie serwerowe}
 \label{subsec:StreamingImpl}
