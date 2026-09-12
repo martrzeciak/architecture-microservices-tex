@@ -3,14 +3,14 @@
 \chapter{Studium przypadku: aplikacja eShop}
 \label{cha:StudiumPrzypadku}
 
-Niniejszy rozdział prezentuje studium przypadku systemu eShop -- platformy testowej zbudowanej na~potrzeby niniejszej pracy, stanowiącej jednocześnie przedmiot badań eksperymentalnych opisanych w~rozdziałach~\ref{cha:MetodologiaBadan} i~\ref{cha:AnalizaWydajnosci}. Opis stanowi rozwinięcie sekcji~\ref{sec:ProjektAplikacji}, w~której przedstawiono wyłącznie te~elementy projektu, które są~niezbędne do~interpretacji pomiarów. Umiejscowienie rozdziału po~analizie wyników jest przy tym celowe: znaczna część omawianych tu~rozstrzygnięć implementacyjnych podlega ocenie właśnie w~świetle zmierzonych wartości -- dotyczy to~w~szczególności kosztu wzorca Transactional Outbox, empirycznego uzasadnienia rozdzielenia ścieżek odczytu i~zapisu oraz mechanizmów kontrolnych potwierdzających wiarygodność wyników. Omówiona zostaje architektura systemu (sekcja~\ref{sec:ArchitekturaSystemu}), implementacja kluczowych wzorców projektowych z~rozdziału~\ref{cha:WzorceProjektowe} (sekcja~\ref{sec:ImplementacjaWzorcow}), wdrożenie i~eksploatacja w~środowisku chmurowym wraz z~uzasadnieniem przyjętego modelu infrastruktury (sekcja~\ref{sec:WdrozenieChmurowe}), konsekwencje zmierzonych zależności dla decyzji wdrożeniowych (sekcja~\ref{sec:WnioskiWdrozeniowe}) oraz walidacja rozwiązania (sekcja~\ref{sec:TestowanieWalidacja}).
+Niniejszy rozdział prezentuje studium przypadku systemu eShop -- platformy testowej zbudowanej na~potrzeby niniejszej pracy, stanowiącej jednocześnie przedmiot badań eksperymentalnych opisanych w~rozdziałach~\ref{cha:MetodologiaBadan} i~\ref{cha:AnalizaWydajnosci}. Opis stanowi rozwinięcie sekcji~\ref{sec:ProjektAplikacji}, w~której przedstawiono wyłącznie te~elementy projektu, które są~niezbędne do~interpretacji pomiarów. Umiejscowienie rozdziału po~analizie wyników jest przy tym celowe: znaczna część omawianych tu~rozstrzygnięć implementacyjnych podlega ocenie właśnie w~świetle zmierzonych wartości -- dotyczy to~w~szczególności wpływu pamięci podręcznej na~charakterystykę odczytu oraz mechanizmów kontrolnych potwierdzających wiarygodność wyników. Omówiona zostaje architektura systemu (sekcja~\ref{sec:ArchitekturaSystemu}), implementacja kluczowych wzorców projektowych z~rozdziału~\ref{cha:WzorceProjektowe} (sekcja~\ref{sec:ImplementacjaWzorcow}), wdrożenie i~eksploatacja w~środowisku chmurowym wraz z~uzasadnieniem przyjętego modelu infrastruktury (sekcja~\ref{sec:WdrozenieChmurowe}), konsekwencje zmierzonych zależności dla decyzji wdrożeniowych (sekcja~\ref{sec:WnioskiWdrozeniowe}) oraz walidacja rozwiązania (sekcja~\ref{sec:TestowanieWalidacja}).
 
 % -----------------------------------------------------------------------
 \section{Architektura systemu eShop}
 \label{sec:ArchitekturaSystemu}
 % -----------------------------------------------------------------------
 
-System eShop inspirowany jest aplikacją referencyjną \textit{eShop} firmy Microsoft, będącą następcą projektu \textit{eShopOnContainers}~\cite{bib:MicrosoftEShop2024}, lecz stanowi autorską implementację skoncentrowaną na~porównaniu protokołów komunikacji. Architektura składa się z~trzech warstw: warstwy prezentacji w~postaci aplikacji przeglądarkowej, warstwy usług biznesowych złożonej z~mikroserwisów .NET~10 oraz warstwy infrastrukturalnej obejmującej bazy danych, pamięć podręczną, brokera komunikatów i~komponenty obserwowalności.
+System eShop inspirowany jest aplikacją referencyjną \textit{eShop} firmy Microsoft, będącą następcą projektu \textit{eShopOnContainers}~\cite{bib:MicrosoftEShop2024}, lecz stanowi autorską implementację skoncentrowaną na~porównaniu protokołów komunikacji. Architektura składa się z~trzech warstw: warstwy prezentacji w~postaci aplikacji przeglądarkowej, warstwy usług biznesowych złożonej z~mikroserwisów .NET~10 oraz warstwy infrastrukturalnej obejmującej bazy danych, pamięć podręczną i~komponenty obserwowalności.
 
 Cechą wyróżniającą przyjęte rozwiązanie jest podwójna rola aplikacji przeglądarkowej. Stanowi ona jednocześnie warstwę prezentacji systemu oraz klienta pomiarowego w~eksperymencie opisanym w~rozdziale~\ref{cha:MetodologiaBadan}, obsługując wszystkie trzy ścieżki komunikacji przedstawione na~rysunku~\ref{fig:SciezkiKomunikacji}.
 
@@ -23,14 +23,12 @@ System realizuje podział na~dwa mikroserwisy zgodnie z~zasadą \textit{Bounded 
 
 \begin{itemize}
     \item \textbf{ProductService} (kontekst: katalog produktów) -- odpowiada za~operacje odczytu katalogu, implementuje wzorzec Cache-Aside, udostępnia procedurę strumieniowania gRPC oraz punkt końcowy izolujący narzut protokołu. Dane przechowywane w~dedykowanej bazie \texttt{eshop\_products} obejmują 2000~produktów rozłożonych na~dziesięć kategorii o~nierównomiernej liczności.
-    \item \textbf{OrderService} (kontekst: proces zamówień) -- odpowiada za~tworzenie zamówień, implementuje wzorce Transactional Outbox oraz Saga. Dane przechowywane w~dedykowanej bazie \texttt{eshop\_orders}.
+    \item \textbf{OrderService} (kontekst: proces zamówień) -- odpowiada za~tworzenie zamówień. Dane przechowywane w~dedykowanej bazie \texttt{eshop\_orders}.
 \end{itemize}
 
 Każdy mikroserwis jest autonomiczną jednostką wdrożeniową z~własnym obrazem kontenera, konfiguracją połączeń oraz migracjami bazy danych realizowanymi w~podejściu Code-First.
 
 Istotną cechą przyjętego projektu jest całkowity brak zależności pomiędzy obiema usługami: nie występują ani synchroniczne wywołania, ani wymiana komunikatów pomiędzy \texttt{ProductService} a~\texttt{OrderService}. Decyzja ta~wynika bezpośrednio z~celu badawczego: przedmiotem pomiaru jest komunikacja na~granicy klient--usługa, a~nie orkiestracja procesu obejmującego wiele usług. Wprowadzenie zależności międzyusługowej wnosiłoby do~pomiarów opóźnienie drugiej usługi, utrudniając izolację narzutu samego protokołu. Konsekwencją takiego podziału jest pełna niezależność wdrożeniowa obu komponentów oraz brak sprzężenia temporalnego, rozumianego jako wymóg jednoczesnej dostępności współpracujących usług~\cite{bib:Newman2021}.
-
-Broker komunikatów RabbitMQ obsługuje natomiast przepływ zdarzeń wewnątrz \texttt{OrderService}: zdarzenie \texttt{OrderCreated} publikowane jest przez mechanizm Outbox, a~następnie odbierane przez maszynę stanów Sagi działającą w~tym samym procesie. Rozwiązanie to~odwzorowuje pełny łańcuch przetwarzania asynchronicznego, wraz z~jego kosztem wydajnościowym uwzględnionym w~pomiarach scenariuszy zapisu, bez wprowadzania zależności pomiędzy mikroserwisami.
 
 \subsection{Skalowanie zbioru danych inicjalizacyjnych}
 \label{subsec:ZasiewDanych}
@@ -92,7 +90,6 @@ order-service   & obraz własny (.NET~10) & 4,0 & 3\,GB \\
 envoy           & envoyproxy/envoy:v1.29-latest & 4,0 & 1\,GB \\
 postgres        & postgres:17-alpine & 4,0 & 4\,GB \\
 redis           & redis:7.2-alpine & 1,0 & 512\,MB \\
-rabbitmq        & rabbitmq:3.13-management-alpine & 2,0 & 1\,GB \\
 jaeger          & jaegertracing/all-in-one:1.56 & 1,0 & 512\,MB \\
 prometheus      & prom/prometheus:v2.51.2 & 1,0 & 512\,MB \\
 grafana         & grafana/grafana:10.4.2 & 1,0 & 512\,MB \\
@@ -107,7 +104,7 @@ Suma limitów przekracza liczbę rdzeni dostępnych na~serwerze, co~stanowi świ
 \label{sec:ImplementacjaWzorcow}
 % -----------------------------------------------------------------------
 
-System eShop demonstruje praktyczne zastosowanie wzorców opisanych w~rozdziale~\ref{cha:WzorceProjektowe}: Cache-Aside, Transactional Outbox, Saga oraz strumieniowania serwerowego.
+System eShop demonstruje praktyczne zastosowanie wzorców opisanych w~rozdziale~\ref{cha:WzorceProjektowe}: Cache-Aside oraz strumieniowania serwerowego.
 
 \subsection{Wzorzec Cache-Aside w~ProductService}
 \label{subsec:CacheAsideImpl}
@@ -162,146 +159,6 @@ Przechowywanie binarnej postaci wiadomości redukuje obsługę trafienia do~jedn
 
 Nagłówek \texttt{X-Bypass-Cache} umożliwia programowe wymuszenie zapytania do~bazy danych, co~wykorzystano w~eksperymencie do~realizacji scenariuszy z~zimną pamięcią podręczną (sekcja~\ref{subsec:TestyObciazeniowe}). Odrębne przestrzenie nazw kluczy dla obu protokołów zapobiegają próbie interpretacji dokumentu zapisanego przez jedną ścieżkę przez drugą.
 
-\subsection{Wzorzec Transactional Outbox w~OrderService}
-\label{subsec:OutboxImpl}
-
-Wzorzec Transactional Outbox gwarantuje atomowość zapisu encji biznesowej oraz publikacji zdarzenia domenowego. W~systemie eShop realizowany jest przez pakiet MassTransit z~integracją EF~Core~\cite{bib:MassTransit}.
-
-\begin{lstlisting}[
-  language={[Sharp]C},
-  breaklines=true,
-  caption={Konfiguracja wzorca Transactional Outbox w~OrderService},
-  label=lst:OutboxConfig
-]
-builder.Services.AddMassTransit(x =>
-{
-    // Outbox in EF Core - messages persisted in the OutboxMessage table
-    x.AddEntityFrameworkOutbox<OrdersDbContext>(o =>
-    {
-        o.UsePostgres();
-        o.UseBusOutbox(); // separate delivery process publishes to RabbitMQ
-    });
-
-    x.AddSagaStateMachine<OrderProcessingSaga, OrderSagaState>()
-        .EntityFrameworkRepository(r =>
-        {
-            r.ExistingDbContext<OrdersDbContext>();
-            r.UsePostgres();
-        });
-
-    x.UsingRabbitMq((context, cfg) =>
-    {
-        cfg.Host(builder.Configuration.GetConnectionString("RabbitMQ"));
-        cfg.ConfigureEndpoints(context);
-    });
-});
-\end{lstlisting}
-
-Mechanizm działa dwuetapowo. W~pierwszym etapie punkt końcowy zapisuje encję zamówienia oraz komunikat \texttt{OrderCreated} w~jednej transakcji bazodanowej. W~drugim odrębny wątek dostarczający odczytuje niedostarczone komunikaty i~publikuje je~do~brokera. Gwarancja dostarczenia co~najmniej jednokrotnego eliminuje scenariusz, w~którym zamówienie zostaje zapisane, lecz zdarzenie nie dociera do~Sagi.
-
-\begin{lstlisting}[
-  language={[Sharp]C},
-  breaklines=true,
-  caption={Endpoint tworzenia zamówienia z~publikacją zdarzenia przez Outbox},
-  label=lst:OrderEndpoint
-]
-app.MapPost("/api/orders", async (OrdersDbContext db,
-    IPublishEndpoint publishEndpoint, CreateOrderDto dto) =>
-{
-    var entity = new OrderEntity
-    {
-        CustomerId = dto.CustomerId,
-        TotalPrice = dto.Items.Sum(i => i.UnitPrice * i.Quantity),
-        Items = dto.Items.Select(i => new OrderItemEntity
-        {
-            ProductId = i.ProductId,
-            ProductName = i.ProductName,
-            Quantity = i.Quantity,
-            UnitPrice = i.UnitPrice,
-        }).ToList(),
-    };
-    db.Orders.Add(entity);
-
-    // Published via Outbox - persisted atomically with the entity
-    await publishEndpoint.Publish(new OrderCreated
-    {
-        OrderId = entity.Id,
-        CustomerId = entity.CustomerId,
-        TotalPrice = (decimal)entity.TotalPrice,
-        CreatedAt = entity.CreatedAt
-    });
-
-    await db.SaveChangesAsync(); // single transaction: entity + outbox msg
-    return Results.Created($"/api/orders/{entity.Id}", entity.ToProto());
-});
-\end{lstlisting}
-
-Koszt wydajnościowy tego rozwiązania zmierzono w~scenariuszach zapisu (sekcja~\ref{sec:AnalizaOrders}). Stanowi on~stały składnik rzędu 60--70~ms ponad opóźnienie sieciowe, niezależny od~wybranego protokołu komunikacji.
-
-\subsection{Maszyna stanów Saga}
-\label{subsec:SagaImpl}
-
-Wzorzec Saga orkiestruje wieloetapowy proces realizacji zamówienia za~pomocą maszyny stanów MassTransit.
-
-\begin{lstlisting}[
-  language={[Sharp]C},
-  breaklines=true,
-  caption={Implementacja maszyny stanów OrderProcessingSaga},
-  label=lst:SagaImpl
-]
-public class OrderProcessingSaga : MassTransitStateMachine<OrderSagaState>
-{
-    public State AwaitingPayment { get; private set; } = null!;
-    public State Completed { get; private set; } = null!;
-    public State Cancelled { get; private set; } = null!;
-
-    public Event<OrderCreated> OrderCreated { get; private set; } = null!;
-    public Event<PaymentReceived> PaymentReceived { get; private set; } = null!;
-    public Event<OrderCompleted> OrderCompleted { get; private set; } = null!;
-    public Event<OrderCancelled> OrderCancelled { get; private set; } = null!;
-
-    public OrderProcessingSaga()
-    {
-        InstanceState(x => x.CurrentState);
-
-        Event(() => OrderCreated,
-            x => x.CorrelateById(ctx => ctx.Message.OrderId));
-        Event(() => PaymentReceived,
-            x => x.CorrelateById(ctx => ctx.Message.OrderId));
-        Event(() => OrderCompleted,
-            x => x.CorrelateById(ctx => ctx.Message.OrderId));
-        Event(() => OrderCancelled,
-            x => x.CorrelateById(ctx => ctx.Message.OrderId));
-
-        Initially(
-            When(OrderCreated)
-                .Then(ctx =>
-                {
-                    ctx.Saga.CustomerId = ctx.Message.CustomerId;
-                    ctx.Saga.TotalAmount = ctx.Message.TotalPrice;
-                    ctx.Saga.CreatedAt = ctx.Message.CreatedAt;
-                })
-                .TransitionTo(AwaitingPayment)
-        );
-
-        During(AwaitingPayment,
-            When(PaymentReceived).TransitionTo(Completed),
-            When(OrderCancelled).TransitionTo(Cancelled)
-        );
-
-        During(Completed,
-            When(OrderCompleted).Finalize()
-        );
-
-        SetCompletedWhenFinalized();
-    }
-}
-\end{lstlisting}
-
-Maszyna stanów definiuje przejście ze~stanu początkowego \texttt{Initial} do~stanu \texttt{AwaitingPayment}, a~następnie, zależnie od~przebiegu procesu, do~stanu \texttt{Completed} albo \texttt{Cancelled}, wraz z~zakończeniem instancji po~zdarzeniu \texttt{OrderCompleted}. Stan instancji utrwalany jest w~tabeli \texttt{OrderSagas} za~pośrednictwem repozytorium EF~Core, co~zapewnia odporność na~awarie procesu: po~restarcie usługi Saga wznawia przetwarzanie od~ostatniego zapisanego stanu.
-
-Zakres faktycznego wykorzystania tej maszyny w~zrealizowanym systemie jest przy tym węższy od~jej definicji, ponieważ jedynym publikowanym zdarzeniem jest \texttt{OrderCreated}. Instancja Sagi powstaje zatem, koreluje zdarzenie początkowe i~pozostaje w~stanie \texttt{AwaitingPayment}, natomiast dalsze przejścia stanowią kod nieosiągalny. Zagadnienie to~wraz z~jego konsekwencjami dla interpretacji pomiarów omówiono w~rozdziale~\ref{cha:WzorceProjektowe}.
-
 \subsection{Strumieniowanie serwerowe}
 \label{subsec:StreamingImpl}
 
@@ -351,7 +208,7 @@ Przyjęty model nie jest zatem podyktowany wygodą, lecz celem badawczym: przedm
 \subsection{Infrastruktura utrzymywana samodzielnie a~usługi zarządzane}
 \label{subsec:SelfHosted}
 
-Bazę danych PostgreSQL, pamięć podręczną Redis oraz brokera komunikatów RabbitMQ uruchomiono jako kontenery na~tej~samej maszynie, mimo że~każdy z~tych komponentów dostępny jest u~dostawców chmurowych w~postaci usługi zarządzanej. Wybór ten wynika z~trzech przesłanek o~charakterze metodycznym.
+Bazę danych PostgreSQL oraz pamięć podręczną Redis uruchomiono jako kontenery na~tej~samej maszynie, mimo że~każdy z~tych komponentów dostępny jest u~dostawców chmurowych w~postaci usługi zarządzanej. Wybór ten wynika z~trzech przesłanek o~charakterze metodycznym.
 
 Pierwszą jest kontrola nad~ścieżką sieciową. Usługa zarządzana udostępniana jest pod~adresem, za~którym znajduje się nieujawniana liczba elementów pośredniczących, a~wnoszone przez nią~opóźnienie stanowi składnik nieznany i~niepodlegający pomiarowi z~poziomu aplikacji. W~scenariuszach zapisu, w~których czas odpowiedzi zdominowany jest przez transakcję bazodanową, składnik taki obciążałby wynik w~sposób nieudokumentowany.
 
@@ -379,7 +236,6 @@ System integruje trzy filary obserwowalności zgodnie ze~standardem OpenTelemetr
 
 \begin{itemize}
     \item \textbf{Metryki} -- eksportowane do~Prometheusa przez dedykowany punkt końcowy. Obejmują czas odpowiedzi, liczbę aktywnych połączeń oraz metryki środowiska uruchomieniowego .NET: przebiegi odśmiecania pamięci, stan puli wątków i~wolumen alokacji.
-    \item \textbf{Ślady} (ang.\ \textit{traces}) -- eksportowane do~Jaegera protokołem OTLP. Instrumentacja obejmuje ASP.NET Core wraz z~obsługą żądań gRPC, EF~Core oraz MassTransit.
     \item \textbf{Pulpity wizualizacyjne} -- Grafana z~automatycznie wdrażaną konfiguracją źródeł danych i~definicji pulpitów.
 \end{itemize}
 
@@ -415,7 +271,6 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing
         .AddAspNetCoreInstrumentation()
         .AddEntityFrameworkCoreInstrumentation()
-        .AddSource("MassTransit")
         .AddOtlpExporter(opt =>
         {
             // Jaeger collector inside the Docker network
@@ -423,9 +278,7 @@ builder.Services.AddOpenTelemetry()
         }));
 \end{lstlisting}
 
-Instrumentacja obejmuje trzy warstwy: obsługę żądań w~ASP.NET Core, zapytania Entity Framework Core oraz przepływ komunikatów w~MassTransit. Dzięki temu Jaeger umożliwia wizualizację pełnego łańcucha przyczynowo-skutkowego: od~żądania tworzącego zamówienie, poprzez zapis w~bazie wraz z~komunikatem Outbox, dostarczenie komunikatu do~brokera, aż~po~obsłużenie zdarzenia przez maszynę stanów. Zdolność diagnostyczna tego rodzaju jest szczególnie wartościowa w~architekturze mikroserwisowej, w~której tradycyjne debugowanie krokowe jest niewykonalne~\cite{bib:Nygard2018}.
-
-Warstwa obserwowalności pełniła w~eksperymencie funkcję pomocniczą, nie pomiarową. Wartości przedstawione w~rozdziale~\ref{cha:AnalizaWydajnosci} pochodzą z~pomiaru wykonywanego po~stronie klienta, natomiast metryki i~ślady służyły weryfikacji, czy zachowanie systemu odpowiada oczekiwaniom -- w~szczególności czy trafienia w~pamięć podręczną występują tam, gdzie zakładano, oraz czy przepływ zdarzeń asynchronicznych rzeczywiście zachodzi.
+Warstwa obserwowalności pełniła w~eksperymencie funkcję pomocniczą, nie pomiarową. Wartości przedstawione w~rozdziale~\ref{cha:AnalizaWydajnosci} pochodzą z~pomiaru wykonywanego po~stronie klienta, natomiast metryki służyły weryfikacji, czy zachowanie systemu odpowiada oczekiwaniom -- w~szczególności czy trafienia w~pamięć podręczną występują tam, gdzie zakładano.
 
 % -----------------------------------------------------------------------
 \subsection{Automatyzacja budowania}
@@ -554,10 +407,6 @@ Zestawienie wyników eksperymentu z~zaimplementowanymi wzorcami prowadzi do~wnio
 \hline
 Cache-Aside (Redis) & Skrócenie czasu odpowiedzi oraz obniżenie zmienności wyniku o~rząd wielkości & Konieczność unieważniania wpisów przy zmianie kształtu odpowiedzi \\
 \hline
-Transactional Outbox & Gwarancja dostarczenia zdarzeń bez dwufazowego zatwierdzania transakcji & Składnik stały rzędu 60--70\,ms w~operacjach zapisu \\
-\hline
-Saga (MassTransit) & Orkiestracja procesów bez blokujących wywołań synchronicznych; w~zrealizowanym systemie wykorzystana w~zakresie utworzenia instancji procesu & Koszt utrwalenia stanu instancji w~bazie danych, wliczony w~pomiar operacji zapisu \\
-\hline
 Serializacja binarna & Redukcja wolumenu danych o~42--43\%, przekładająca się na~26--43\% czasu odpowiedzi przy dużych ładunkach & Koszt deserializacji w~silniku JavaScript; brak korzyści przy ładunkach mieszczących się w~jednym oknie \\
 \hline
 Pula kontekstów bazodanowych & Eliminacja tworzenia kontekstu EF~Core przy każdym żądaniu & Wymóg braku stanu przenoszonego pomiędzy żądaniami w~obiekcie kontekstu \\
@@ -565,7 +414,7 @@ Pula kontekstów bazodanowych & Eliminacja tworzenia kontekstu EF~Core przy każ
 \end{tabular}
 \end{table}
 
-Zestawienie scenariuszy Orders i~Echo pozwala oszacować łączny koszt warstwy persystencji wraz z~wzorcem Outbox. Utworzenie zamówienia z~dziesięcioma pozycjami zajmuje około 94~ms, natomiast żądanie do~punktu końcowego nieodwołującego się do~bazy danych -- około 32~ms przy porównywalnym rozmiarze odpowiedzi. Różnica rzędu 60~ms obejmuje walidację, zapis encji zamówienia i~jego pozycji, atomowy zapis komunikatu Outbox oraz zatwierdzenie transakcji.
+Zestawienie scenariuszy Orders i~Echo pozwala oszacować łączny koszt warstwy persystencji. Utworzenie zamówienia z~dziesięcioma pozycjami zajmuje około 94~ms, natomiast żądanie do~punktu końcowego nieodwołującego się do~bazy danych -- około 32~ms przy porównywalnym rozmiarze odpowiedzi. Różnica rzędu 60~ms obejmuje walidację, zapis encji zamówienia i~jego pozycji oraz zatwierdzenie transakcji.
 
 Szacunek ten należy traktować jako przybliżony, ponieważ zestawiane scenariusze różnią się nie tylko obecnością warstwy persystencji, lecz także kierunkiem przesyłanych danych: scenariusz Echo zwraca kolekcję rekordów, natomiast scenariusz zapisu przyjmuje treść żądania i~zwraca potwierdzenie utworzenia zasobu. Uzyskana wartość wskazuje zatem rząd wielkości kosztu operacji zapisu, nie jego dokładną miarę.
 
