@@ -125,7 +125,6 @@ Podpis promotora: \\
 \end{tabular}}
 \fi
 \cleardoublepage
-\pagenumbering{arabic}
 }
 
 \newcommand{\oswiadczenie}{
