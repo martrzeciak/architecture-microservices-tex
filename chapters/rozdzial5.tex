@@ -13,7 +13,7 @@ Niniejszy rozdział przedstawia system zrealizowany na~potrzeby pracy. Omówiona
 
 Na~potrzeby przeprowadzenia eksperymentów wydajnościowych zrealizowano autorski system e-commerce, którego model domenowy został zainspirowany referencyjną architekturą mikrousług firmy Microsoft (będącą następcą projektu \textit{eShopOnContainers})~\cite{bib:MicrosoftEShop2024}. Implementacja została w~pełni podporządkowana celom badawczym, skupiając się na~precyzyjnym porównaniu wybranych protokołów i~wariantów komunikacji sieciowej. Architektura systemu składa się z~trzech głównych warstw: warstwy prezentacji w~postaci aplikacji przeglądarkowej, warstwy usług biznesowych złożonej z~mikroserwisów opartych na~platformie .NET~10 oraz warstwy infrastrukturalnej obejmującej relacyjne bazy danych, pamięć podręczną, brokera komunikatów i~komponenty obserwowalności.
 
-Środowisko eksperymentalne zostało rozproszone pomiędzy dwie fizyczne maszyny: warstwa mikroserwisów wraz z~całą infrastrukturą pomocniczą została uruchomiona na~zewnętrznym serwerze, natomiast aplikacja kliencka działała lokalnie, na~stacji roboczej pełniącej rolę węzła pomiarowego
+Środowisko eksperymentalne zostało rozproszone pomiędzy dwie fizyczne maszyny: warstwa mikroserwisów wraz z~całą infrastrukturą pomocniczą została uruchomiona na~zewnętrznym serwerze, natomiast aplikacja kliencka działała lokalnie, na~stacji roboczej pełniącej rolę węzła pomiarowego.
 
 Przyjęte podejście powinno zagwarantować, że~pomiary odzwierciedlają kompletną, rzeczywistą ścieżkę przetwarzania danych, uwzględniając opóźnienia sieciowe, warstwę pośredniczącą, routing, a~także procesy serializacji i~deserializacji realizowane przez silnik JavaScript w~przeglądarce internetowej.
 

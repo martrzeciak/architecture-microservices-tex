@@ -3,7 +3,7 @@
 \chapter{Porównawcza analiza wydajności gRPC vs REST}
 \label{cha:AnalizaWydajnosci}
 
-Niniejszy rozdział przedstawia wyniki eksperymentu przeprowadzonego zgodnie z~metodologią opisaną w~rozdziale. Analiza rozpoczyna się od~wielkości niezależnych od~warunków sieciowych: wolumenu przesyłanych danych oraz wynikającego z~niego modelu liczby wymian pakietów. Dopiero one pozwalają zinterpretować zmierzone czasy odpowiedzi. Następnie omówione zostają kolejno scenariusze Echo, Products i~Orders, rozdzielenie wpływu serializacji od~wpływu wersji protokołu HTTP, granica przepustowości stanowiska pomiarowego, powtarzalność wyników wraz z~przedziałami ufności wyznaczonymi dla zmierzonych różnic oraz mechanizmy kontrolne potwierdzające wiarygodność uzyskanych rezultatów. Rozdział zamyka weryfikacja hipotez oraz rekomendacje architektoniczne wraz z~wytycznymi wdrożeniowymi.
+Niniejszy rozdział przedstawia wyniki eksperymentu przeprowadzonego zgodnie z~metodologią opisaną w~rozdziale~\ref{cha:MetodologiaBadan}. Analiza rozpoczyna się od~wielkości niezależnych od~warunków sieciowych: wolumenu przesyłanych danych oraz wynikającego z~niego modelu liczby wymian pakietów. Dopiero one pozwalają zinterpretować zmierzone czasy odpowiedzi. Następnie omówione zostają kolejno scenariusze Echo, Products i~Orders, rozdzielenie wpływu serializacji od~wpływu wersji protokołu HTTP, granica przepustowości stanowiska pomiarowego, powtarzalność wyników wraz z~przedziałami ufności wyznaczonymi dla zmierzonych różnic oraz mechanizmy kontrolne potwierdzające wiarygodność uzyskanych rezultatów. Rozdział zamyka weryfikacja hipotez oraz rekomendacje architektoniczne wraz z~wytycznymi wdrożeniowymi.
 
 % -----------------------------------------------------------------------
 \section{Wolumen przesyłanych danych}
@@ -253,7 +253,7 @@ Pomiar przy dwudziestu klientach daje ten~sam obraz relacji przy systematycznie 
 
 Grupa ta~wymaga ostrożnej interpretacji. Wymuszenie zapytania do~bazy danych przy każdym żądaniu zwiększa nie tylko opóźnienie, lecz przede wszystkim jego zmienność: współczynnik zmienności osiąga w~skrajnych przypadkach 51\%, wobec kilku procent w~scenariuszach z~ciepłą pamięcią podręczną. W~konsekwencji przy małych stronach wyników kolejność protokołów jest niestabilna: w~konfiguracji o~200~produktach zmierzone mediany wynoszą 82,8, 47,6 i~89,9~ms, a~uporządkowanie to~nie powtarza się w~konfiguracji o~10~produktach. Różnice te~mieszczą się w~granicach zmienności tej grupy i~nie pozwalają wskazać szybszego protokołu. Zależność tę~wraz z~przedziałami ufności wartości centralnej przedstawia rysunek~\ref{fig:WykresProductsCold}.
 
-Przy dużych stronach wyników, gdzie przewaga wariantów binarnych przewyższa poziom szumu. Przy 2000~produktach REST osiąga 187,5~ms, wariant z~proxy 111,3~ms, a~wariant bezpośredni 116,0~ms, przy współczynniku zmienności nieprzekraczającym 13,5\%.
+Przy dużych stronach wyników przewaga wariantów binarnych przewyższa poziom szumu. Przy 2000~produktach REST osiąga 187,5~ms, wariant z~proxy 111,3~ms, a~wariant bezpośredni 116,0~ms, przy współczynniku zmienności nieprzekraczającym 13,5\%.
 
 Wniosek metodyczny jest następujący: przy małych ładunkach zmienność
 wynikająca z~zimnej pamięci podręcznej przewyższa różnicę wynikającą
@@ -309,7 +309,7 @@ Obserwacja ta~stanowi wynik negatywny, lecz metodycznie istotny: wskazuje granic
 \label{sec:Dekompozycja}
 % -----------------------------------------------------------------------
 
-Ścieżka bezpośrednia korzysta z~protokołu HTTP/2, natomiast REST -- z~HTTP/1.1. Zmierzona różnica pomiędzy nimi zawiera zatem dwa zmieszane czynniki: mniejszy wolumen danych oraz odmienną wersję protokołu transportowego. Rozdzielenie ich umożliwia wariant z~proxy Envoy, który przenosi ładunek binarny, korzystając po~stronie przeglądarki z~protokołu HTTP/1.1, tak samo jak REST. Stanowi on~tym samym grupę kontrolną: różnica pomiędzy REST a~Envoy odzwierciedla wpływ samej serializacji, ponieważ obie ścieżki korzystają z~nieszyfrowanego protokołu HTTP/1.1 i~różnią się oraz pominięcie serwera pośredniczącego.
+Ścieżka bezpośrednia korzysta z~protokołu HTTP/2, natomiast REST -- z~HTTP/1.1. Zmierzona różnica pomiędzy nimi zawiera zatem dwa zmieszane czynniki: mniejszy wolumen danych oraz odmienną wersję protokołu transportowego. Rozdzielenie ich umożliwia wariant z~proxy Envoy, który przenosi ładunek binarny, korzystając po~stronie przeglądarki z~protokołu HTTP/1.1, tak samo jak REST. Stanowi on~tym samym grupę kontrolną: różnica pomiędzy REST a~Envoy odzwierciedla wpływ samej serializacji, ponieważ obie ścieżki korzystają z~nieszyfrowanego protokołu HTTP/1.1 i~różnią się wyłącznie formatem serializacji. Różnica pomiędzy wariantem z~proxy Envoy a~ścieżką bezpośrednią odzwierciedla natomiast wpływ wersji protokołu HTTP oraz pominięcia serwera pośredniczącego.
 
 \begin{table}[htb]
 \centering
@@ -484,7 +484,7 @@ Orders, 50 poz., VU=20     & 11,5 $\pm$ 60,1 & $-$47,6 $\pm$ 76,0 & $-$59,1 $\pm
 
 Po~pierwsze, w~każdej konfiguracji odczytu od~500~rekordów przewaga wariantów binarnych jest rozstrzygnięta z~dużym marginesem: przedział dla różnicy REST--Direct wynosi na~przykład $24{,}9 \pm 1{,}6$~ms przy 500~produktach oraz $50{,}5 \pm 3{,}3$~ms przy 2000~rekordach scenariusza Echo. Stosunek wielkości efektu do~połówkowej szerokości przedziału przekracza w~tych konfiguracjach dziesięć, co~czyni wniosek odpornym również na~przyjęte założenie o~rozkładzie.
 
-Po~drugie, w~zakresie małych ładunków obraz jest bardziej złożony, niż wskazywałaby sama wielkość różnicy. W~scenariuszu Products przy 200~produktach różnica REST--Direct wynosi $1{,}4 \pm 2{,}5$~ms, a~zatem, nie jest rozstrzygnięta. W~scenariuszu Echo przy tej~samej liczbie rekordów różnica $1{,}1 \pm 0{,}7$~ms i pozostaje jednocześnie bez znaczenia praktycznego wobec opóźnienia obiegu pakietu wynoszącego 26,2~ms. Rozdzielenie istotności statystycznej od~praktycznej jest w~tym zakresie konieczne: wynik ten oznacza, że~różnica istnieje i~jest powtarzalna.
+Po~drugie, w~zakresie małych ładunków obraz jest bardziej złożony, niż wskazywałaby sama wielkość różnicy. W~scenariuszu Products przy 200~produktach różnica REST--Direct wynosi $1{,}4 \pm 2{,}5$~ms, a~zatem nie jest rozstrzygnięta. W~scenariuszu Echo przy tej~samej liczbie rekordów różnica wynosi $1{,}1 \pm 0{,}7$~ms i~pozostaje jednocześnie bez znaczenia praktycznego wobec opóźnienia obiegu pakietu wynoszącego 26,2~ms. Rozdzielenie istotności statystycznej od~praktycznej jest w~tym zakresie konieczne: wynik ten oznacza, że~różnica istnieje i~jest powtarzalna.
 
 Po~trzecie, różnica pomiędzy oboma wariantami gRPC-Web jest rozstrzygnięta jedynie w~pięciu z~dziesięciu konfiguracji odczytu, a~jej wielkość mieści się w~przedziale od~$0{,}4 \pm 3{,}1$ do~$4{,}2 \pm 1{,}8$~ms. Wielkość efektu jest zatem porównywalna z~niepewnością jego oszacowania, co~stanowi uzasadnienie wniosku o~drugorzędnym znaczeniu wyboru pomiędzy wariantem bezpośrednim a~wariantem z~proxy.
 
@@ -507,7 +507,7 @@ klientach i~dziesięciu rekordach. Właściwym wnioskiem jest zatem nie tyle bra
 \end{sloppypar}
 
 \begin{sloppypar}
-\textbf{H3 (przewaga wynika z~redukcji wolumenu danych, nie z~wersji protokołu HTTP):} hipoteza potwierdzona. Dekompozycja przedstawiona w~sekcji~\ref{sec:Dekompozycja} wykazała, że~składnik serializacyjny odpowiada za~około 95\% obserwowanej przewagi, natomiast składnik obejmujący wersję protokołu HTTP oraz pominięcie serwera pośredniczącego, za~nie więcej niż sześć procent. Wariant z~proxy Envoy, korzystający z~protokołu HTTP/1.1, dorównuje wariantowi bezpośredniemu, a~nie ścieżce REST
+\textbf{H3 (przewaga wynika z~redukcji wolumenu danych, nie z~wersji protokołu HTTP):} hipoteza potwierdzona. Dekompozycja przedstawiona w~sekcji~\ref{sec:Dekompozycja} wykazała, że~składnik serializacyjny odpowiada za~około 95\% obserwowanej przewagi, natomiast składnik obejmujący wersję protokołu HTTP oraz pominięcie serwera pośredniczącego, za~nie więcej niż sześć procent. Wariant z~proxy Envoy, korzystający z~protokołu HTTP/1.1, dorównuje wariantowi bezpośredniemu, a~nie ścieżce REST.
 \end{sloppypar}
 
 \begin{sloppypar}

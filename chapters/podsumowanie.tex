@@ -11,7 +11,7 @@ W~ramach niniejszej pracy:
 \item zaimplementowano kluczowe wzorce architektoniczne: Cache-Aside (Redis) oraz CQRS z~Minimal API, a~także skonfigurowano serwer Kestrel do~równoległej obsługi trzech protokołów,
 \item opracowano metodykę pomiarową opartą na~rzeczywistej przeglądarce internetowej, w~której czas mierzony jest wewnątrz strony, od~interakcji użytkownika do~naniesienia odpowiedzi na~drzewo dokumentu, co~obejmuje pełną ścieżkę odczuwaną przez użytkownika aplikacji przeglądarkowej,
 \item przeprowadzono 39~konfiguracji pomiarowych w~pięciu niezależnych powtórzeniach z~rotowaną kolejnością protokołów, co~dało 585~wykonanych testów i~171~tysięcy pomiarów, badając wpływ protokołu komunikacji, rozmiaru odpowiedzi, stanu pamięci podręcznej oraz liczby równoległych klientów na~czas odpowiedzi systemu,
-\item poddano wyniki analizie statystycznej, wyznaczając przedziały ufności dla różnic sparowanych w~obrębie przebiegu
+\item poddano wyniki analizie statystycznej, wyznaczając przedziały ufności dla różnic sparowanych w~obrębie przebiegu.
 \end{itemize}
 
 Główne wnioski z~przeprowadzonych badań eksperymentalnych:
@@ -25,7 +25,7 @@ Główne wnioski z~przeprowadzonych badań eksperymentalnych:
 
 \item Około 95\% obserwowanej przewagi wynika z~formatu serializacji, a~nie z~zastosowanej wersji protokołu HTTP. Rozdzielenie obu czynników umożliwił wariant z~proxy Envoy, który przenosi ładunek binarny, korzystając po~stronie przeglądarki z~protokołu HTTP/1.1, tak samo jak REST, i~wynikami dorównuje wariantowi opartemu na~HTTP/2, nie zaś ścieżce REST.
 
-\item Serializacja Protocol Buffers redukuje wolumen przesyłanych danych o~32--43\% Wielkość ta~nie zależy od~warunków sieciowych, obciążenia ani od~zastosowanego narzędzia pomiarowego. Jedynym czynnikiem, który ją~zmienia, jest kompresja treści omówiona we~wniosku drugim.
+\item Serializacja Protocol Buffers redukuje wolumen przesyłanych danych o~32--43\%. Wielkość ta~nie zależy od~warunków sieciowych, obciążenia ani od~zastosowanego narzędzia pomiarowego. Jedynym czynnikiem, który ją~zmienia, jest kompresja treści omówiona we~wniosku drugim.
 
 \item Przewaga protokołów binarnych skaluje się z~opóźnieniem sieci, a~nie z~szybkością serwera, ponieważ wyraża się liczbą zaoszczędzonych obiegów pakietu. W~komunikacji przez łącze rozległe o~opóźnieniu 26~ms jest znacząca, natomiast w~sieci lokalnej stałaby się pomijalna.
 
