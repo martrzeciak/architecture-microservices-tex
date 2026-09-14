@@ -23,8 +23,8 @@ Przyjęte podejście powinno zagwarantować, że~pomiary odzwierciedlają komple
 System realizuje podział na~dwa mikroserwisy zgodnie z~zasadą \textit{Bounded Context}~\cite{bib:Evans2003}:
 
 \begin{itemize}
-    \item \textbf{ProductService} (kontekst: katalog produktów) -- odpowiada za~operacje odczytu katalogu, implementuje wzorzec Cache-Aside oraz punkt końcowy izolujący narzut protokołu. Dane przechowywane w~dedykowanej bazie produktów obejmują 2000~produktów rozłożonych na~dziesięć kategorii.
-    \item \textbf{OrderService} (kontekst: proces zamówień) -- odpowiada za~tworzenie
+    \item \textbf{ProductService} (kontekst: katalog produktów) odpowiada za~operacje odczytu katalogu, implementuje wzorzec Cache-Aside oraz punkt końcowy izolujący narzut protokołu. Dane przechowywane w~dedykowanej bazie produktów obejmują 2000~produktów rozłożonych na~dziesięć kategorii.
+    \item \textbf{OrderService} (kontekst: proces zamówień) odpowiada za~tworzenie
     zamówień: waliduje żądanie, zapisuje encję zamówienia wraz z~jego pozycjami. Dane przechowywane w~dedykowanej bazie zamówień.
 \end{itemize}
 
@@ -35,8 +35,8 @@ Istotną cechą przyjętego projektu jest całkowity brak zależności pomiędzy
 \subsection{Podejście Contract-First}
 \label{subsec:ContractFirst}
 
-Kontrakty usług gRPC definiowane są~w~plikach Protocol Buffers, stanowiących jedyne źródło prawdy (ang.\ \textit{single source of truth}) dla interfejsów systemowych. Na~ich podstawie generowany jest kod zarówno po~stronie serwera (C\#, pakiet \texttt{Grpc.Tools}), jak i~klienta (TypeScript, narzędzia \texttt{@bufbuild/protoc-gen-es} oraz \texttt{@connectrpc/protoc-gen-connect-es}).
-Podejście Contract-First zapewnia spójność typów na~granicy systemu i~przenosi wykrywanie niekompatybilnych zmian z~czasu wykonania na~etap kompilacji.
+Kontrakty usług gRPC definiowane są~w~plikach Protocol Buffers, które stanowią wspólną definicję interfejsów systemowych. Na~ich podstawie generowany jest kod serwera (C\#, pakiet \texttt{Grpc.Tools}) i~klienta (TypeScript, narzędzia \texttt{@bufbuild/protoc-gen-es} oraz \texttt{@connectrpc/protoc-gen-connect-es}).
+Podejście Contract-First umożliwia sprawdzanie zgodności typów na~granicy systemu podczas kompilacji. Część niekompatybilnych zmian można dzięki temu wykryć przed uruchomieniem aplikacji.
 
 \subsection{Topologia Docker Compose}
 \label{subsec:DockerCompose}
@@ -74,15 +74,14 @@ System testowy wdrożono w~publicznej chmurze obliczeniowej, w~modelu infrastruk
 
 Wszystkie komponenty systemu uruchomiono jako kontenery na~pojedynczej instancji maszyny wirtualnej, zarządzane narzędziem Docker Compose w~konfiguracji przedstawionej w~tabeli~\ref{tab:DockerServices}. Rozwiązanie alternatywne, to~jest wdrożenie w~klastrze zarządzanym platformą Kubernetes wraz z~automatycznym skalowaniem poziomym odrzucono ze~względu na~wymagania pomiarowe.
 
-Mechanizmy automatycznego skalowania oraz ponownego rozmieszczania kontenerów zmieniają liczbę i~lokalizację instancji w~czasie działania systemu. Topologia stała nie stanowi w~tych warunkach uproszczenia, lecz warunek powtarzalności pomiaru.
-Przyjęty model nie jest zatem podyktowany wygodą, lecz celem badawczym: przedmiotem pomiaru jest narzut protokołu komunikacji, nie właściwości platformy orkiestracji.
+Mechanizmy automatycznego skalowania oraz ponownego rozmieszczania kontenerów zmieniają liczbę i~lokalizację instancji w~czasie działania systemu. Stała topologia zapewniała powtarzalne warunki pomiaru. Badanie dotyczyło komunikacji, dlatego nie obejmowało wpływu platformy orkiestracji.
 
 \subsection{Proces wdrożenia}
 \label{subsec:Deployment}
 
 System wdrożono na~serwerze chmury Hetzner Cloud o~ośmiu rdzeniach wirtualnych i~16~GB pamięci, z~wykorzystaniem Docker Compose w~konfiguracji wdrożeniowej. Proces wdrożenia obejmuje konfigurację serwera, weryfikację punktów końcowych gotowości każdego mikroserwisu oraz wykonanie automatycznych migracji bazy danych przy starcie usług.
 
-Graf zależności Docker Compose zapewnia prawidłową kolejność uruchamiania kontenerów. Mechanizm ten eliminuje błędy wynikające z~przedwczesnych prób połączenia z~niedostępnymi usługami. Podstawą kontroli stanu są~punkty końcowe \texttt{/healthz/live} oraz \texttt{/healthz/ready}, udostępniane przez wbudowany w~ASP.NET Core\cite{bib:MicrosoftDocs2024}.
+Graf zależności Docker Compose określa kolejność uruchamiania kontenerów i~ogranicza liczbę przedwczesnych prób połączenia z~niedostępnymi usługami. Do~kontroli stanu służą punkty końcowe \texttt{/healthz/live} oraz \texttt{/healthz/ready}, udostępniane przez mechanizm wbudowany w~ASP.NET Core~\cite{bib:MicrosoftDocs2024}.
 
 \section{Obserwowalność i~śledzenie rozproszone}
 \label{subsec:Observability}
@@ -91,19 +90,19 @@ System integruje dwa filary obserwowalności zgodnie ze~standardem OpenTelemetry
 
 Pulpity Grafany wdrażane są~wraz z~całym stosem, w~postaci definicji przechowywanych w~repozytorium i~wczytywanych przy starcie kontenera. Dzięki temu warstwa wizualizacji odtwarzana jest automatycznie na~każdym środowisku, bez ręcznej konfiguracji. Pierwszy z~pulpitów (rysunek~\ref{fig:GrafanaHttp}) obejmuje charakterystykę warstwy HTTP obu mikroserwisów: liczbę żądań na~sekundę oraz percentyle czasu obsługi żądania mierzone po~stronie serwera. Drugi (rysunek~\ref{fig:GrafanaRuntime}) przedstawia rozbicie liczby żądań na~poszczególne trasy oraz metryki środowiska uruchomieniowego .NET: wolumen alokacji pamięci i~częstość usuwania zbędnych obiektów z pamięci aplikacji.
 
-Przedstawione przebiegi zarejestrowano w~trakcie obciążeniowej weryfikacji stosu obserwowalności, nie zaś podczas przebiegu macierzy badawczej. Ilustrują one działanie warstwy monitorowania, a~nie rezultaty eksperymentu. Warstwa obserwowalności pełniła w~nim funkcję pomocniczą, nie pomiarową.
+Przebiegi zarejestrowano podczas obciążeniowej weryfikacji stosu obserwowalności, poza właściwą macierzą badawczą. Ilustrują działanie warstwy monitorowania i~nie są~wynikami eksperymentu. Warstwa obserwowalności pełniła funkcję pomocniczą.
 
 \begin{figure}[p]
 \centering
 \includegraphics[height=0.86\textheight,keepaspectratio]{figures/grafana-1.png}
-\caption{Pulpit Grafany -- liczba żądań na~sekundę oraz percentyle czasu obsługi żądania po~stronie usług \texttt{ProductService} i~\texttt{OrderService}}
+\caption{Pulpit Grafany: liczba żądań na~sekundę oraz percentyle czasu obsługi żądania po~stronie usług \texttt{ProductService} i~\texttt{OrderService}}
 \label{fig:GrafanaHttp}
 \end{figure}
 
 \begin{figure}[p]
 \centering
 \includegraphics[height=0.86\textheight,keepaspectratio]{figures/grafana-2.png}
-\caption{Pulpit Grafany -- liczba żądań w~podziale na~trasy oraz metryki środowiska uruchomieniowego .NET: wolumen alokacji i~częstość odśmiecania pamięci}
+\caption{Pulpit Grafany: liczba żądań w~podziale na~trasy oraz metryki środowiska uruchomieniowego .NET, wolumen alokacji i~częstość odśmiecania pamięci}
 \label{fig:GrafanaRuntime}
 \end{figure}
 

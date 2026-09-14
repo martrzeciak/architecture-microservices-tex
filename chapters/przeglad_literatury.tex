@@ -1,0 +1,12 @@
+\section{Przegląd badań porównawczych}
+\label{sec:StanBadan}
+
+Do~przeglądu wybrano prace empiryczne porównujące REST z~gRPC lub GraphQL. Uwzględniono publikacje, w~których podano środowisko wykonania, rodzaj obciążenia oraz co~najmniej jedną miarę wydajności, taką jak czas odpowiedzi, rozmiar komunikatu albo wykorzystanie zasobów. Zestawienie służy określeniu, które elementy komunikacji zostały już zbadane i~czy uzyskane wyniki można odnieść do~aplikacji działającej w~przeglądarce.
+
+\subsection{Wyniki badań REST i~gRPC}
+
+Wyniki dotychczasowych porównań nie wskazują protokołu, który byłby szybszy w~każdym rodzaju operacji. Niswar i~współautorzy~\cite{bib:Niswar2024} odnotowali najkrótsze czasy odpowiedzi dla gRPC w~mikroserwisach napisanych w~Go. Śliwa i~Pańczyk~\cite{bib:SliwaPanczyk2021}, badający implementacje .NET~5.0, uzyskali korzystne wyniki REST w~wielu scenariuszach, mimo mniejszego wolumenu danych przesyłanego przez gRPC. Z~kolei eksperymenty Bolanowskiego i~współautorów~\cite{bib:Bolanowski2022} oraz Kamińskiego i~współautorów~\cite{bib:Kaminski2023} pokazały, że~wynik zmienia się wraz z~typem danych, operacją i~konfiguracją transportu.
+
+Rozbieżności pomiędzy wynikami można częściowo wyjaśnić konstrukcją eksperymentów. Wraz ze~zmianą protokołu zmieniały się zwykle format reprezentacji, wersja HTTP, biblioteka serwerowa, a~czasem również sposób dostępu do~danych. Mierzono więc kompletne warianty implementacyjne, a~nie wyizolowany koszt protokołu. Różnił się także punkt zakończenia pomiaru. JMeter i~k6 rejestrują obsługę żądania przez klienta testowego, lecz nie uwzględniają deserializacji w~kodzie aplikacji frontendowej ani aktualizacji interfejsu użytkownika.
+
+Badania dotyczące GraphQL pomagają oddzielić wpływ protokołu od~wpływu zakresu odpowiedzi. Brito, Mombach i~Valente~\cite{bib:Brito2019} wykazali, że~migracja klientów API z~REST do~GraphQL może znacznie ograniczyć liczbę zwracanych pól i~rozmiar odpowiedzi. Jest to~korzyść wynikająca z~doboru danych przez klienta, a~nie z~binarnych właściwości reprezentacji. Vadlamani i~współautorzy~\cite{bib:Vadlamani2021} otrzymali wyniki zależne od~konkretnego zapytania do~API GitHuba. W~badaniu Jina i~współautorów~\cite{bib:Jin2025} na~wynik wpływała również odmienna infrastruktura wdrożeniowa porównywanych rozwiązań. Publikacje te~potwierdzają, że~porównywane ścieżki powinny zwracać ten sam zakres informacji i~wykonywać tę~samą logikę biznesową.

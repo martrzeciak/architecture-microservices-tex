@@ -16,32 +16,32 @@ W~ramach niniejszej pracy:
 Główne wnioski z~przeprowadzonych badań eksperymentalnych:
 
 \begin{enumerate}
-\item Warianty gRPC-Web skracają czas odpowiedzi o~26--43\% względem REST, lecz wyłącznie przy nieskompresowanych odpowiedziach przekraczających rozmiar okna odbiorczego protokołu TCP, czyli około 64~kilobajtów. Poniżej tego progu różnice nie przekraczają kilku procent i~pozostają bez praktycznego znaczenia.
+\item Warianty gRPC-Web skracają czas odpowiedzi o~26--43\% względem REST dla dużych, nieskompresowanych odpowiedzi. Efekt pojawiał się po~przekroczeniu zaobserwowanego w~badanym środowisku progu około 64~KiB. Poniżej tego progu różnice wynosiły kilka procent.
 
-\item Zakres stosowalności powyższego wniosku ogranicza kompresja treści. Wykazano, że~kompresja gzip redukuje wolumen dokumentu JSON dwunasto- do~trzynastokrotnie, a~wiadomości binarnej dziesięciokrotnie, przez co przewaga objętościowa formatu binarnego maleje z~33\% do~15--18\%, a~wszystkie badane ładunki, niezależnie od~formatu, mieszczą się po~kompresji w~jednym oknie odbiorczym. W~konfiguracji z~kompresją mechanizm odpowiadający za~zmierzoną przewagę nie zostałby zatem uruchomiony w~całym badanym zakresie rozmiarów odpowiedzi.
+\item W~analizie objętościowej gzip zmniejszył dokument JSON dwunasto- do~trzynastokrotnie, a~wiadomość binarną około dziesięciokrotnie. Przewaga objętościowa formatu binarnego spadła z~33\% do~15--18\%, a~skompresowane ładunki nie przekroczyły progu 64~KiB. Czasu odpowiedzi z~włączoną kompresją nie mierzono.
 
-\item Zależność przewagi od~rozmiaru odpowiedzi nie ma~charakteru ciągłego, lecz realizuje się skokowo. Sformułowany model wyjaśnia ją~liczbą wymian pakietów niezbędnych do~przesłania odpowiedzi: transmisja wymaga tylu obiegów, ile okien odbiorczych zajmuje ładunek, a~przewaga formatu binarnego polega na~zmniejszeniu tej liczby. Przewidywania modelu zgadzają się z~pomiarem w~dziesięciu niezależnych konfiguracjach.
+\item Zależność przewagi od~rozmiaru odpowiedzi miała charakter skokowy. Model oparty na~efektywnym progu transmisji około 64~KiB odtworzył zmierzone przyrosty czasu w~dziesięciu konfiguracjach z~dokładnością do~0,29~RTT.
 
-\item Około 95\% obserwowanej przewagi wynika z~formatu serializacji, a~nie z~zastosowanej wersji protokołu HTTP. Rozdzielenie obu czynników umożliwił wariant z~proxy Envoy, który przenosi ładunek binarny, korzystając po~stronie przeglądarki z~protokołu HTTP/1.1, tak samo jak REST, i~wynikami dorównuje wariantowi opartemu na~HTTP/2, nie zaś ścieżce REST.
+\item W~pięciu konfiguracjach dekompozycji różnica REST--Envoy stanowiła około 85--98\% całkowitej różnicy REST--Direct; dla 500~produktów i~dziesięciu klientów udział wynosił około 95\%. Wyniki wspierają znaczenie redukcji wolumenu danych. Porównanie kompletnych ścieżek komunikacji daje przybliżony podział kosztów serializacji i~transportu.
 
 \item Serializacja Protocol Buffers redukuje wolumen przesyłanych danych o~32--43\%. Wielkość ta~nie zależy od~warunków sieciowych, obciążenia ani od~zastosowanego narzędzia pomiarowego. Jedynym czynnikiem, który ją~zmienia, jest kompresja treści omówiona we~wniosku drugim.
 
 \item Przewaga protokołów binarnych skaluje się z~opóźnieniem sieci, a~nie z~szybkością serwera, ponieważ wyraża się liczbą zaoszczędzonych obiegów pakietu. W~komunikacji przez łącze rozległe o~opóźnieniu 26~ms jest znacząca, natomiast w~sieci lokalnej stałaby się pomijalna.
 
-\item W~operacjach zapisu wybór protokołu nie wpływa na~czas odpowiedzi. Wszystkie badane warianty mieszczą się w~przedziale 83--106~ms przy zmieniającym się pięciokrotnie rozmiarze żądania, ponieważ czas ten zdominowany jest przez stały koszt serwerowy rzędu 60--70~ms, obejmujący transakcję bazodanową.
+\item W~operacjach zapisu nie wykryto stałej przewagi jednego wariantu. Dla dziesięciu i~pięćdziesięciu pozycji zamówienia mediany wynosiły 83,5--165,8~ms. Przedziały ufności dla różnic REST--Direct obejmowały zero, co~nie stanowi dowodu równoważności protokołów. Interpretację ograniczała zmienność związana z~obsługą transakcji bazodanowej.
 
-\item Różnica pomiędzy wariantem gRPC-Web obsługiwanym bezpośrednio a~wariantem z~proxy Envoy nie przekracza sześciu procent. Wobec skali efektu serializacyjnego wybór pomiędzy oboma wariantami wdrożenia ma~znaczenie drugorzędne.
+\item W~scenariuszach Echo i~odczytu z~ciepłą pamięcią podręczną wariant Direct skracał medianę czasu o~około 0,4--9,2\% względem Envoy. Nie wszystkie różnice były rozstrzygnięte statystycznie, a~przy zimnej pamięci podręcznej kolejność wariantów nie była stała.
 
 \item Zmienność pomiarów okazała się silnie zależna od~udziału warstwy danych w~czasie odpowiedzi: od~poniżej jednego procenta w~scenariuszach izolujących narzut protokołu do~ponad pięćdziesięciu procent w~scenariuszach wymuszających zapytanie do~bazy oraz w~operacjach zapisu. Wprowadzenie pamięci podręcznej obniża tę~zmienność.
 
-\item Ustalono granicę wiarygodności stanowiska pomiarowego. Przepustowość osiąga wartość graniczną pomiędzy dwudziestoma a~trzydziestoma równoległymi klientami i~powyżej niej przestaje rosnąć, natomiast opóźnienie nadal narasta, ponieważ wszystkie trzy protokoły zatrzymują się na~tej~samej wartości granicznej mimo odmiennych ścieżek przetwarzania po~stronie serwera, czynnik ograniczający zidentyfikowano po~stronie klienta. Macierz badawczą ograniczono w~konsekwencji do~zakresu, w~którym pomiar pozostaje wiarygodny.
+\item Przepustowość stanowiska pomiarowego przestawała rosnąć pomiędzy dwudziestoma a~trzydziestoma równoległymi klientami, podczas gdy opóźnienie nadal wzrastało. Wspólny pułap trzech wariantów wskazywał na~ograniczenie po~stronie klienta. Z~tego powodu główna macierz obejmowała najwyżej dwudziestu klientów.
 \end{enumerate}
 
-Postawiony cel pracy uznano za~osiągnięty: zaprojektowano i~zrealizowano działający system mikroserwisowy, przeprowadzono na~nim zaplanowany zestaw badań oraz udzielono odpowiedzi na~pytanie o~relację wydajnościową badanych protokołów. Odpowiedź ta~okazała się warunkowa, a~sformułowany warunek, czyli rozmiar odpowiedzi w~odniesieniu do~okna odbiorczego protokołu TCP, jest wielkością mierzalną i~możliwą do~sprawdzenia w~konkretnym zastosowaniu. Wszystkie pięć hipotez rozstrzygnięto, przy czym dwie z~nich wymagały doprecyzowania sformułowania: hipoteza H1 w~zakresie charakteru zależności od~rozmiaru odpowiedzi, a~hipoteza H5 w~zakresie praktycznej istotności wykazanej różnicy.
+Postawiony cel pracy uznano za~osiągnięty: zaprojektowano i~zrealizowano działający system mikroserwisowy, przeprowadzono na~nim zaplanowany zestaw badań oraz udzielono odpowiedzi na~pytanie o~relację wydajnościową badanych protokołów. Odpowiedź ta~okazała się warunkowa, a~sformułowany warunek, czyli rozmiar odpowiedzi w~odniesieniu do~okna odbiorczego protokołu TCP, jest wielkością mierzalną i~możliwą do~sprawdzenia w~konkretnym zastosowaniu. Oceniono wszystkie pięć hipotez. Hipoteza H1 wymagała doprecyzowania charakteru zależności od~rozmiaru odpowiedzi. Wyniki nie pozwoliły potwierdzić równoważności wariantów w~H4, a~H5 uzyskała częściowe wsparcie.
 
-Postawiona we~wstępie teza znalazła w~przeprowadzonych badaniach potwierdzenie. Przewaga wydajnościowa protokołów opartych na~binarnej serializacji nie okazała się własnością bezwarunkową: ujawnia się wyłącznie wtedy, gdy mniejszy wolumen odpowiedzi zmniejsza liczbę wymian pakietów niezbędnych do~jej przesłania, a~w~pozostałych badanych warunkach (przy małych ładunkach, w~operacjach zapisu oraz, jak wskazuje oszacowanie objętościowe, przy włączonej kompresji treści) różnice pomiędzy protokołami pozostają praktycznie nieistotne.
+Wyniki wspierają tezę postawioną we~wstępie. Korzyść gRPC-Web zależała od~rozmiaru odpowiedzi i~pojawiała się dla dużych, nieskompresowanych ładunków. Przy małych odpowiedziach różnice były niewielkie, a~w~operacjach zapisu nie uzyskano stałej przewagi żadnego wariantu. Analiza objętościowa wskazuje, że~kompresja może dodatkowo ograniczyć różnicę, co wymaga potwierdzenia pomiarem czasu odpowiedzi.
 
-Zaprojektowany i~zrealizowany system ten charakteryzuje się następującymi cechami:
+Zaprojektowany system ma~następujące cechy:
 
 \begin{itemize}
 \item równoległa obsługa trzech protokołów komunikacji w~ramach jednej aplikacji klienckiej, umożliwiająca ich porównanie przy identycznej logice biznesowej, tych~samych danych oraz niezmienionej ścieżce prezentacji,

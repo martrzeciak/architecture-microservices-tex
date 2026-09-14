@@ -10,10 +10,14 @@ Charakter komunikacji w~przeglądarce internetowej powoduje jednak, że~natywne 
 
 W~praktycznym systemie wynik pomiaru zależy również od~warunków, w~jakich wykonywane są żądania. Znaczenie może mieć między innymi rozmiar przesyłanych danych, liczba równoczesnych klientów, sposób obsługi pamięci podręcznej oraz konieczność wykonania operacji na~bazie danych. Z~tego względu porównanie samych mechanizmów serializacji lub pojedynczych żądań nie pozwala w~pełni ocenić zachowania poszczególnych rozwiązań w~warunkach zwiększonego obciążenia.
 
+\input{chapters/przeglad_literatury}
+
 \section{Cel pracy}
 \label{sec:CelPracy}
 
 Głównym celem pracy jest zaprojektowanie, implementacja oraz eksperymentalna walidacja systemu mikroserwisowego w~ekosystemie .NET~10, umożliwiającego porównawczą analizę wydajności protokołów komunikacji na~granicy pomiędzy aplikacją przeglądarkową a~warstwą usług.
+
+W~odniesieniu do~stanu badań omówionego w~sekcji~\ref{sec:StanBadan} cel ten oznacza sprawdzenie, w~jakich warunkach korzyści obserwowane w~testach API przekładają się na~czas obsługi operacji obejmujący przetwarzanie odpowiedzi przez aplikację kliencką.
 
 \begin{sloppypar}
 W~pracy postawiono następującą tezę: zastosowanie gRPC-Web w~komunikacji przeglądarki z~warstwą usług pozwala uzyskać lepszą wydajność niż klasyczny REST oparty na~JSON, jednak przewaga ta nie jest uniwersalna i~zależy od~charakterystyki obciążenia, w~szczególności od~rozmiaru przesyłanych danych oraz poziomu współbieżności.

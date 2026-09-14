@@ -3,8 +3,6 @@
 \chapter{Metodologia badań i~projekt eksperymentu}
 \label{cha:MetodologiaBadan}
 
-Rozdziały~\ref{cha:WprowadzenieDoMikroserwisow}--\ref{cha:WzorceProjektowe} przedstawiły fundamenty architektury mikroserwisowej, mechanizmy komunikacji synchronicznej i~asynchronicznej, specyfikę protokołu gRPC-Web oraz wzorce projektowe zastosowane w~zrealizowanym systemie. Zgromadzona wiedza pozwala na~sformułowanie hipotez badawczych dotyczących wydajności protokołów komunikacji w~warunkach odpowiadających rzeczywistemu zastosowaniu, to~jest w~komunikacji przeglądarki internetowej z~warstwą usług przez łącze rozległe.
-
 Niniejszy rozdział opisuje metodologię przeprowadzonego eksperymentu: cele i~hipotezy badawcze, projekt aplikacji testowej, metodykę pomiaru wraz z~mechanizmami kontroli czynników zakłócających, macierz scenariuszy badawczych, środowisko testowe wraz z~jego zmierzoną charakterystyką, przyjęte metryki, sposób agregacji wyników oraz kryterium rozstrzygalności zmierzonych różnic, a~także ograniczenia metodologiczne.
 
 % -----------------------------------------------------------------------
@@ -15,9 +13,9 @@ Niniejszy rozdział opisuje metodologię przeprowadzonego eksperymentu: cele i~h
 Głównym celem badawczym pracy jest porównawcza analiza wydajności protokołów komunikacji dostępnych dla aplikacji przeglądarkowej współpracującej z~mikroserwisami zrealizowanymi w~ekosystemie .NET~10. Przedmiotem pomiaru są~trzy warianty:
 
 \begin{enumerate}
-    \item REST API -- HTTP/1.1 z~serializacją tekstową JSON,
-    \item gRPC-Web przez proxy Envoy -- HTTP/1.1 po~stronie przeglądarki, translacja na~HTTP/2 w~warstwie pośredniczącej, serializacja Protocol Buffers,
-    \item gRPC-Web Direct -- bezpośrednia obsługa w~oprogramowaniu pośredniczącym ASP.NET Core, bez serwera pośredniczącego, serializacja Protocol Buffers, protokół HTTP/2.
+    \item REST API: HTTP/1.1 z~serializacją tekstową JSON,
+    \item gRPC-Web przez proxy Envoy: HTTP/1.1 po~stronie przeglądarki, translacja na~HTTP/2 w~warstwie pośredniczącej i~serializacja Protocol Buffers,
+    \item gRPC-Web Direct: bezpośrednia obsługa w~oprogramowaniu pośredniczącym ASP.NET Core, serializacja Protocol Buffers i~protokół HTTP/2.
 \end{enumerate}
 
 Na~podstawie przeglądu literatury oraz analizy specyfikacji protokołów sformułowano następujące hipotezy badawcze:
@@ -52,7 +50,7 @@ Platforma testowa, której pełną architekturę i~wdrożenie opisano w~poprzedn
 \label{subsec:IzolacjaZmiennych}
 % -----------------------------------------------------------------------
 
-Rzetelna ocena narzutu protokołów transportowych wymagała wyeliminowania asymetrii w~sposobie przetwarzania danych po~stronie serwera oraz odseparowania kosztu transmisji sieciowej od~czasu operacji wejścia-wyjścia w~warstwie bazodanowej.
+Ocena narzutu komunikacji wymagała kontroli różnic w~przetwarzaniu danych po~stronie serwera. Scenariusz Echo pomija warstwę danych, a~scenariusze Products uwzględniają koszty dostępu do~bazy i~obsługi pamięci podręcznej właściwe dla każdej implementacji.
 
 \paragraph{Punkt odniesienia o zerowym narzucie wejścia-wyjścia (scenariusz Echo)}
 W~celu zbadania czystego kosztu serializacji, deserializacji oraz nagłówków protokołów zaimplementowano punkt końcowy \texttt{/api/echo} oraz odpowiadającą mu~procedurę gRPC \texttt{EchoProducts}. Zwracają one kolekcję obiektów generowaną bezpośrednio w~pamięci operacyjnej, pomijając zapytania do~bazy PostgreSQL oraz pamięci podręcznej Redis. Listing~\ref{lst:EchoEndpoint} przedstawia implementację tego punktu końcowego.
@@ -78,8 +76,8 @@ app.MapGet("/api/echo", (int count = 200) =>
 });
 \end{lstlisting}
 
-\paragraph{Zapewnienie symetrii pamięci podręcznej}
-W~scenariuszach odczytu katalogu produktów z~wykorzystaniem pamięci podręcznej wyeliminowano asymetrię formatów. Zamiast przechowywać dokumenty JSON i~wymuszać wielokrotną konwersję po~stronie gRPC, w~magazynie Redis umieszczono binarną postać wiadomości Protocol Buffers. W~efekcie obie badane ścieżki wykonują dokładnie jedną operację deserializacji przy trafieniu w~pamięć podręczną, co~gwarantuje, że~zmierzone różnice czasowe wynikają wyłącznie ze~specyfiki protokołu sieciowego.
+\paragraph{Reprezentacja danych w~pamięci podręcznej}
+Ścieżki REST i~gRPC przechowują w~Redis odrębne reprezentacje odpowiedzi. Endpoint REST zapisuje gotowy dokument JSON pod~kluczem z~prefiksem \texttt{rest\_products\_}. Przy trafieniu odczytuje tekst przez \texttt{GetStringAsync} i~zwraca go~przez \texttt{Results.Content}, bez deserializacji JSON do~obiektów i~ponownej serializacji JSON. Usługa gRPC zapisuje bajty Protocol Buffers pod~kluczem z~prefiksem \texttt{grpcpb\_products\_}. Przy trafieniu odtwarza obiekt przez \texttt{ListProductsResponse.Parser.ParseFrom}, po~czym warstwa gRPC serializuje go~do~odpowiedzi. Warianty Envoy i~Direct korzystają z~tej samej implementacji usługi. Obie reprezentacje mają pięciominutowy czas ważności, ale koszt przetwarzania trafienia pozostaje różny. Zapis binarny w~ścieżce gRPC usuwa dodatkową konwersję z~JSON, nie zrównuje jednak jej kosztu z~obsługą REST.
 
 \paragraph{Dobór wolumenu danych testowych}
 Baza danych katalogu produktów została zainicjalizowana zbiorem 2000 rekordów. Wartość ta~wyznacza górną granicę rozmiaru strony wyników, co~umożliwia generowanie odpowiedzi o~rozmiarze przekraczającym 260~kB. Pozwala to~na~weryfikację zachowania protokołów przy przekroczeniu początkowego okna przeciążenia TCP (ang.\ \textit{Initial Congestion Window}).
@@ -140,12 +138,12 @@ W~projekcie eksperymentu zastosowano sześć mechanizmów ograniczających wpły
 
 \textbf{Zapytania przygotowawcze.} W~każdej komórce macierzy każdy z~równoległych klientów wykonuje trzy nierejestrowane żądania. Wypełniają one pamięć podręczną dla danego rozmiaru strony, dzięki czemu scenariusz z~ciepłą pamięcią podręczną nie rozpoczyna się od~chybienia.
 
-\textbf{Rotacja kolejności protokołów.} Kolejność, w~jakiej badane są~protokoły, zmienia się między przebiegami zgodnie ze~schematem kwadratu łacińskiego. Zabieg ten eliminuje systematyczne uprzywilejowanie protokołu mierzonego jako ostatni, korzystającego z~systemu doprowadzonego już do~stanu ustalonego. Jest to~błąd znany w~literaturze przedmiotu jako efekt kolejności~\cite{bib:Jain1991}.
+\textbf{Rotacja kolejności protokołów.} Kolejność badania protokołów zmienia się między przebiegami zgodnie ze~schematem kwadratu łacińskiego. Ogranicza to~ryzyko systematycznego uprzywilejowania protokołu mierzonego jako ostatni, gdy system osiągnął już stan ustalony. W~literaturze zjawisko to~określa się jako efekt kolejności~\cite{bib:Jain1991}.
 
-\textbf{Przerwy między przebiegami.} Pomiędzy kolejnymi przebiegami całej macierzy stosowana jest przerwa piętnastu sekund, umożliwiająca ustabilizowanie mechanizmu odśmiecania pamięci oraz pul połączeń.
+\textbf{Przerwy między przebiegami.} Kolejne przebiegi całej macierzy rozdziela piętnastosekundowa przerwa przeznaczona na~ustabilizowanie mechanizmu odśmiecania pamięci i~pul połączeń.
 
 \begin{sloppypar}
-\textbf{Adaptacyjny czas namysłu.} Pomiędzy kolejnymi żądaniami tego~samego klienta zachowywana jest przerwa odwzorowująca czas namysłu użytkownika. Wartość tej przerwy nie jest stała, lecz wyliczana dla każdej komórki macierzy tak, aby zapotrzebowanie na~pasmo nie przekroczyło połowy zmierzonej przepustowości łącza.
+\textbf{Adaptacyjny czas namysłu.} Pomiędzy kolejnymi żądaniami tego~samego klienta zachowywana jest przerwa odwzorowująca czas namysłu użytkownika. Jej wartość jest wyliczana dla każdej komórki macierzy tak, aby zapotrzebowanie na~pasmo nie przekroczyło połowy zmierzonej przepustowości łącza.
 \end{sloppypar}
 
 \textbf{Wykluczenie obsługi z~pamięci podręcznej przeglądarki.} Powtarzane żądania o~identycznym adresie mogłyby teoretycznie zostać obsłużone lokalnie, bez~udziału sieci, co~unieważniłoby pomiar. Odpowiedzi nie zawierają nagłówków ustanawiających okres świeżości, przeglądarka nie ma~zatem podstaw do~ponownego użycia zapisanej treści, a~każdy kontekst dysponuje ponadto własną, odrębną pamięcią podręczną.
@@ -155,16 +153,16 @@ W~projekcie eksperymentu zastosowano sześć mechanizmów ograniczających wpły
 
 Zapotrzebowanie pojedynczej komórki macierzy na~pasmo jest iloczynem liczby równoległych klientów i~rozmiaru odpowiedzi, podzielonym przez długość cyklu żądania.
 
-Nasycenie łącza klienta byłoby w~tym eksperymencie błędem szczególnie groźnym, ponieważ nie miałoby charakteru losowego. Czas transmisji rośnie proporcjonalnie do~rozmiaru odpowiedzi, a~warianty binarne przesyłają znacznie mniej bajtów niż REST. Wariant o~większym ładunku ucierpiałby zatem bardziej, a~zmierzona „przewaga protokołu” byłaby częściowo odzwierciedleniem przepustowości łącza, w~kierunku zawyżającym wynik gRPC-Web. Eksperyment potwierdzałby wówczas hipotezę H1 z~przyczyn, które nie mają z~nią~związku.
+Nasycenie łącza klienta wprowadzałoby błąd systematyczny. REST przesyła większe odpowiedzi, więc ograniczona przepustowość zawyżałaby zmierzoną przewagę gRPC-Web. Częstość żądań dobrano tak, aby uniknąć tego efektu.
 
-Ponieważ mierzoną wielkością jest opóźnienie pojedynczego żądania, a~nie przepustowość, rozwiązaniem nie jest usuwanie konfiguracji, lecz zmniejszenie częstości żądań. Czas namysłu wyliczany jest zatem z~zależności
+Miarą podstawową jest opóźnienie pojedynczego żądania. Aby zachować wszystkie konfiguracje bez nasycania łącza, zmniejszono częstość żądań za~pomocą czasu namysłu wyliczanego z~zależności
 
 \begin{equation}
 t = \max\left(100~\mathrm{ms},\; \frac{n \cdot s}{0{,}5 \cdot B}\right),
 \label{eq:ThinkTime}
 \end{equation}
 
-gdzie $t$ oznacza czas namysłu, $n$ -- liczbę równoległych klientów, $s$ -- rozmiar odpowiedzi w~bajtach, a~$B$ -- zmierzoną przepustowość łącza wyrażoną w~bajtach na~sekundę. Pominięcie opóźnienia w~mianowniku czyni oszacowanie zachowawczym: rzeczywisty cykl jest dłuższy od~wyliczonego, a~zatem faktyczne obciążenie łącza niższe od~przyjętego budżetu.
+gdzie $t$ oznacza czas namysłu, $n$ liczbę równoległych klientów, $s$ rozmiar odpowiedzi w~bajtach, a~$B$ zmierzoną przepustowość łącza wyrażoną w~bajtach na~sekundę. Pominięcie opóźnienia w~mianowniku daje oszacowanie zachowawcze: rzeczywisty cykl trwa dłużej, więc faktyczne obciążenie łącza jest niższe od~przyjętego budżetu.
 
 Dla operacji zapisu przyjęto odrębny, niższy budżet, ponieważ scenariusz ten obciąża kierunek wysyłania, słabszy na~łączach asymetrycznych.
 
@@ -175,22 +173,22 @@ Dla operacji zapisu przyjęto odrębny, niższy budżet, ponieważ scenariusz te
 
 Eksperyment obejmuje trzy kategorie scenariuszy, z~których każda bada inny aspekt wydajności systemu.
 
-\subsection{Scenariusz Echo -- narzut protokołu}
+\subsection{Scenariusz Echo: narzut komunikacji}
 \label{subsec:TestyEcho}
 
 Scenariusze Echo stanowią fundament eksperymentu, ponieważ izolują koszt protokołu od~kosztu warstwy danych. Odpowiedź generowana jest w~pamięci, bez udziału bazy danych i~pamięci podręcznej. Scenariusz ten świadomie nie renderuje pozycji w~postaci tabeli.
 
-\subsection{Scenariusz Products -- odczyt katalogu}
+\subsection{Scenariusz Products: odczyt katalogu}
 \label{subsec:TestyObciazeniowe}
 
-Scenariusze Products odwzorowują realistyczny odczyt katalogu produktów z~pełnym łańcuchem przetwarzania: żądanie trafia do~usługi, obsługiwane jest z~pamięci podręcznej Redis albo, przy wymuszonym pominięciu pamięci podręcznej, z~bazy PostgreSQL, po~czym wynik podlega serializacji, przesłaniu, deserializacji w~przeglądarce i~naniesieniu na~interfejs.
+Scenariusze Products obejmują odczyt katalogu produktów z~Redis albo, przy wymuszonym pominięciu pamięci podręcznej, z~PostgreSQL. Przy trafieniu REST wykorzystuje gotowy JSON, a~gRPC odtwarza wiadomość binarną i~ponownie ją~serializuje. Przy odczycie z~bazy obie ścieżki budują odpowiedź i~serializują ją~do~własnego formatu. Dalszy pomiar obejmuje transmisję, deserializację w~przeglądarce i~aktualizację interfejsu.
 
 Stan pamięci podręcznej sterowany jest nagłówkiem \texttt{X-Bypass-Cache}, którego obecność wymusza zapytanie do~bazy danych. Rozwiązanie to~pozwala badać oba stany bez restartu systemu.
 
-\subsection{Scenariusz Orders -- zapis zamówienia}
+\subsection{Scenariusz Orders: zapis zamówienia}
 \label{subsec:TestyWydajnosciowe}
 
-Scenariusze Orders badają operacje zapisu angażujące pełen łańcuch transakcyjny: walidację i zapis encji zamówienia wraz z~pozycjami. Pozycje zamówienia losowane są~z~puli produktów inicjalizacyjnych, co~zapewnia realistyczny rozkład rozmiaru żądania.
+Scenariusze Orders badają operacje zapisu angażujące pełen łańcuch transakcyjny: walidację i zapis encji zamówienia wraz z~pozycjami. Pozycje zamówienia są~losowane z~ustalonej puli produktów inicjalizacyjnych, co~pozwala zmieniać rozmiar żądania w~powtarzalny sposób.
 
 \subsection{Wymiary macierzy}
 \label{subsec:WymiaryMacierzy}
@@ -236,7 +234,7 @@ System testowany wdrożono na~serwerze chmury Hetzner Cloud o~ośmiu rdzeniach w
 \begin{figure}[htb]
 \centering
 \includegraphics[width=\textwidth]{figures/hetzner-backend-dasboard.png}
-\caption{Konsola Hetzner Cloud -- parametry serwera, na~którym wdrożono system testowany}
+\caption{Konsola Hetzner Cloud: parametry serwera, na~którym wdrożono system testowany}
 \label{fig:HetznerSerwer}
 \end{figure}
 
@@ -249,7 +247,7 @@ Parametry maszyny w~postaci udostępnianej przez konsolę dostawcy przedstawia r
 \label{fig:HetznerObciazenie}
 \end{figure}
 
-Klientem pomiarowym jest stacja robocza autora, łącząca się z~serwerem przez publiczną sieć rozległą. Taka konfiguracja stanowi świadomy wybór metodologiczny. Umieszczenie klienta i~serwera w~jednym centrum danych, połączonych siecią prywatną, minimalizuje wprawdzie zmienność pomiaru, lecz jednocześnie usuwa czynnik, który jak wykazano w~rozdziale~\ref{cha:AnalizaWydajnosci}, decyduje o~różnicach pomiędzy protokołami. Przewaga formatu binarnego ujawnia się bowiem poprzez liczbę wymian pakietów niezbędnych do~przesłania odpowiedzi, a~koszt każdej z~nich jest proporcjonalny do~opóźnienia łącza. Pomiar w~sieci lokalnej systematycznie zaniżałby zatem badane zjawisko, prowadząc do~wniosku, że~wybór protokołu pozostaje bez znaczenia.
+Klientem pomiarowym jest stacja robocza autora, łącząca się z~serwerem przez publiczną sieć rozległą. Konfiguracja odwzorowuje dostęp użytkownika do~zdalnej usługi i~zachowuje wpływ opóźnienia sieciowego. Umieszczenie obu stanowisk w~jednym centrum danych zmniejszyłoby RTT, a~tym samym zakres obserwowanego efektu związanego z~liczbą obiegów pakietu.
 
 Stanowisko klienckie stanowi komputer o~procesorze AMD~Ryzen~7~5700X (8~rdzeni, 16~wątków logicznych, częstotliwość bazowa 3,4~GHz) oraz 32~GB pamięci operacyjnej, pracujący pod~kontrolą systemu Microsoft Windows~11 (kompilacja~26200).
 
@@ -282,9 +280,9 @@ Wysyłanie, jeden strumień & 19,2\,Mbit/s \\
 \end{tabular}
 \end{table}
 
-Zestawienie to~ujawnia zależność o~zasadniczym znaczeniu dla całej analizy: przepustowość pojedynczego połączenia ograniczona jest do~około 20~Mbit/s, mimo że~przepustowość zagregowana skaluje się niemal liniowo i~przy szesnastu strumieniach nie osiągnęła jeszcze wartości granicznej. Ograniczeniem pojedynczego żądania nie jest zatem pojemność łącza, lecz iloczyn opóźnienia i~przepustowości, omówiony w~sekcji~\ref{sec:ModelOkna}. Pomiar wysyłania daje wartość niemal identyczną, co~wskazuje na~symetryczne działanie tego mechanizmu w~obu kierunkach.
+Przepustowość pojedynczego połączenia wynosi około 20~Mbit/s. Wartość zagregowana rośnie wraz z~liczbą strumieni i~dla szesnastu przekracza 270~Mbit/s. Wynik pojedynczego strumienia odpowiada iloczynowi opóźnienia i~przepustowości omówionemu w~sekcji~\ref{sec:ModelOkna}. Podobny wynik uzyskano dla wysyłania danych.
 
-Wartości uzyskane z~pojedynczego strumienia stanowią dolne ograniczenie pojemności łącza, nie jej miarę: różnica pomiędzy 20 a~273~Mbit/s w~pobieraniu jest tego bezpośrednią ilustracją.
+Wartość z~pojedynczego strumienia jest dolnym ograniczeniem pojemności łącza. W~pobieraniu wynosi ona 20~Mbit/s wobec 273~Mbit/s uzyskanych dla wielu strumieni.
 
 \subsection{Zweryfikowana warstwa transportowa}
 \label{subsec:WarstwaTransportowa}
@@ -329,20 +327,20 @@ Percentyl 95. nie został przyjęty jako główna miara porównawcza, ponieważ 
 
 Powtarzalność pomiaru wyrażono współczynnikiem zmienności median pięciu przebiegów, zdefiniowanym jako iloraz odchylenia standardowego i~średniej. Ze~względu na~niewielką liczbę powtórzeń zastosowano odchylenie standardowe z~próby, z~dzielnikiem $n-1$, stanowiące estymator odchylenia populacyjnego.
 
-Przy interpretacji przepustowości konieczne jest jedno zastrzeżenie. Ponieważ czas namysłu jest wyliczany osobno dla każdej komórki macierzy, wartości przepustowości nie są~porównywalne pomiędzy komórkami. Pozostają natomiast w~pełni porównywalne pomiędzy protokołami w~obrębie jednej komórki, ponieważ w~jej ramach czas namysłu jest identyczny. Użytą wartość zapisano w~wynikach dla każdej komórki. Zastrzeżenie to~nie dotyczy opóźnień.
+Czas namysłu jest wyliczany osobno dla każdej komórki macierzy, dlatego wartości przepustowości można porównywać między wariantami komunikacji tylko w~obrębie tej~samej komórki. Użytą wartość zapisano w~wynikach. Ograniczenie nie dotyczy pomiarów opóźnienia.
 
 Wyniki zapisywane są~w~formacie JSON, obejmującym zarówno statystyki zbiorcze ze~wszystkich przebiegów, jak i~statystyki każdego przebiegu osobno, co~umożliwia weryfikację, czy dana relacja pomiędzy protokołami zachodzi konsekwentnie, a~nie wyłącznie w~zestawieniu uśrednionym.
 
 \subsection{Przedziały ufności i~kryterium rozstrzygalności}
 \label{subsec:PrzedzialyUfnosci}
 
-Ocena, czy zmierzona różnica pomiędzy protokołami jest rzeczywista, wymaga miary niepewności wartości centralnej, nie zaś wyłącznie miary rozrzutu. Zastosowano do~tego przedziały ufności, przyjmując jako jednostkę analizy medianę pojedynczego przebiegu.
+Niepewność wartości centralnej oceniono za~pomocą przedziałów ufności. Jednostką analizy jest mediana pojedynczego przebiegu.
 
 Wybór tej jednostki jest istotny metodycznie. Pomiary wykonane w~obrębie
 jednego przebiegu nie są~wzajemnie niezależne: dzielą stan pamięci
 podręcznej, ten~sam kontekst przeglądarki oraz te~same chwilowe warunki
 sieciowe. Wyznaczenie przedziału z~kilkuset próbek jednej komórki
-dałoby zatem wynik pozornie precyzyjny, lecz nieuprawniony, ponieważ
+dałoby wynik pozornie precyzyjny, lecz nieuprawniony, ponieważ
 efektywna liczba niezależnych obserwacji jest znacznie mniejsza od~liczby
 próbek. Niezależnych replikacji jest w~eksperymencie pięć: tyle, ile
 przebiegów całej macierzy, każdy z~odrębną kolejnością protokołów.
@@ -362,7 +360,7 @@ Porównania pomiędzy protokołami przeprowadzono w~układzie sparowanym. Poniew
 
 Przyjęto następujące kryterium rozstrzygalności: różnicę uznaje się za~rozstrzygniętą, jeżeli jej przedział ufności nie zawiera zera. Kryterium to~zastąpiło wcześniejszą regułę opartą na~progu procentowym, ponieważ wiąże ocenę wprost ze~zmiennością danych, a~nie z~wartością przyjętą arbitralnie.
 
-Test rangowy dla par nie został zastosowany, ponieważ przy pięciu obserwacjach najmniejsza osiągalna dwustronna wartość prawdopodobieństwa wynosi 0,0625, a~zatem test ten nie mógłby wykazać istotności na~przyjętym poziomie niezależnie od~wielkości efektu. Z~tego względu raportowane są~przedziały ufności, nie wartości prawdopodobieństwa testowego.
+Przy pięciu obserwacjach najmniejsza osiągalna dwustronna wartość prawdopodobieństwa w~teście rangowym dla par wynosi 0,0625. Test nie mógłby osiągnąć przyjętego poziomu istotności, dlatego raportowane są~przedziały ufności.
 
 % -----------------------------------------------------------------------
 \section{Ograniczenia metodologiczne}
@@ -371,7 +369,7 @@ Test rangowy dla par nie został zastosowany, ponieważ przy pięciu obserwacjac
 
 Przyjęta metodyka pozwala porównać badane protokoły w~kontrolowanych i~powtarzalnych warunkach, lecz wyznacza również granice uogólniania wyników. Ograniczenia te~nie podważają porównań wykonanych w~ramach eksperymentu, ale określają sytuacje, w~których przeniesienie wniosków na~inne systemy wymaga dodatkowej walidacji.
 
-Zakres uogólniania wyników ogranicza fakt, że~badanie przeprowadzono dla jednej implementacji systemu, jednego stosu technologicznego (.NET~10, Angular~20 i~Chromium) oraz jednej konfiguracji sprzętowej. Dzięki identycznej logice biznesowej i~wspólnej aplikacji klienckiej ograniczono liczbę zmiennych zakłócających, jednak wyniki nie opisują wszystkich implementacji REST i~gRPC-Web ani zachowania innych silników przeglądarek. W~szczególności koszt serializacji, deserializacji i~aktualizacji widoku może zależeć od~bibliotek klienckich, modelu danych i~środowiska wykonawczego.
+Zakres uogólniania wyników ogranicza fakt, że~badanie przeprowadzono dla jednej implementacji systemu, jednego stosu technologicznego (.NET~10, Angular~20 i~Chromium) oraz jednej konfiguracji sprzętowej. Dzięki identycznej logice biznesowej i~wspólnej aplikacji klienckiej ograniczono liczbę zmiennych zakłócających, jednak wyniki nie opisują wszystkich implementacji REST i~gRPC-Web ani zachowania innych silników przeglądarek. W~szczególności koszt serializacji, deserializacji i~aktualizacji widoku może zależeć od~bibliotek klienckich, modelu danych i~środowiska wykonawczego. W~ciepłym odczycie Products występuje dodatkowo asymetria obsługi Redis: REST zwraca gotowy JSON, a~gRPC odtwarza obiekt z~bajtów i~ponownie go~serializuje. Wynik tego scenariusza obejmuje koszt obu implementacji pamięci podręcznej, więc nie wyznacza samodzielnie wpływu formatu transmisji. Scenariusz Echo pomija Redis i~stanowi odrębny punkt odniesienia.
 
 Warunki sieciowe stanowią odrębne ograniczenie, ponieważ pomiary wykonano dla jednej rzeczywistej ścieżki pomiędzy stanowiskiem klienckim a~serwerem. Jej opóźnienie obiegu pakietu wynosiło 26,2--26,9~ms, a~przepustowość pojedynczego strumienia około 20~Mbit/s. Wykazany mechanizm zależy od~liczby okien odbiorczych i~kosztu kolejnych obiegów pakietu, dlatego wartości bezwzględnych oraz procentowej przewagi nie należy bezpośrednio przenosić na~sieci lokalne, połączenia mobilne ani łącza o~innym iloczynie opóźnienia i~przepustowości.
 

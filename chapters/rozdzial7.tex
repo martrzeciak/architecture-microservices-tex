@@ -1,6 +1,6 @@
 \cleardoublepage
 
-\chapter{Porównawcza analiza wydajności gRPC vs REST}
+\chapter{Porównawcza analiza wydajności REST i~gRPC-Web}
 \label{cha:AnalizaWydajnosci}
 
 Niniejszy rozdział przedstawia wyniki eksperymentu przeprowadzonego zgodnie z~metodologią opisaną w~rozdziale~\ref{cha:MetodologiaBadan}. Analiza rozpoczyna się od~wielkości niezależnych od~warunków sieciowych: wolumenu przesyłanych danych oraz wynikającego z~niego modelu liczby wymian pakietów. Dopiero one pozwalają zinterpretować zmierzone czasy odpowiedzi. Następnie omówione zostają kolejno scenariusze Echo, Products i~Orders, rozdzielenie wpływu serializacji od~wpływu wersji protokołu HTTP, granica przepustowości stanowiska pomiarowego, powtarzalność wyników wraz z~przedziałami ufności wyznaczonymi dla zmierzonych różnic oraz mechanizmy kontrolne potwierdzające wiarygodność uzyskanych rezultatów. Rozdział zamyka weryfikacja hipotez oraz rekomendacje architektoniczne wraz z~wytycznymi wdrożeniowymi.
@@ -97,7 +97,7 @@ Model ten poddano weryfikacji ilościowej, przyjmując za~punkt odniesienia konf
 \begin{table}[htb]
 \centering
 \footnotesize
-\caption{Weryfikacja modelu -- przewidywana i~zmierzona liczba dodatkowych obiegów pakietu}
+\caption{Weryfikacja modelu: przewidywana i~zmierzona liczba dodatkowych obiegów pakietu}
 \label{tab:WeryfikacjaModelu}
 \begin{tabular}{|l|c|r|c|c|c|}
 \hline
@@ -120,7 +120,7 @@ Products, protobuf  & 2000 & 151\,700$^{*}$  & 2,31 & 2 & 2,19 \\
 \end{tabular}
 \end{table}
 
-Zgodność jest bardzo dobra we~wszystkich dziesięciu przypadkach: różnica pomiędzy wartością przewidywaną a~zmierzoną nie przekracza 0,2~obiegu, a~w~żadnym przypadku nie zmienia liczby całkowitej. Model wyjaśnia w~szczególności zjawisko, którego nie sposób wyjaśnić samą przepustowością: różnica 30~kilobajtów pomiędzy formatami przy 500~rekordach scenariusza Echo odpowiadałaby przy przepustowości zagregowanej niespełna jednej milisekundy, a~przy przepustowości pojedynczego strumienia, około dwunastu milisekund, natomiast zmierzona różnica wynosi 26~ms, czyli dokładnie jeden obieg pakietu.
+Zgodność jest bardzo dobra we~wszystkich dziesięciu przypadkach: różnica pomiędzy wartością przewidywaną a~zmierzoną nie przekracza 0,29~obiegu, a~w~żadnym przypadku nie zmienia liczby całkowitej. Model wyjaśnia w~szczególności zjawisko, którego nie sposób wyjaśnić samą przepustowością: różnica 30~kilobajtów pomiędzy formatami przy 500~rekordach scenariusza Echo odpowiadałaby przy przepustowości zagregowanej niespełna jednej milisekundy, a~przy przepustowości pojedynczego strumienia, około dwunastu milisekund, natomiast zmierzona różnica wynosi 26~ms, czyli dokładnie jeden obieg pakietu.
 
 Przewaga serializacji binarnej nie jest ciągłą funkcją rozmiaru odpowiedzi, lecz realizuje się skokowo: wyłącznie wtedy, gdy mniejszy ładunek wymaga mniejszej liczby okien. Ponadto wielkość tej przewagi jest proporcjonalna do~opóźnienia łącza, nie do~szybkości serwera: w~sieci lokalnej, gdzie opóźnienie obiegu pakietu jest mniejsze od~milisekundy, ten~sam mechanizm dawałby korzyść pomijalną.
 
@@ -298,23 +298,23 @@ Scenariusze Orders angażują pełen łańcuch transakcyjny: walidację oraz zap
 \label{fig:WykresOrders}
 \end{figure}
 
-Scenariusze zapisu nie wykazują spójnej różnicy pomiędzy protokołami. Przy dziesięciu i~pięćdziesięciu pozycjach zamówienia wszystkie trzy warianty mieszczą się w~przedziale 83,5--106,2~ms, mimo że~rozmiar żądania zmienia się pięciokrotnie. Przy dwustu pozycjach kolejność jest odmienna dla dwóch badanych poziomów obciążenia, a~współczynniki zmienności sięgają czterdziestu procent. Zestawienie median wraz z~przedziałami ufności wartości centralnej przedstawia rysunek~\ref{fig:WykresOrders}.
+Scenariusze zapisu nie wykazują spójnej różnicy pomiędzy protokołami. Przy dziesięciu i~pięćdziesięciu pozycjach zamówienia mediany mieszczą się w~przedziale 83,5--165,8~ms. Górna wartość dotyczy wariantu Direct przy pięćdziesięciu pozycjach i~dwudziestu klientach; pozostałe mediany w~tej grupie wynoszą 83,5--106,2~ms. Przy dwustu pozycjach kolejność jest odmienna dla dwóch badanych poziomów obciążenia, a~współczynniki zmienności sięgają czterdziestu procent. Zestawienie median wraz z~przedziałami ufności wartości centralnej przedstawia rysunek~\ref{fig:WykresOrders}.
 
 Wyjaśnienie wynika bezpośrednio z~modelu przedstawionego w~sekcji~\ref{sec:ModelOkna} oraz z~charakteru ścieżki zapisu. Żądania w~tym scenariuszu są~niewielkie: nawet dwieście pozycji zamówienia to~około siedemnastu kilobajtów, czyli znacznie mniej niż okno odbiorcze. Liczba obiegów pakietu jest zatem identyczna dla wszystkich formatów, a~mechanizm dający przewagę w~odczycie nie ma~tu~zastosowania. Jednocześnie czas odpowiedzi zdominowany jest przez stały koszt serwerowy: transakcję bazodanową obejmującą zapis encji.
 
-Obserwacja ta~stanowi wynik negatywny, lecz metodycznie istotny: wskazuje granicę stosowalności wniosków wyprowadzonych ze~scenariuszy odczytu. Optymalizacja warstwy transportowej nie przyniesie korzyści w~operacjach, których czas wyznaczany jest przez trwałe utrwalanie danych.
+W~badanych scenariuszach zapisu nie uzyskano stałej przewagi jednego wariantu. Szerokie przedziały ufności ograniczają rozstrzygalność różnic; wynik ten nie dowodzi równoważności protokołów ani braku wpływu sposobu komunikacji na~czas operacji.
 
 % -----------------------------------------------------------------------
 \section{Rozdzielenie wpływu serializacji od~wpływu wersji protokołu HTTP}
 \label{sec:Dekompozycja}
 % -----------------------------------------------------------------------
 
-Ścieżka bezpośrednia korzysta z~protokołu HTTP/2, natomiast REST -- z~HTTP/1.1. Zmierzona różnica pomiędzy nimi zawiera zatem dwa zmieszane czynniki: mniejszy wolumen danych oraz odmienną wersję protokołu transportowego. Rozdzielenie ich umożliwia wariant z~proxy Envoy, który przenosi ładunek binarny, korzystając po~stronie przeglądarki z~protokołu HTTP/1.1, tak samo jak REST. Stanowi on~tym samym grupę kontrolną: różnica pomiędzy REST a~Envoy odzwierciedla wpływ samej serializacji, ponieważ obie ścieżki korzystają z~nieszyfrowanego protokołu HTTP/1.1 i~różnią się wyłącznie formatem serializacji. Różnica pomiędzy wariantem z~proxy Envoy a~ścieżką bezpośrednią odzwierciedla natomiast wpływ wersji protokołu HTTP oraz pominięcia serwera pośredniczącego.
+Ścieżka bezpośrednia korzysta z~HTTP/2, a~REST z~HTTP/1.1. Wariant z~Envoy przesyła dane binarne przy użyciu HTTP/1.1 po~stronie przeglądarki, co~pomaga ocenić udział reprezentacji danych w~zmierzonej różnicy. Porównanie REST--Envoy obejmuje jednak także obecność proxy, ramkowanie i~implementację obsługi żądania. W~ciepłym odczycie Products dochodzi różnica obsługi Redis: REST zwraca gotowy JSON, a~gRPC odtwarza i~ponownie serializuje wiadomość Protocol Buffers. Dekompozycja stanowi więc przybliżony podział różnic pomiędzy kompletnymi ścieżkami. Porównanie Envoy--Direct wykorzystuje tę~samą implementację usługi gRPC i~obejmuje zmianę transportu oraz pominięcie proxy.
 
 \begin{table}[htb]
 \centering
 \footnotesize
-\caption{Dekompozycja przewagi na~składnik serializacyjny i~transportowy [ms]}
+\caption{Dekompozycja przewagi: czasy odpowiedzi [ms] oraz składniki różnicy wyrażone jako procent czasu REST}
 \label{tab:Dekompozycja}
 \begin{tabular}{|l|c|c|c|c|c|}
 \hline
@@ -336,9 +336,9 @@ Products, PS=500, VU=20     & 71,8  & 48,4  & 44,4  & $-$33\% & $-$6\% \\
 \label{fig:WykresDekompozycja}
 \end{figure}
 
-Wynik, przedstawiony graficznie na~rysunku~\ref{fig:WykresDekompozycja}, jest jednoznaczny. W~konfiguracji o~500~produktach na~stronę z~łącznej przewagi 24,7~ms aż~23,5~ms przypada na~zmianę formatu serializacji, a~zaledwie 1,2~ms na~wersję protokołu HTTP wraz z~pominięciem serwera pośredniczącego. Udział składnika serializacyjnego w~całkowitej przewadze wynosi zatem około 95\%. Zależność ta~powtarza się we~wszystkich badanych konfiguracjach: składnik transportowy nie przekracza sześciu procent, podczas gdy składnik serializacyjny mieści się w~przedziale 23--36\%.
+W~konfiguracji o~500~produktach na~stronę i~dziesięciu klientach różnica REST--Direct wynosi 24,7~ms, z~czego 23,5~ms stanowi różnica REST--Envoy, a~1,2~ms różnica Envoy--Direct (rysunek~\ref{fig:WykresDekompozycja}). Pierwsza z~nich odpowiada około 95\% całkowitej przewagi w~tej konfiguracji. W~pięciu konfiguracjach z~tabeli~\ref{tab:Dekompozycja} udział ten wynosi około 85--98\%. W~kolumnach procentowych tabeli obie różnice odniesiono do~czasu REST: $(T_{\mathrm{Envoy}}-T_{\mathrm{REST}})/T_{\mathrm{REST}}$ oraz $(T_{\mathrm{Direct}}-T_{\mathrm{Envoy}})/T_{\mathrm{REST}}$. Wartość sześciu procent dotyczy więc czasu REST. Bezpośrednie porównanie Direct z~Envoy wymaga mianownika $T_{\mathrm{Envoy}}$; przykładowo zmiana z~48,4 do~44,4~ms oznacza skrócenie czasu o~8,3\%.
 
-Gdyby dominującym czynnikiem była wersja protokołu HTTP, wariant z~proxy, korzystający z~protokołu HTTP/1.1, osiągałby wyniki zbliżone do~REST. Zmierzone wartości wskazują jednak, że~wariant ten dorównuje ścieżce bezpośredniej, a~nie ścieżce REST. Obserwacja ta~stanowi bezpośrednie potwierdzenie hipotezy H3 i~jednocześnie odpowiedź na~zarzut, że~porównanie zestawia protokół binarny po~HTTP/2 z~formatem tekstowym po~HTTP/1.1.
+Gdyby dominującym czynnikiem była wersja protokołu HTTP, wariant z~proxy, korzystający z~protokołu HTTP/1.1, osiągałby wyniki zbliżone do~REST. Zmierzone wartości wskazują jednak, że~wariant ten dorównuje ścieżce bezpośredniej, a~nie ścieżce REST. Obserwacja ta~wspiera hipotezę H3, ale nie wyznacza samodzielnie kosztu każdej operacji serializacji ani wpływu poszczególnych elementów transportu.
 
 % -----------------------------------------------------------------------
 \section{Skalowanie z~liczbą klientów i~granica stanowiska pomiarowego}
@@ -350,7 +350,7 @@ Zakres badanych poziomów obciążenia wyznaczono na~podstawie odrębnego pomiar
 \begin{table}[htb]
 \centering
 \footnotesize
-\caption{Skalowanie z~liczbą równoległych klientów -- mediana opóźnienia [ms] i~przepustowość [operacji/s]}
+\caption{Skalowanie z~liczbą równoległych klientów: mediana opóźnienia [ms] i~przepustowość [operacji/s]}
 \label{tab:Skalowanie}
 \begin{tabular}{|c|c|c|c|c|c|c|}
 \hline
@@ -369,13 +369,13 @@ Zakres badanych poziomów obciążenia wyznaczono na~podstawie odrębnego pomiar
 \begin{figure}[htb]
 \centering
 \includegraphics[width=\textwidth]{figures/chart_browser_nasycenie.png}
-\caption{Opóźnienie i~przepustowość względem liczby równoległych klientów; szary pas oznacza wspólny pułap przepustowości, różowy -- położenie punktu przegięcia}
+\caption{Opóźnienie i~przepustowość względem liczby równoległych klientów; szary pas oznacza wspólny pułap przepustowości, a~różowy położenie punktu przegięcia}
 \label{fig:WykresNasycenie}
 \end{figure}
 
 Zestawienie, zilustrowane na~rysunku~\ref{fig:WykresNasycenie}, ujawnia klasyczny obraz nasycenia. Przepustowość wypłaszcza się na~poziomie około siedemdziesięciu operacji na~sekundę, osiągając wartość graniczną pomiędzy dwudziestoma a~trzydziestoma klientami, natomiast opóźnienie nadal narasta, z~38 do~140~ms. Powyżej punktu przegięcia zwiększanie współbieżności wydłuża wyłącznie czas oczekiwania w~kolejce, bez korzyści przepustowościowej.
 
-Rozstrzygnięcie, po~której stronie znajduje się czynnik ograniczający, opiera się na~następującej przesłance: wszystkie trzy protokoły zatrzymują się na~tej~samej wartości granicznej, mimo że~po~stronie serwera realizowane są~odmiennymi ścieżkami kodu: ścieżka REST zwraca gotowy dokument z~pamięci podręcznej, natomiast ścieżki binarne wykonują deserializację i~ponowną serializację. Gdyby ograniczenie leżało po~stronie systemu testowanego, ścieżki te~różniłyby się wartością graniczną. Wspólny pułap wskazuje zatem na~czynnik po~stronie klienta: rywalizację o~zasoby pomiędzy kilkudziesięcioma kontekstami przeglądarki.
+W~odczycie z~ciepłą pamięcią podręczną REST zwraca gotowy dokument JSON z~Redis, natomiast oba warianty gRPC odtwarzają obiekt z~bajtów Protocol Buffers i~ponownie go~serializują. Zbliżony pułap przepustowości mimo tych różnic jest przesłanką ograniczenia po~stronie wspólnego klienta pomiarowego, na~przykład rywalizacji o~zasoby pomiędzy kontekstami przeglądarki. Samo porównanie ścieżek nie wyklucza jednak wspólnego ograniczenia po~stronie serwera lub sieci; lokalizacja wąskiego gardła pozostaje wnioskiem pośrednim.
 
 Wniosek ten stanowił podstawę ograniczenia macierzy badawczej do~dziesięciu i~dwudziestu klientów, to~jest poniżej punktu przegięcia. Przyjęto zasadę, że~wąższy zakres współbieżności z~wynikami wiarygodnymi jest wartościowszy niż zakres szerszy z~wynikami opisującymi ograniczenia narzędzia.
 
@@ -507,14 +507,14 @@ klientach i~dziesięciu rekordach. Właściwym wnioskiem jest zatem nie tyle bra
 \end{sloppypar}
 
 \begin{sloppypar}
-\textbf{H3 (przewaga wynika z~redukcji wolumenu danych, nie z~wersji protokołu HTTP):} hipoteza potwierdzona. Dekompozycja przedstawiona w~sekcji~\ref{sec:Dekompozycja} wykazała, że~składnik serializacyjny odpowiada za~około 95\% obserwowanej przewagi, natomiast składnik obejmujący wersję protokołu HTTP oraz pominięcie serwera pośredniczącego, za~nie więcej niż sześć procent. Wariant z~proxy Envoy, korzystający z~protokołu HTTP/1.1, dorównuje wariantowi bezpośredniemu, a~nie ścieżce REST.
+\textbf{H3 (przewaga wynika z~redukcji wolumenu danych, nie z~wersji protokołu HTTP):} wyniki wspierają hipotezę. W~dekompozycji przedstawionej w~sekcji~\ref{sec:Dekompozycja} różnica REST--Envoy stanowi około 85--98\% różnicy REST--Direct, w~tym około 95\% dla 500~produktów i~dziesięciu klientów. Są~to udziały w~całkowitym skróceniu czasu. Procenty w~tabeli~\ref{tab:Dekompozycja} odnoszą się natomiast do~czasu REST. Porównanie obejmuje kompletne ścieżki obsługi żądań, dlatego podział ten stanowi przybliżenie udziału serializacji i~transportu.
 \end{sloppypar}
 
 \begin{sloppypar}
-\textbf{H4 (w~operacjach zapisu różnice zanikają):} hipoteza potwierdzona. Przy dziesięciu i~pięćdziesięciu pozycjach zamówienia wszystkie warianty mieszczą się w~przedziale 83,5--106,2~ms. Przyczyną jest dominacja stałego kosztu serwerowego oraz fakt, że~żądania zapisu nie przekraczają rozmiaru okna odbiorczego, a~zatem mechanizm dający przewagę w~odczycie nie ma~zastosowania.
+\textbf{H4 (w~operacjach zapisu różnice zanikają):} nie wykryto stałej przewagi jednego wariantu, ale wyniki nie wystarczają do~potwierdzenia równoważności protokołów. Przy dziesięciu i~pięćdziesięciu pozycjach zamówienia mediany wynoszą 83,5--165,8~ms. Przedziały ufności dla różnic REST--Direct obejmują zero, a~dla pary Envoy--Direct występuje wyjątek omówiony w~sekcji~\ref{sec:PrzedzialyUfnosci}. Udział transakcji bazodanowej i~zmienność wyników ograniczają możliwość rozstrzygnięcia hipotezy.
 \end{sloppypar}
 
-\textbf{H5 (wariant Direct osiąga niższe opóźnienie niż wariant z~proxy Envoy):} hipoteza potwierdzona, lecz o~znaczeniu marginalnym. Wariant bezpośredni jest szybszy w~każdej konfiguracji odczytu z~ciepłą pamięcią podręczną oraz w~każdej konfiguracji scenariusza Echo, jednak przewaga nie przekracza sześciu procent. W~grupie scenariuszy z~zimną pamięcią podręczną relacja ta~nie zachodzi konsekwentnie co należy przypisać zmienności warstwy danych. Wybór pomiędzy oboma wariantami wdrożenia gRPC-Web ma~znaczenie drugorzędne.
+\textbf{H5 (wariant Direct osiąga niższe opóźnienie niż wariant z~proxy Envoy):} wyniki częściowo wspierają hipotezę. Wariant bezpośredni ma~niższą medianę w~każdej konfiguracji odczytu z~ciepłą pamięcią podręczną oraz scenariusza Echo. Skrócenie czasu wynosi około 0,4--9,2\%, licząc względem mediany Envoy jako $(T_{\mathrm{Envoy}}-T_{\mathrm{Direct}})/T_{\mathrm{Envoy}}$. Nie wszystkie różnice są~jednak rozstrzygnięte statystycznie. W~grupie scenariuszy z~zimną pamięcią podręczną relacja ta~nie zachodzi konsekwentnie. Wybór wariantu wdrożenia wymaga uwzględnienia również topologii systemu.
 
 % -----------------------------------------------------------------------
 \section{Rekomendacje i~wytyczne wdrożeniowe}
@@ -532,7 +532,7 @@ Uzyskane wyniki nie uzasadniają bezwarunkowego zastąpienia REST przez gRPC-Web
 
     \item \textbf{Charakter operacji jest ważniejszy niż sam format komunikatu.} W~odczycie dużych zbiorów koszt transmisji może dominować i~uzasadniać zastosowanie gRPC-Web. W~operacjach zapisu angażujących transakcję bazodanową różnice pomiędzy protokołami nie były rozstrzygalne, ponieważ czas odpowiedzi wyznaczała warstwa persystencji. W~takich ścieżkach priorytetem powinny być optymalizacja zapytań, zakres transakcji i~organizacja zapisu, natomiast protokół należy dobierać ze~względu na~kontrakt, interoperacyjność i~koszt utrzymania.
 
-    \item \textbf{Wybór pomiędzy wariantem bezpośrednim a~proxy powinien wynikać z~topologii systemu.} Różnica wydajnościowa pomiędzy gRPC-Web Direct a~wariantem z~Envoy nie przekraczała sześciu procent i~była wielokrotnie mniejsza od~efektu serializacji. Obsługa bezpośrednia upraszcza ścieżkę żądania i~ogranicza liczbę komponentów, natomiast serwer pośredniczący może być uzasadniony, gdy architektura wymaga wspólnej warstwy routingu i~centralnej konfiguracji ruchu. Nie należy rezygnować z~proxy wyłącznie na~podstawie oczekiwania znaczącego skrócenia czasu odpowiedzi.
+    \item \textbf{Wybór pomiędzy wariantem bezpośrednim a~proxy powinien wynikać z~topologii systemu.} W~scenariuszach Echo i~odczytu z~ciepłą pamięcią podręczną Direct skracał medianę czasu względem Envoy o~około 0,4--9,2\%, przy czym nie wszystkie różnice były rozstrzygnięte statystycznie. Obsługa bezpośrednia upraszcza ścieżkę żądania i~ogranicza liczbę komponentów, natomiast serwer pośredniczący może być uzasadniony, gdy architektura wymaga wspólnej warstwy routingu i~centralnej konfiguracji ruchu. Nie należy rezygnować z~proxy wyłącznie na~podstawie oczekiwania znaczącego skrócenia czasu odpowiedzi.
 
     \item \textbf{Pamięć podręczna powinna być traktowana również jako mechanizm stabilizacji czasu odpowiedzi.} W~scenariuszach z~ciepłą pamięcią podręczną współczynnik zmienności wynosił typowo 2--6\%, natomiast przy wymuszonym dostępie do~bazy wzrastał do~10--30\%, a~maksymalnie do~51,3\%. Cache-Aside poprawia więc nie tylko wartość centralną opóźnienia, lecz także jego przewidywalność. Wymaga to~jednocześnie jawnej polityki unieważniania danych oraz osobnego monitorowania ścieżek trafienia i~chybienia.
 \end{enumerate}

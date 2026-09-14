@@ -52,7 +52,7 @@ app.MapGet("/api/products/{id}", async (ProductDbContext db, string id) =>
 
 Do~głównych zalet stylu REST należą bezstanowość ułatwiająca skalowanie horyzontalne, natywna obsługa buforowania odpowiedzi w~infrastrukturze sieciowej oraz czytelność formatu JSON. Do~ograniczeń zalicza się narzut objętościowy danych tekstowych, brak ścisłego kontraktu binarnego oraz zjawisko nadmiernej komunikacji (ang.\ \textit{chatty API}).
 
-\section{gRPC -- architektura i~implementacja}
+\section{gRPC: architektura i~implementacja}
 \label{subsec:gRPC}
 
 gRPC to~framework komunikacji wykorzystujący protokół HTTP/2 oraz format serializacji Protocol Buffers, opracowany przez Google i~udostępniony jako projekt open-source w~2015~roku \cite{bib:gRPCDocs}. W~porównaniu do~REST wykorzystuje binarną serializację danych oraz mechanizmy HTTP/2, w~tym multipleksowanie wielu wywołań w~ramach jednego połączenia TCP. Z~tego względu jest często stosowany w~komunikacji pomiędzy mikroserwisami, gdzie istotne są~wydajność i~niskie opóźnienia.
