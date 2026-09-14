@@ -377,7 +377,7 @@ Zestawienie, zilustrowane na~rysunku~\ref{fig:WykresNasycenie}, ujawnia klasyczn
 
 W~odczycie z~ciepłą pamięcią podręczną REST zwraca gotowy dokument JSON z~Redis, natomiast oba warianty gRPC odtwarzają obiekt z~bajtów Protocol Buffers i~ponownie go~serializują. Zbliżony pułap przepustowości mimo tych różnic jest przesłanką ograniczenia po~stronie wspólnego klienta pomiarowego, na~przykład rywalizacji o~zasoby pomiędzy kontekstami przeglądarki. Samo porównanie ścieżek nie wyklucza jednak wspólnego ograniczenia po~stronie serwera lub sieci; lokalizacja wąskiego gardła pozostaje wnioskiem pośrednim.
 
-Wniosek ten stanowił podstawę ograniczenia macierzy badawczej do~dziesięciu i~dwudziestu klientów, to~jest poniżej punktu przegięcia. Przyjęto zasadę, że~wąższy zakres współbieżności z~wynikami wiarygodnymi jest wartościowszy niż zakres szerszy z~wynikami opisującymi ograniczenia narzędzia.
+Wniosek ten stanowił podstawę ograniczenia macierzy badawczej do~dziesięciu i~dwudziestu klientów, to~jest poniżej punktu przegięcia. Przyjęto zasadę, że~węższy zakres współbieżności z~wynikami wiarygodnymi jest wartościowszy niż zakres szerszy z~wynikami opisującymi ograniczenia narzędzia.
 
 % -----------------------------------------------------------------------
 \section{Powtarzalność pomiarów i~przedziały ufności}
