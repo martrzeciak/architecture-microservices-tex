@@ -248,12 +248,7 @@ Grupa ta~wymaga ostrożnej interpretacji. Wymuszenie zapytania do~bazy danych pr
 
 Przy dużych stronach wyników przewaga wariantów binarnych przewyższa poziom szumu. Przy 2000~produktach REST osiąga 187,5~ms, wariant z~proxy 111,3~ms, a~wariant bezpośredni 116,0~ms, przy współczynniku zmienności nieprzekraczającym 13,5\%.
 
-Wniosek metodyczny jest następujący: przy małych ładunkach zmienność
-wynikająca z~zimnej pamięci podręcznej przewyższa różnicę wynikającą
-z~protokołu, przez co ta~grupa nie stanowi użytecznego narzędzia
-porównawczego. Do~izolowania wpływu protokołu służy scenariusz Echo,
-natomiast do~oceny zachowania w~warunkach realnych -- scenariusz
-z~ciepłą pamięcią podręczną.
+Przy małych ładunkach zmienność wynikająca z~zimnej pamięci podręcznej przewyższa różnicę wynikającą z~protokołu, przez co ta~grupa nie stanowi użytecznego narzędzia porównawczego. Do~izolowania wpływu protokołu służy scenariusz Echo, natomiast do~oceny zachowania w~warunkach realnych -- scenariusz z~ciepłą pamięcią podręczną.
 
 % -----------------------------------------------------------------------
 \section{Analiza wydajności zapisu (Orders)}
@@ -440,7 +435,7 @@ Orders, 50 poz., VU=20     & 112,7 $\pm$ 55,9 & 101,2 $\pm$ 8,6 & 160,3 $\pm$ 43
 
 W~scenariuszach Echo oraz w~odczycie z~ciepłą pamięcią podręczną połówkowa szerokość przedziału nie przekracza kilku milisekund, natomiast w~scenariuszach zapisu sięga kilkudziesięciu, przekraczając w~skrajnym przypadku połowę samej wartości centralnej.
 
-Zasadnicze znaczenie ma~jednak zestawienie różnic pomiędzy protokołami w~układzie sparowanym. Wartość dodatnia oznacza, że~pierwszy z~wymienionych protokołów jest wolniejszy, a~zestawienie to~pozwala sformułować cztery wnioski.
+Zasadnicze znaczenie ma~jednak zestawienie różnic pomiędzy protokołami w~układzie sparowanym. Wartość dodatnia oznacza, że~pierwszy z~wymienionych protokołów jest wolniejszy. Kolejne akapity omawiają wyniki dla dużych i~małych odpowiedzi, wariantów gRPC-Web oraz scenariuszy zapisu.
 
 \begin{table}[htb]
 \centering

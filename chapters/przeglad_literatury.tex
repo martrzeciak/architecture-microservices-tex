@@ -10,3 +10,50 @@ Wyniki dotychczasowych porównań nie wskazują protokołu, który byłby szybsz
 Rozbieżności pomiędzy wynikami można częściowo wyjaśnić konstrukcją eksperymentów. Wraz ze~zmianą protokołu zmieniały się zwykle format reprezentacji, wersja HTTP, biblioteka serwerowa, a~czasem również sposób dostępu do~danych. Mierzono więc kompletne warianty implementacyjne, a~nie wyizolowany koszt protokołu. Różnił się także punkt zakończenia pomiaru. JMeter i~k6 rejestrują obsługę żądania przez klienta testowego, lecz nie uwzględniają deserializacji w~kodzie aplikacji frontendowej ani aktualizacji interfejsu użytkownika.
 
 Badania dotyczące GraphQL pomagają oddzielić wpływ protokołu od~wpływu zakresu odpowiedzi. Brito, Mombach i~Valente~\cite{bib:Brito2019} wykazali, że~migracja klientów API z~REST do~GraphQL może znacznie ograniczyć liczbę zwracanych pól i~rozmiar odpowiedzi. Jest to~korzyść wynikająca z~doboru danych przez klienta, a~nie z~binarnych właściwości reprezentacji. Vadlamani i~współautorzy~\cite{bib:Vadlamani2021} otrzymali wyniki zależne od~konkretnego zapytania do~API GitHuba. W~badaniu Jina i~współautorów~\cite{bib:Jin2025} na~wynik wpływała również odmienna infrastruktura wdrożeniowa porównywanych rozwiązań. Publikacje te~potwierdzają, że~porównywane ścieżki powinny zwracać ten sam zakres informacji i~wykonywać tę~samą logikę biznesową.
+
+\subsection{Zakres i~kryteria analizy}
+
+Przegląd obejmuje publikacje empiryczne, w~których opisano środowisko wykonania, rodzaj obciążenia i~co~najmniej jedną miarę wydajności: czas odpowiedzi, wolumen danych albo wykorzystanie zasobów. Dokumentacje techniczne wykorzystano wyłącznie do~wyjaśnienia mechanizmów implementacyjnych. Nie stanowią one samodzielnego dowodu przewagi wydajnościowej jednego rozwiązania nad drugim.
+
+Przy interpretacji prac rozpatrywano przede wszystkim granicę pomiaru, użyte środowisko, funkcjonalną równoważność operacji oraz sposób dostępu do~danych. Generator obciążenia rejestruje czas obsługi wywołania API, podczas gdy pomiar realizowany w~przeglądarce obejmuje dodatkowo odebranie odpowiedzi, jej dekodowanie oraz aktualizację interfejsu. Te~wartości odpowiadają odmiennym pytaniom badawczym i~nie powinny być traktowane jako zamienne.
+
+\subsection{Porównania REST i~gRPC}
+
+Śliwa i~Pańczyk~\cite{bib:SliwaPanczyk2021} porównali REST, GraphQL i~gRPC w~trzech aplikacjach o~tej samej funkcjonalności, zbudowanych na~platformie .NET~5. W~ich testach REST uzyskał korzystne wyniki czasu odpowiedzi i~przepustowości w~wielu scenariuszach, podczas gdy gRPC przesyłało mniej danych. Pokazuje to, że~mniejszy komunikat nie gwarantuje krótszego czasu całej operacji. Badanie jest istotnym punktem odniesienia ze~względu na~wspólny ekosystem .NET, lecz pomiar generatora obciążenia nie obejmuje aktualizacji DOM.
+
+Bolanowski i~współautorzy~\cite{bib:Bolanowski2022} oraz Kamiński i~współautorzy~\cite{bib:Kaminski2023} zwracają uwagę na~zależność wyników od~rodzaju operacji, środowiska uruchomieniowego i~konfiguracji transportu. W~porównaniach tego rodzaju równocześnie zmieniają się format reprezentacji, wersja HTTP, biblioteka serwerowa, a~niekiedy także ścieżka dostępu do~danych. Wynik dotyczy więc kompletnego wariantu implementacyjnego, a~nie wyizolowanego kosztu pojedynczego protokołu. Wniosek ten ma~bezpośrednie znaczenie dla interpretacji eksperymentu przedstawionego w~niniejszej pracy.
+
+\subsection{GraphQL jako odrębny wymiar porównania}
+
+GraphQL umożliwia klientowi dobór pól odpowiedzi, przez co może zmieniać zarówno objętość danych, jak i~liczbę żądań potrzebnych do~realizacji operacji. Jest to~inna oś optymalizacji niż zastosowanie zwartego kodowania tej samej reprezentacji. Badanie Brito, Mombach i~Valente~\cite{bib:Brito2019} pokazuje, że~ograniczenie zakresu zwracanych pól może istotnie zmniejszyć odpowiedź. Z~kolei Vadlamani i~współautorzy~\cite{bib:Vadlamani2021} nie wskazali rozwiązania szybszego dla każdej analizowanej pary zapytań.
+
+Tabela~\ref{tab:StanBadan} zestawia elementy najważniejsze dla przenoszenia wyników do~badania aplikacji przeglądarkowej. Zróżnicowanie metryk i~warunków nie uzasadnia uśredniania przewag procentowych raportowanych w~poszczególnych publikacjach.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Zakres omówionych badań i~ograniczenia ich odniesienia do~eksperymentu przeglądarkowego}
+\label{tab:StanBadan}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{0.25\textwidth}|p{0.31\textwidth}|p{0.32\textwidth}|}
+\hline
+\textbf{Publikacja} & \textbf{Przedmiot oceny} & \textbf{Granica porównania} \\
+\hline
+Śliwa, Pańczyk~\cite{bib:SliwaPanczyk2021} & REST, GraphQL i~gRPC; .NET, generator obciążenia & Czas API, bez aktualizacji DOM \\
+\hline
+Niswar i~in.~\cite{bib:Niswar2024} & REST, GraphQL i~gRPC; Go, Redis, JMeter & Odczyty z~cache, inne środowisko wykonania \\
+\hline
+Bolanowski i~in.~\cite{bib:Bolanowski2022} & REST i~gRPC w~mikroserwisach & Wynik zależny od~zadania i~konfiguracji \\
+\hline
+Kamiński i~in.~\cite{bib:Kaminski2023} & REST, gRPC, GraphQL i~WebSocket & Zależność od~środowiska i~bibliotek \\
+\hline
+Vadlamani i~in.~\cite{bib:Vadlamani2021} & REST i~GraphQL w~API GitHuba & Mała liczba zapytań, brak kontroli implementacji \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Ograniczenia porównywalności i~zakres wkładu pracy}
+
+Natywne gRPC oraz gRPC-Web nie są~zamienne z~perspektywy aplikacji przeglądarkowej. Ograniczenia przeglądarki wymagają odmiennego sposobu realizacji komunikacji~\cite{bib:gRPCWeb,bib:ProtocolWeb}. Ponadto REST nie jest ograniczony do~HTTP/1.1, a~zmiana formatu danych, wersji HTTP, TLS i~obecności proxy prowadzi do~porównania całych ścieżek komunikacji. Pomiar mniejszej odpowiedzi wspiera wyjaśnienie zaobserwowanej różnicy, ale nie wyznacza samodzielnie udziału każdego czynnika.
+
+W~omówionych publikacjach nie przedstawiono łącznego porównania REST, gRPC-Web przez Envoy oraz gRPC-Web obsługiwanego bezpośrednio w~ASP.NET Core, prowadzonego do~momentu aktualizacji DOM i~z~rozróżnieniem rozmiaru odpowiedzi oraz ścieżek dostępu do~danych. Niniejsza praca uzupełnia ten obraz o~powtarzany eksperyment w~systemie .NET~10 i~Angular. Wyniki mają charakter kontekstowy: opisują zachowanie trzech konkretnych konfiguracji, a~nie uniwersalny ranking technologii. GraphQL uwzględniono w~przeglądzie jako alternatywny sposób doboru danych, lecz nie jako wariant eksperymentalny.
