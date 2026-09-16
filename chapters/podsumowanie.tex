@@ -4,7 +4,7 @@
 W~ramach niniejszej pracy:
 
 \begin{itemize}
-\item zebrano i~usystematyzowano wiedzę z~zakresu architektury mikroserwisowej, mechanizmów komunikacji synchronicznej i~asynchronicznej oraz wzorców projektowych dla systemów rozproszonych w~ekosystemie .NET,
+\item zebrano i~usystematyzowano wiedzę z~zakresu architektury mikroserwisowej, komunikacji synchronicznej oraz wzorców projektowych dla systemów rozproszonych w~ekosystemie .NET,
 \item dokonano szczegółowej analizy protokołu gRPC-Web i~jego wariantów wdrożeniowych (proxy Envoy, bezpośrednia obsługa w~oprogramowaniu pośredniczącym ASP.NET Core),
 \item zaprojektowano i~zaimplementowano autorski system testowy składający się z~dwóch mikroserwisów .NET~10 (ProductService, OrderService), infrastruktury wspierającej (PostgreSQL, Redis, Envoy Proxy) oraz warstwy obserwowalności (Prometheus, Grafana),
 \item zaimplementowano wzorzec Cache-Aside z~wykorzystaniem Redis, a~także skonfigurowano serwer Kestrel do~równoległej obsługi trzech protokołów,
@@ -22,7 +22,7 @@ Główne wnioski z~przeprowadzonych badań eksperymentalnych:
 
 \item Zależność przewagi od~rozmiaru odpowiedzi miała charakter skokowy. Model oparty na~efektywnym progu transmisji około 64~KiB odtworzył zmierzone przyrosty czasu w~dziesięciu konfiguracjach z~dokładnością do~0,29~RTT.
 
-\item W~pięciu konfiguracjach dekompozycji różnica REST--Envoy stanowiła około 85--98\% całkowitej różnicy REST--Direct; dla 500~produktów i~dziesięciu klientów udział wynosił około 95\%. Wyniki wspierają znaczenie redukcji wolumenu danych. Porównanie kompletnych ścieżek komunikacji daje przybliżony podział kosztów serializacji i~transportu.
+\item W~konfiguracji Products, PS=500 i~VU=10 różnica REST--Envoy stanowiła około 95\% różnicy REST--Direct. Wariant przez Envoy uzyskał przewagę nad REST także przy HTTP/1.1 na~odcinku przeglądarkowym. Wynik wskazuje na~znaczenie formatu i~wolumenu odpowiedzi, lecz nie wyodrębnia liczbowego udziału serializacji, TLS, proxy ani wersji HTTP.
 
 \item Serializacja Protocol Buffers redukuje wolumen przesyłanych danych o~32--43\%. Wielkość ta~nie zależy od~warunków sieciowych, obciążenia ani od~zastosowanego narzędzia pomiarowego. Jedynym czynnikiem, który ją~zmienia, jest kompresja treści omówiona we~wniosku drugim.
 
@@ -37,16 +37,16 @@ Główne wnioski z~przeprowadzonych badań eksperymentalnych:
 \item Przepustowość stanowiska pomiarowego przestawała rosnąć pomiędzy dwudziestoma a~trzydziestoma równoległymi klientami, podczas gdy opóźnienie nadal wzrastało. Wspólny pułap trzech wariantów wskazywał na~ograniczenie po~stronie klienta. Z~tego powodu główna macierz obejmowała najwyżej dwudziestu klientów.
 \end{enumerate}
 
-Postawiony cel pracy uznano za~osiągnięty: zaprojektowano i~zrealizowano działający system mikroserwisowy, przeprowadzono na~nim zaplanowany zestaw badań oraz udzielono odpowiedzi na~pytanie o~relację wydajnościową badanych protokołów. Odpowiedź ta~okazała się warunkowa, a~sformułowany warunek, czyli rozmiar odpowiedzi w~odniesieniu do~okna odbiorczego protokołu TCP, jest wielkością mierzalną i~możliwą do~sprawdzenia w~konkretnym zastosowaniu. Oceniono wszystkie pięć hipotez. Hipoteza H1 wymagała doprecyzowania charakteru zależności od~rozmiaru odpowiedzi. Wyniki nie pozwoliły potwierdzić równoważności wariantów w~H4, a~H5 uzyskała częściowe wsparcie.
+W~ramach niniejszej pracy zaprojektowano i~zrealizowano działający system mikroserwisowy oraz przeprowadzono na~nim zaplanowany zestaw badań. Wyniki określają relację wydajnościową badanych konfiguracji w~zależności od~rozmiaru odpowiedzi względem okna odbiorczego protokołu TCP. Wszystkie pięć hipotez poddano weryfikacji, przy czym w~przypadku H1 doprecyzowano charakter zależności od~rozmiaru odpowiedzi, a~w~przypadku H5 praktyczną istotność wykazanej różnicy.
 
-Wyniki wspierają tezę postawioną we~wstępie. Korzyść gRPC-Web zależała od~rozmiaru odpowiedzi i~pojawiała się dla dużych, nieskompresowanych ładunków. Przy małych odpowiedziach różnice były niewielkie, a~w~operacjach zapisu nie uzyskano stałej przewagi żadnego wariantu. Analiza objętościowa wskazuje, że~kompresja może dodatkowo ograniczyć różnicę, co wymaga potwierdzenia pomiarem czasu odpowiedzi.
+Uzyskane wyniki dotyczą badanych konfiguracji komunikacyjnych. Korzyść wariantów gRPC-Web pojawiała się wtedy, gdy mniejszy wolumen odpowiedzi ograniczał liczbę wymian pakietów potrzebnych do~jej przesłania. Przy małych ładunkach, w~operacjach zapisu oraz po~zastosowaniu kompresji różnice pozostawały praktycznie nieistotne.
 
-Zaprojektowany system ma~następujące cechy:
+Zaprojektowany system charakteryzują następujące cechy:
 
 \begin{itemize}
 \item równoległa obsługa trzech protokołów komunikacji w~ramach jednej aplikacji klienckiej, umożliwiająca ich porównanie przy identycznej logice biznesowej, tych~samych danych oraz niezmienionej ścieżce prezentacji,
 \item podejście Contract-First, w~którym pliki \texttt{.proto} stanowią jedyne źródło prawdy, a~kod serwera (C\#) i~klienta (TypeScript) jest z~nich generowany,
-\item kompleksowa obserwowalność obejmująca metryki, ślady rozproszone oraz pulpity wizualizacyjne, umożliwiająca korelację wyników eksperymentu z~wewnętrznym stanem systemu.
+\item warstwa obserwowalności zgodna ze~standardem OpenTelemetry, obejmująca metryki eksportowane do~Prometheusa i~pulpity wizualizacyjne w~Grafanie, umożliwiająca korelację wyników eksperymentu z~wewnętrznym stanem systemu.
 \end{itemize}
 
 Kierunki dalszego rozwoju pracy obejmują:

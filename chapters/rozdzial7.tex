@@ -3,7 +3,7 @@
 \chapter{Porównawcza analiza wydajności REST i~gRPC-Web}
 \label{cha:AnalizaWydajnosci}
 
-Niniejszy rozdział przedstawia wyniki eksperymentu przeprowadzonego zgodnie z~metodologią opisaną w~rozdziale~\ref{cha:MetodologiaBadan}. Analiza rozpoczyna się od~wielkości niezależnych od~warunków sieciowych: wolumenu przesyłanych danych oraz wynikającego z~niego modelu liczby wymian pakietów. Dopiero one pozwalają zinterpretować zmierzone czasy odpowiedzi. Następnie omówione zostają kolejno scenariusze Echo, Products i~Orders, rozdzielenie wpływu serializacji od~wpływu wersji protokołu HTTP, granica przepustowości stanowiska pomiarowego, powtarzalność wyników wraz z~przedziałami ufności wyznaczonymi dla zmierzonych różnic oraz mechanizmy kontrolne potwierdzające wiarygodność uzyskanych rezultatów. Rozdział zamyka weryfikacja hipotez oraz rekomendacje architektoniczne wraz z~wytycznymi wdrożeniowymi.
+Wyniki eksperymentu przedstawiono zgodnie z~metodologią opisaną w~rozdziale~\ref{cha:MetodologiaBadan}. Analiza obejmuje wolumen przesyłanych danych, model liczby wymian pakietów, scenariusze Echo, Products i~Orders, porównanie konfiguracji komunikacyjnych, granicę przepustowości stanowiska pomiarowego, przedziały ufności oraz weryfikację hipotez.
 
 % -----------------------------------------------------------------------
 \section{Wolumen przesyłanych danych}
@@ -60,10 +60,7 @@ Wpływ kompresji oszacowano ilościowo dla scenariusza Echo, którego ładunek g
 \end{tabular}
 \end{table}
 
-Zestawienie prowadzi do~dwóch wniosków o~istotnym znaczeniu dla zakresu stosowalności wyników.
-
-Po~pierwsze, kompresja redukuje wolumen formatu tekstowego 12--13-krotnie, natomiast formatu binarnego 9,5--11-krotnie. Po~jej zastosowaniu przewaga objętościowa serializacji binarnej maleje z~33\% do~15--18\%.
-Po~drugie, i~ważniejsze, po~kompresji wszystkie badane ładunki mieszczą się w~jednym oknie odbiorczym: przy 2000~rekordach skompresowany dokument JSON zajmuje 0,42~okna, wobec 3,76~okna wymaganych przez nieskompresowaną wiadomość binarną. Zgodnie z~modelem przedstawionym w~sekcji~\ref{sec:ModelOkna} oznacza to, że~mechanizm odpowiadający za~wykazaną w~niniejszej pracy przewagę, czyli zmniejszenie liczby wymian pakietów, w~konfiguracji z~kompresją nie zostałby uruchomiony w~całym badanym zakresie rozmiarów odpowiedzi. Pozostałaby wyłącznie różnica wynikająca z~kosztu serializacji i~deserializacji. Przewaga czasowa wykazana w niniejszym rozdziale dotyczy zatem transferów nieskompresowanych; jej przeniesienie na wdrożenie z~kompresją włączoną wymagałoby odrębnego pomiaru.
+Kompresja redukuje wolumen formatu tekstowego 12--13-krotnie, a~formatu binarnego 9,5--11-krotnie. Po~jej zastosowaniu przewaga objętościowa serializacji binarnej maleje z~33\% do~15--18\%. Wszystkie badane ładunki mieszczą się wówczas w~jednym oknie odbiorczym. Przeniesienie wyników dla transferów nieskompresowanych na~wdrożenie z~włączoną kompresją wymagałoby odrębnego pomiaru.
 
 % -----------------------------------------------------------------------
 \section{Model liczby wymian pakietów}
@@ -79,11 +76,7 @@ Zmierzona charakterystyka łącza (sekcja~\ref{subsec:CharakterystykaLacza}) uja
 
 co~odpowiada rozmiarowi okna odbiorczego protokołu TCP bez~zastosowania skalowania okna~\cite{bib:RFC9293}. Przy oknie mniejszym od~iloczynu przepustowości i~opóźnienia przepustowość osiągalna w~jednym połączeniu wynika z~rozmiaru okna, nie z~pojemności łącza. Czynnikiem ograniczającym pojedyncze żądanie nie jest zatem pojemność łącza, lecz ilość danych, jaką nadawca może wysłać przed otrzymaniem potwierdzenia: po~wypełnieniu okna transmisja wstrzymuje się do~nadejścia potwierdzenia od~odbiorcy.
 
-Zgodność wartości 64~KiB z~iloczynem przepustowości i~opóźnienia nie jest
-dowodem, lecz przesłanką: obie wielkości powiązane są~tożsamością
-$B = W / \mathrm{RTT}$: tym~samym równaniem co~w~równaniu~(\ref{eq:BDP}),
-zapisanym względem~$B$ zamiast~$W$, a~wyznaczenie jednej z~drugiej
-stanowi jedynie przeliczenie. Rozstrzygające jest natomiast to, że~wielkość ta~przewiduje niezależnie zmierzone czasy odpowiedzi dla ładunków o~różnym rozmiarze, co~wykazano w~dalszej części sekcji. Należy przy tym zaznaczyć, że~identyczny schodkowy przebieg dawałby mechanizm powolnego startu protokołu TCP, w~którym okno zatoru narasta w~kolejnych obiegach pakietu. Rozstrzygnięcie, który z~obu mechanizmów jest tu~czynnikiem wiodącym, wymagałoby przechwycenia ruchu na~poziomie pakietów, czego nie wykonano, dla wniosków pracy jest to~jednak bez znaczenia, ponieważ oba prowadzą do~tego~samego przewidywania: koszt transmisji rośnie skokowo, o~wielokrotność opóźnienia obiegu pakietu, wraz z~przekraczaniem kolejnych wielokrotności rozmiaru okna.
+Zależność $B = W / \mathrm{RTT}$ pozwala oszacować rozmiar okna $W$ na~podstawie zmierzonej przepustowości pojedynczego połączenia $B$ i~opóźnienia obiegu pakietu. Sama zgodność oszacowania z~wartością 64~KiB nie przesądza o~tym, czy~ograniczeniem jest okno odbiorcze, czy~powolny start TCP. Rozróżnienie tych mechanizmów wymagałoby przechwycenia ruchu na~poziomie pakietów, którego nie wykonano. Oba mechanizmy przewidują jednak skokowy wzrost kosztu transmisji wraz z~przekraczaniem kolejnych wielokrotności rozmiaru okna.
 
 Z~zależności tej wynika model przewidujący czas transmisji odpowiedzi. Przesłanie odpowiedzi o~rozmiarze $s$ wymaga $\lceil s / 64~\mathrm{KiB} \rceil$ okien, a~każde okno ponad pierwsze kosztuje jedno dodatkowe opóźnienie obiegu pakietu. Przewidywana liczba dodatkowych obiegów wynosi zatem
 
@@ -163,11 +156,11 @@ Scenariusze Echo izolują koszt protokołu od~kosztu warstwy danych. Tabela~\ref
 
 Zależność tę~przedstawia rysunek~\ref{fig:WykresEcho}. Dane pozwalają na~sformułowanie trzech obserwacji.
 
-Po~pierwsze, do~200~rekordów włącznie różnice pomiędzy protokołami pozostają niewielkie, od~trzech do~piętnastu procent, przy wartościach bezwzględnych rzędu jednej do~pięciu milisekund. Zgodnie z~modelem z~sekcji~\ref{sec:ModelOkna} odpowiedzi tego rozmiaru mieszczą się w~jednym oknie w~obu formatach; liczba obiegów pakietu jest zatem identyczna, a~pozostała różnica wynika z~narzutu ramkowania i~warstwy transportowej.
+Do~200~rekordów włącznie różnice pomiędzy protokołami pozostają niewielkie, od~trzech do~piętnastu procent, przy wartościach bezwzględnych rzędu jednej do~pięciu milisekund. Zgodnie z~modelem z~sekcji~\ref{sec:ModelOkna} odpowiedzi tego rozmiaru mieszczą się w~jednym oknie w~obu formatach; liczba obiegów pakietu jest zatem identyczna, a~pozostała różnica wynika z~narzutu ramkowania i~warstwy transportowej.
 
-Po~drugie, przejście z~200 na~500~rekordów powoduje skokową zmianę obrazu. Opóźnienie REST rośnie z~32,6 do~59,8~ms, czyli o~27,2~ms, natomiast opóźnienie wariantu Direct -- z~31,3 do~33,8~ms, czyli o~2,5~ms. Przewaga wariantu binarnego osiąga w~tej konfiguracji 43\%. Jest to~najczystsze potwierdzenie modelu okna w~całym eksperymencie: przyrost REST odpowiada dokładnie jednemu opóźnieniu obiegu pakietu, ponieważ dokument JSON o~rozmiarze 90,5~kilobajta nie mieści się w~jednym oknie, natomiast wiadomość binarna o~rozmiarze 60,5~kilobajta -- mieści.
+Przejście z~200 na~500~rekordów powoduje skokową zmianę obrazu. Opóźnienie REST rośnie z~32,6 do~59,8~ms, czyli o~27,2~ms, natomiast opóźnienie wariantu Direct -- z~31,3 do~33,8~ms, czyli o~2,5~ms. Przewaga wariantu binarnego osiąga w~tej konfiguracji 43\%: dokument JSON o~rozmiarze 90,5~kilobajta nie mieści się w~jednym oknie, natomiast wiadomość binarna o~rozmiarze 60,5~kilobajta -- mieści.
 
-Po~trzecie, przy 2000~rekordach przewaga wynosi 30\%, czyli zbliża się do~zmierzonego współczynnika redukcji wolumenu danych. Powyżej kilku okien liczba obiegów staje się w~przybliżeniu proporcjonalna do~rozmiaru odpowiedzi, a~przewaga czasowa zbiega wówczas do~przewagi objętościowej.
+Przy 2000~rekordach przewaga wynosi 30\%, czyli zbliża się do~zmierzonego współczynnika redukcji wolumenu danych. Powyżej kilku okien liczba obiegów staje się w~przybliżeniu proporcjonalna do~rozmiaru odpowiedzi, a~przewaga czasowa zbiega wówczas do~przewagi objętościowej.
 
 Współczynniki zmienności nie przekraczają w~tej grupie 6,9\%, z~jednym wyjątkiem na~poziomie 11,5\%. Wszystkie omówione relacje zachodzą konsekwentnie w~każdym z~pięciu przebiegów.
 
@@ -305,20 +298,20 @@ Wyjaśnienie wynika bezpośrednio z~modelu przedstawionego w~sekcji~\ref{sec:Mod
 W~badanych scenariuszach zapisu nie uzyskano stałej przewagi jednego wariantu. Szerokie przedziały ufności ograniczają rozstrzygalność różnic; wynik ten nie dowodzi równoważności protokołów ani braku wpływu sposobu komunikacji na~czas operacji.
 
 % -----------------------------------------------------------------------
-\section{Rozdzielenie wpływu serializacji od~wpływu wersji protokołu HTTP}
+\section{Porównanie konfiguracji komunikacyjnych}
 \label{sec:Dekompozycja}
 % -----------------------------------------------------------------------
 
-Ścieżka bezpośrednia korzysta z~HTTP/2, a~REST z~HTTP/1.1. Wariant z~Envoy przesyła dane binarne przy użyciu HTTP/1.1 po~stronie przeglądarki, co~pomaga ocenić udział reprezentacji danych w~zmierzonej różnicy. Porównanie REST--Envoy obejmuje jednak także obecność proxy, ramkowanie i~implementację obsługi żądania. W~ciepłym odczycie Products dochodzi różnica obsługi Redis: REST zwraca gotowy JSON, a~gRPC odtwarza i~ponownie serializuje wiadomość Protocol Buffers. Dekompozycja stanowi więc przybliżony podział różnic pomiędzy kompletnymi ścieżkami. Porównanie Envoy--Direct wykorzystuje tę~samą implementację usługi gRPC i~obejmuje zmianę transportu oraz pominięcie proxy.
+Ścieżka bezpośrednia korzysta z~HTTP/2 i~TLS, a~badany wariant REST z~HTTP/1.1. Wariant z~Envoy przenosi ładunek binarny, używając HTTP/1.1 na~odcinku pomiędzy przeglądarką a~proxy. Różnica REST--Envoy obejmuje obecność proxy i~odmienny sposób obsługi komunikatów. Różnica Envoy--Direct obejmuje natomiast jednocześnie pominięcie proxy, TLS oraz zmianę wersji HTTP. Zestawienie nie wyodrębnia przyczynowego udziału każdego z~tych czynników.
 
 \begin{table}[htb]
 \centering
 \footnotesize
-\caption{Dekompozycja przewagi: czasy odpowiedzi [ms] oraz składniki różnicy wyrażone jako procent czasu REST}
+\caption{Czasy konfiguracji i~różnice względem mediany REST}
 \label{tab:Dekompozycja}
 \begin{tabular}{|l|c|c|c|c|c|}
 \hline
-\textbf{Konfiguracja} & \textbf{REST} & \textbf{Envoy} & \textbf{Direct} & \textbf{Serializ.} & \textbf{Transport} \\
+\textbf{Konfiguracja} & \textbf{REST} & \textbf{Envoy} & \textbf{Direct} & \textbf{Envoy--REST} & \textbf{Direct--Envoy} \\
 \hline
 Echo, 2000 rek., VU=10      & 167,6 & 120,8 & 117,4 & $-$28\% & $-$2\% \\
 Products, PS=500, VU=10     & 65,8  & 42,3  & 41,1  & $-$36\% & $-$2\% \\
@@ -332,13 +325,11 @@ Products, PS=500, VU=20     & 71,8  & 48,4  & 44,4  & $-$33\% & $-$6\% \\
 \begin{figure}[htb]
 \centering
 \includegraphics[width=0.7\textwidth]{figures/chart_browser_dekompozycja.png}
-\caption{Udział składnika serializacyjnego oraz transportowego w~skróceniu czasu odpowiedzi względem REST; wartości procentowe odniesiono do~mediany opóźnienia REST}
+\caption{Różnice czasów trzech konfiguracji względem mediany opóźnienia REST; wartości procentowe odniesiono do~mediany REST}
 \label{fig:WykresDekompozycja}
 \end{figure}
 
-W~konfiguracji o~500~produktach na~stronę i~dziesięciu klientach różnica REST--Direct wynosi 24,7~ms, z~czego 23,5~ms stanowi różnica REST--Envoy, a~1,2~ms różnica Envoy--Direct (rysunek~\ref{fig:WykresDekompozycja}). Pierwsza z~nich odpowiada około 95\% całkowitej przewagi w~tej konfiguracji. W~pięciu konfiguracjach z~tabeli~\ref{tab:Dekompozycja} udział ten wynosi około 85--98\%. W~kolumnach procentowych tabeli obie różnice odniesiono do~czasu REST: $(T_{\mathrm{Envoy}}-T_{\mathrm{REST}})/T_{\mathrm{REST}}$ oraz $(T_{\mathrm{Direct}}-T_{\mathrm{Envoy}})/T_{\mathrm{REST}}$. Wartość sześciu procent dotyczy więc czasu REST. Bezpośrednie porównanie Direct z~Envoy wymaga mianownika $T_{\mathrm{Envoy}}$; przykładowo zmiana z~48,4 do~44,4~ms oznacza skrócenie czasu o~8,3\%.
-
-Gdyby dominującym czynnikiem była wersja protokołu HTTP, wariant z~proxy, korzystający z~protokołu HTTP/1.1, osiągałby wyniki zbliżone do~REST. Zmierzone wartości wskazują jednak, że~wariant ten dorównuje ścieżce bezpośredniej, a~nie ścieżce REST. Obserwacja ta~wspiera hipotezę H3, ale nie wyznacza samodzielnie kosztu każdej operacji serializacji ani wpływu poszczególnych elementów transportu.
+W~konfiguracji Products, PS=500 i~VU=10 różnica REST--Direct wynosi 24,7~ms. Z~tej wartości 23,5~ms stanowi różnicę REST--Envoy, a~1,2~ms różnicę Envoy--Direct. Różnica REST--Envoy odpowiada zatem około 95\% całkowitej różnicy REST--Direct w~tej konkretnej konfiguracji. Wynik wskazuje na~znaczenie formatu i~wolumenu odpowiedzi, lecz nie pozwala wyznaczyć liczbowego udziału samej serializacji.
 
 % -----------------------------------------------------------------------
 \section{Skalowanie z~liczbą klientów i~granica stanowiska pomiarowego}
@@ -482,13 +473,13 @@ Orders, 50 poz., VU=20     & 11,5 $\pm$ 60,1 & $-$47,6 $\pm$ 76,0 & $-$59,1 $\pm
 \end{tabular}
 \end{table}
 
-Po~pierwsze, w~każdej konfiguracji odczytu od~500~rekordów przewaga wariantów binarnych jest rozstrzygnięta z~dużym marginesem: przedział dla różnicy REST--Direct wynosi na~przykład $24{,}9 \pm 1{,}6$~ms przy 500~produktach oraz $50{,}5 \pm 3{,}3$~ms przy 2000~rekordach scenariusza Echo. Stosunek wielkości efektu do~połówkowej szerokości przedziału przekracza w~tych konfiguracjach dziesięć, co~czyni wniosek odpornym również na~przyjęte założenie o~rozkładzie.
+W~każdej konfiguracji odczytu od~500~rekordów przewaga wariantów binarnych jest rozstrzygnięta z~dużym marginesem: przedział dla różnicy REST--Direct wynosi na~przykład $24{,}9 \pm 1{,}6$~ms przy 500~produktach oraz $50{,}5 \pm 3{,}3$~ms przy 2000~rekordach scenariusza Echo.
 
-Po~drugie, w~zakresie małych ładunków obraz jest bardziej złożony, niż wskazywałaby sama wielkość różnicy. W~scenariuszu Products przy 200~produktach różnica REST--Direct wynosi $1{,}4 \pm 2{,}5$~ms, a~zatem nie jest rozstrzygnięta. W~scenariuszu Echo przy tej~samej liczbie rekordów różnica wynosi $1{,}1 \pm 0{,}7$~ms i~pozostaje jednocześnie bez znaczenia praktycznego wobec opóźnienia obiegu pakietu wynoszącego 26,2~ms. Rozdzielenie istotności statystycznej od~praktycznej jest w~tym zakresie konieczne: wynik ten oznacza, że~różnica istnieje i~jest powtarzalna.
+W~zakresie małych ładunków obraz jest bardziej złożony, niż wskazywałaby sama wielkość różnicy. W~scenariuszu Products przy 200~produktach różnica REST--Direct wynosi $1{,}4 \pm 2{,}5$~ms, a~zatem nie jest rozstrzygnięta. W~scenariuszu Echo przy tej~samej liczbie rekordów różnica wynosi $1{,}1 \pm 0{,}7$~ms i~pozostaje bez znaczenia praktycznego wobec opóźnienia obiegu pakietu wynoszącego 26,2~ms.
 
-Po~trzecie, różnica pomiędzy oboma wariantami gRPC-Web jest rozstrzygnięta jedynie w~pięciu z~dziesięciu konfiguracji odczytu, a~jej wielkość mieści się w~przedziale od~$0{,}4 \pm 3{,}1$ do~$4{,}2 \pm 1{,}8$~ms. Wielkość efektu jest zatem porównywalna z~niepewnością jego oszacowania, co~stanowi uzasadnienie wniosku o~drugorzędnym znaczeniu wyboru pomiędzy wariantem bezpośrednim a~wariantem z~proxy.
+Różnica pomiędzy oboma wariantami gRPC-Web jest rozstrzygnięta jedynie w~pięciu z~dziesięciu konfiguracji odczytu, a~jej wielkość mieści się w~przedziale od~$0{,}4 \pm 3{,}1$ do~$4{,}2 \pm 1{,}8$~ms. Wielkość efektu jest zatem porównywalna z~niepewnością jego oszacowania, co~uzasadnia wniosek o~drugorzędnym znaczeniu wyboru pomiędzy wariantem bezpośrednim a~wariantem z~proxy.
 
-Po~czwarte, w~scenariuszach zapisu żadna z~różnic nie jest rozstrzygnięta. Przedziały są~w~tej grupie od~kilku do~kilkudziesięciu razy szersze niż w~odczycie. Jedyny wyjątek dotyczy pary Envoy--Direct przy pięćdziesięciu pozycjach i~dwudziestu klientach ($-59{,}1 \pm 45{,}2$~ms), lecz znak tej różnicy jest przeciwny niż w~pozostałych komórkach tej grupy, a~jej wartość wynika z~jednego odstającego przebiegu. Obserwacji tej nie można zatem interpretować jako właściwości protokołu.
+W~scenariuszach zapisu żadna z~różnic nie jest rozstrzygnięta. Przedziały są~w~tej grupie od~kilku do~kilkudziesięciu razy szersze niż w~odczycie. Jedyny wyjątek dotyczy pary Envoy--Direct przy pięćdziesięciu pozycjach i~dwudziestu klientach ($-59{,}1 \pm 45{,}2$~ms), lecz znak tej różnicy jest przeciwny niż w~pozostałych komórkach tej grupy, a~jej wartość wynika z~jednego odstającego przebiegu.
 
 % -----------------------------------------------------------------------
 \section{Weryfikacja hipotez badawczych}
@@ -496,18 +487,18 @@ Po~czwarte, w~scenariuszach zapisu żadna z~różnic nie jest rozstrzygnięta. P
 % -----------------------------------------------------------------------
 
 \begin{sloppypar}
-\textbf{H1 (warianty gRPC-Web osiągają niższe opóźnienie niż REST, a~przewaga rośnie z~rozmiarem odpowiedzi):} hipoteza potwierdzona z~zastrzeżeniem dotyczącym charakteru zależności. Przewaga występuje i~jest znaczna: 26--43\% przy odpowiedziach od~500~rekordów. Zależność od~rozmiaru odpowiedzi nie jest jednak ciągła, jak zakładano, lecz skokowa: ujawnia się dopiero po~przekroczeniu rozmiaru okna odbiorczego, a~w~zakresie do~200~rekordów pozostaje w~granicach kilku procent. Poprawne sformułowanie hipotezy musi zatem odnosić się nie do~rozmiaru odpowiedzi jako takiego, lecz do~liczby okien niezbędnych do~jej przesłania.
+\textbf{H1 (warianty gRPC-Web osiągają niższe opóźnienie niż REST, a~przewaga rośnie z~rozmiarem odpowiedzi):} hipoteza potwierdzona z~zastrzeżeniem dotyczącym charakteru zależności. Przewaga występuje i~jest znaczna: 26--43\% przy odpowiedziach od~500~rekordów. Wzrost nie ma~charakteru ciągłego. Efekt ujawnia się po~przekroczeniu rozmiaru okna odbiorczego, natomiast w~zakresie do~200~rekordów pozostaje w~granicach kilku procent.
 \end{sloppypar}
 
 \begin{sloppypar}
 \textbf{H2 (przy małych odpowiedziach różnice są~nieistotne):} hipoteza potwierdzona. Przy odpowiedziach do~200~rekordów różnice wynoszą od~jednego do~szesnastu procent, przy wartościach bezwzględnych od~jednej do~pięciu milisekund, wobec opóźnienia obiegu pakietu wynoszącego 26,2~ms. Samo opóźnienie propagacji stanowi w~tym zakresie od~około pięćdziesięciu
 siedmiu procent czasu odpowiedzi przy dwudziestu równoległych klientach
 i~dwustu rekordach do~siedemdziesięciu ośmiu procent przy dziesięciu
-klientach i~dziesięciu rekordach. Właściwym wnioskiem jest zatem nie tyle brak różnicy, ile jej praktyczna nieistotność.
+klientach i~dziesięciu rekordach. W~tym zakresie różnice są~praktycznie nieistotne.
 \end{sloppypar}
 
 \begin{sloppypar}
-\textbf{H3 (przewaga wynika z~redukcji wolumenu danych, nie z~wersji protokołu HTTP):} wyniki wspierają hipotezę. W~dekompozycji przedstawionej w~sekcji~\ref{sec:Dekompozycja} różnica REST--Envoy stanowi około 85--98\% różnicy REST--Direct, w~tym około 95\% dla 500~produktów i~dziesięciu klientów. Są~to udziały w~całkowitym skróceniu czasu. Procenty w~tabeli~\ref{tab:Dekompozycja} odnoszą się natomiast do~czasu REST. Porównanie obejmuje kompletne ścieżki obsługi żądań, dlatego podział ten stanowi przybliżenie udziału serializacji i~transportu.
+\textbf{H3 (wariant gRPC-Web przez Envoy zachowuje przewagę względem REST przy HTTP/1.1 na~odcinku przeglądarkowym):} hipoteza potwierdzona w~zakresie badanych konfiguracji. W~konfiguracji Products, PS=500 i~VU=10 różnica REST--Envoy stanowi około 95\% różnicy REST--Direct. Wynik wskazuje na~znaczenie formatu i~wolumenu odpowiedzi, jednak zastosowany układ nie pozwala oddzielnie oszacować wpływu serializacji, TLS, proxy i~wersji HTTP.
 \end{sloppypar}
 
 \begin{sloppypar}

@@ -3,7 +3,7 @@
 \chapter{Metodologia badań i~projekt eksperymentu}
 \label{cha:MetodologiaBadan}
 
-Niniejszy rozdział opisuje metodologię przeprowadzonego eksperymentu: cele i~hipotezy badawcze, projekt aplikacji testowej, metodykę pomiaru wraz z~mechanizmami kontroli czynników zakłócających, macierz scenariuszy badawczych, środowisko testowe wraz z~jego zmierzoną charakterystyką, przyjęte metryki, sposób agregacji wyników oraz kryterium rozstrzygalności zmierzonych różnic, a~także ograniczenia metodologiczne.
+Metodologia przeprowadzonego eksperymentu obejmuje cele i~hipotezy badawcze, projekt aplikacji testowej, metodykę pomiaru, macierz scenariuszy, środowisko testowe, przyjęte metryki, sposób agregacji wyników oraz ograniczenia metodologiczne.
 
 % -----------------------------------------------------------------------
 \section{Cele i~hipotezy badawcze}
@@ -29,7 +29,7 @@ Na~podstawie przeglądu literatury oraz analizy specyfikacji protokołów sformu
 \end{sloppypar}
 
 \begin{sloppypar}
-\textbf{H3:} Przewaga wydajnościowa protokołu gRPC-Web wynika przede wszystkim z~redukcji wolumenu przesyłanych danych, a~nie z~wersji protokołu transportowego HTTP. Hipoteza ta~jest weryfikowalna, ponieważ wariant z~serwerem Envoy Proxy przesyła ładunek Protocol Buffers przy użyciu protokołu HTTP/1.1 (analogicznie do~REST), stanowiąc wariant kontrolny umożliwiający wyizolowanie wpływu formatu serializacji od~wpływu protokołu transportowego.
+\textbf{H3:} Wariant gRPC-Web przez Envoy uzyskuje przewagę względem REST także wtedy, gdy na~odcinku pomiędzy przeglądarką a~proxy wykorzystywany jest HTTP/1.1. Weryfikacja hipotezy opiera się na~porównaniu trzech wdrożonych konfiguracji. Nie służy ona wyznaczeniu odrębnego, przyczynowego udziału serializacji, wersji HTTP, TLS i~obecności proxy.
 \end{sloppypar}
 
 \begin{sloppypar}
@@ -358,7 +358,7 @@ gdzie $t$ oznacza wartość krytyczną rozkładu Studenta dla czterech stopni sw
 
 Porównania pomiędzy protokołami przeprowadzono w~układzie sparowanym. Ponieważ w~każdym przebiegu mierzone są~wszystkie trzy protokoły w~tych~samych warunkach, dla każdej pary wyznaczono pięć różnic w~obrębie przebiegu. Parowanie eliminuje zmienność pomiędzy przebiegami, wspólną dla wszystkich protokołów, dzięki czemu przedział dla różnicy jest istotnie węższy niż przedział wyznaczony z~dwóch niezależnych szeregów.
 
-Przyjęto następujące kryterium rozstrzygalności: różnicę uznaje się za~rozstrzygniętą, jeżeli jej przedział ufności nie zawiera zera. Kryterium to~zastąpiło wcześniejszą regułę opartą na~progu procentowym, ponieważ wiąże ocenę wprost ze~zmiennością danych, a~nie z~wartością przyjętą arbitralnie.
+Różnicę uznaje się za~rozstrzygniętą, jeżeli jej przedział ufności nie zawiera zera. Kryterium wiąże ocenę bezpośrednio ze~zmiennością danych.
 
 Przy pięciu obserwacjach najmniejsza osiągalna dwustronna wartość prawdopodobieństwa w~teście rangowym dla par wynosi 0,0625. Test nie mógłby osiągnąć przyjętego poziomu istotności, dlatego raportowane są~przedziały ufności.
 

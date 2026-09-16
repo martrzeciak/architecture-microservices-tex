@@ -53,7 +53,7 @@ literate={ą}{{\k{a}}}1 {ę}{{\k{e}}}1 {ć}{{\c{c}}}1 {ł}{{\l}}1 {ń}{{\n}}1 {�
 }
 
 \newlist{itemizeModified}{itemize}{4}
-\setlist[itemizeModified,1]{label={$\blacktriangleright$}, left=0cm, labelsep=1cm}
+\setlist[itemizeModified,1]{label=\textbullet, left=0cm, labelsep=1cm}
 \let\olditemize\itemize
 \let\endolditemize\enditemize
 \renewenvironment{itemize}{

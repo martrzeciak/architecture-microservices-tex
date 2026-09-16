@@ -4,7 +4,7 @@
 
 \label{cha:WzorceProjektowe}
 
-Niniejszy rozdział przedstawia wzorce i~mechanizmy zastosowane w~implementowanym na~potrzeby pracy systemie, które mają znaczenie dla jego architektury oraz przeprowadzonych badań wydajnościowych. Omówiono organizację pamięci podręcznej zgodnie ze~wzorcem Cache-Aside (sekcja~\ref{sec:CacheAside}) oraz rolę serwera pośredniczącego Envoy Proxy i~mechanizmu ponawiania operacji bazodanowych (sekcja~\ref{sec:EnvoyOdpornoscBazy}). Przedstawione rozwiązania stanowią element infrastruktury wykorzystanej następnie podczas badań porównawczych opisanych w~dalszej części pracy.
+W~rozdziale omówiono dwa mechanizmy zastosowane w~systemie testowym i~istotne dla interpretacji wyników: organizację pamięci podręcznej zgodnie ze~wzorcem Cache-Aside (sekcja~\ref{sec:CacheAside}) oraz rolę serwera pośredniczącego Envoy Proxy (sekcja~\ref{sec:Envoy}).
 
 % -----------------------------------------------------------------------
 \section{Wzorzec Cache-Aside}
@@ -17,12 +17,8 @@ Zastosowanie tego podejścia przynosi wymierne korzyści architektoniczne, ponie
 % -----------------------------------------------------------------------
 % -----------------------------------------------------------------------
 % -----------------------------------------------------------------------
-\section{Rola serwera pośredniczącego i~mechanizmy odpornościowe}
-\label{sec:EnvoyOdpornoscBazy}
+\section{Rola serwera pośredniczącego Envoy}
+\label{sec:Envoy}
 % -----------------------------------------------------------------------
 
-W~rozproszonych architekturach zorientowanych na~usługi serwery pośredniczące (ang.\ \textit{reverse proxy} lub \textit{API Gateway}) pełnią kluczową rolę w~zarządzaniu ruchem przychodzącym, agregacji żądań oraz translacji protokołów komunikacyjnych. Narzędzia takie jak Envoy Proxy, zaimplementowane w~językach natywnych o~wysokiej wydajności, są~powszechnie stosowane do~mostkowania ruchu pomiędzy różnymi standardami sieciowymi, np.\ do~konwersji zapytań przeglądarkowych gRPC-Web na~natywny protokół gRPC oparty o~HTTP/2. Zastosowanie dedykowanego serwera pośredniczącego pozwala na~odseparowanie zadań infrastrukturalnych od~logiki biznesowej usług backendowych, jednak wprowadza dodatkowy przeskok sieciowy (ang.\ \textit{network hop}) oraz potencjalny narzut związany z~przetwarzaniem i~buforowaniem ramek danych.
-
-Niezależnie od~warstwy routingu i~pośrednictwa sieciowego, kluczowym aspektem projektowania systemów rozproszonych pozostaje odporność na~awarie (ang.\ \textit{resilience}). Zgodnie z~praktykami inżynierii stabilności systemów~\cite{bib:Nygard2018}, mechanizmy odpornościowe dzieli się na~dwie główne kategorie: operujące na~poziomie komunikacji sieciowej oraz na~poziomie dostępu do~trwałych magazynów danych. 
-
-W~warstwie dostępu do~baz danych powszechnie stosuje się strategie ponawiania operacji (ang.\ \textit{retry patterns}) z~wykładniczym wydłużaniem czasu oczekiwania (ang.\ \textit{exponential backoff}) oraz losowym rozrzutem czasowym (ang.\ \textit{jitter})~\cite{bib:EFCoreResiliency}. Mechanizmy te~adresują problem błędów przemijających (ang.\ \textit{transient faults}), takich jak chwilowe zerwanie połączenia TCP, limity puli połączeń czy przeciążenie serwera bazodanowego, umożliwiając automatyczne wznowienie przerwanej operacji bez propagacji błędu do~użytkownika końcowego.
+W~rozproszonych architekturach zorientowanych na~usługi serwery pośredniczące (ang.\ \textit{reverse proxy} lub \textit{API Gateway}) pełnią kluczową rolę w~zarządzaniu ruchem przychodzącym, agregacji żądań oraz translacji protokołów komunikacyjnych. Narzędzia takie jak Envoy Proxy, zaimplementowane w~językach natywnych o~wysokiej wydajności, są~powszechnie stosowane do~mostkowania ruchu pomiędzy różnymi standardami sieciowymi, np.\ do~konwersji zapytań przeglądarkowych gRPC-Web na~natywny protokół gRPC oparty o~HTTP/2. Zastosowanie dedykowanego serwera pośredniczącego pozwala na~odseparowanie zadań infrastrukturalnych od~logiki biznesowej usług backendowych, jednak wprowadza dodatkowy przeskok sieciowy (ang.\ \textit{network hop}) oraz potencjalny narzut związany z~przetwarzaniem i~buforowaniem ramek danych. W~systemie testowym Envoy realizuje jeden z~dwóch porównywanych wariantów gRPC-Web.

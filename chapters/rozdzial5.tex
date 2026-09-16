@@ -4,14 +4,14 @@
 
 \label{cha:StudiumPrzypadku}
 
-Niniejszy rozdział przedstawia system zrealizowany na~potrzeby pracy. Omówiona zostaje architektura systemu wraz z~kontraktami usług i~topologią kontenerów, implementacja pamięci podręcznej istotna dla przyjętej metodyki pomiaru, a~także model wdrożenia w~środowisku chmurowym oraz warstwa obserwowalności.
+W~rozdziale opisano system zrealizowany na~potrzeby pracy: jego architekturę, kontrakty usług, topologię kontenerów, implementację pamięci podręcznej istotną dla metodyki pomiaru, model wdrożenia w~środowisku chmurowym oraz warstwę obserwowalności.
 
 % -----------------------------------------------------------------------
 \section{Architektura badanego systemu testowego}
 \label{sec:ArchitekturaSystemu}
 % -----------------------------------------------------------------------
 
-Na~potrzeby przeprowadzenia eksperymentów wydajnościowych zrealizowano autorski system e-commerce. Implementacja została w~pełni podporządkowana celom badawczym, skupiając się na~precyzyjnym porównaniu wybranych protokołów i~wariantów komunikacji sieciowej. Architektura systemu składa się z~trzech głównych warstw: warstwy prezentacji w~postaci aplikacji przeglądarkowej, warstwy usług biznesowych złożonej z~mikroserwisów opartych na~platformie .NET~10 oraz warstwy infrastrukturalnej obejmującej relacyjne bazy danych, pamięć podręczną i~komponenty obserwowalności.
+Na~potrzeby przeprowadzenia eksperymentów wydajnościowych zrealizowano autorski system testowy. Implementację podporządkowano celom badawczym, skupiając się na~porównaniu wybranych protokołów i~wariantów komunikacji sieciowej. Architektura systemu składa się z~trzech głównych warstw: warstwy prezentacji w~postaci aplikacji przeglądarkowej, warstwy usług biznesowych złożonej z~mikroserwisów opartych na~platformie .NET~10 oraz warstwy infrastrukturalnej obejmującej relacyjne bazy danych, pamięć podręczną i~komponenty obserwowalności.
 
 Środowisko eksperymentalne zostało rozproszone pomiędzy dwie fizyczne maszyny: warstwa mikroserwisów wraz z~całą infrastrukturą pomocniczą została uruchomiona na~zewnętrznym serwerze, natomiast aplikacja kliencka działała lokalnie, na~stacji roboczej pełniącej rolę węzła pomiarowego.
 
@@ -83,7 +83,7 @@ System wdrożono na~serwerze chmury Hetzner Cloud o~ośmiu rdzeniach wirtualnych
 
 Graf zależności Docker Compose określa kolejność uruchamiania kontenerów i~ogranicza liczbę przedwczesnych prób połączenia z~niedostępnymi usługami. Do~kontroli stanu służą punkty końcowe \texttt{/healthz/live} oraz \texttt{/healthz/ready}, udostępniane przez mechanizm wbudowany w~ASP.NET Core~\cite{bib:MicrosoftDocs2024}.
 
-\section{Obserwowalność i~śledzenie rozproszone}
+\section{Obserwowalność systemu}
 \label{subsec:Observability}
 
 System integruje dwa filary obserwowalności zgodnie ze~standardem OpenTelemetry~\cite{bib:OpenTelemetry2024}, obejmując: metryki eksportowane do~Prometheusa przez dedykowany punkt końcowy (czas odpowiedzi, liczba aktywnych połączeń oraz parametry środowiska uruchomieniowego .NET), a~także warstwę wizualizacji danych opartą na~platformie Grafana z~automatycznie wdrażaną konfiguracją źródeł oraz paneli analitycznych.

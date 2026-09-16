@@ -90,7 +90,6 @@ order-service   & obraz własny (.NET~10) & 4,0 & 3\,GB \\
 envoy           & envoyproxy/envoy:v1.29-latest & 4,0 & 1\,GB \\
 postgres        & postgres:17-alpine & 4,0 & 4\,GB \\
 redis           & redis:7.2-alpine & 1,0 & 512\,MB \\
-jaeger          & jaegertracing/all-in-one:1.56 & 1,0 & 512\,MB \\
 prometheus      & prom/prometheus:v2.51.2 & 1,0 & 512\,MB \\
 grafana         & grafana/grafana:10.4.2 & 1,0 & 512\,MB \\
 \hline
@@ -259,25 +258,6 @@ Zestawienie obu pulpitów ilustruje różnicę pomiędzy pomiarem serwerowym a~p
 
 Przedstawione przebiegi zarejestrowano w~trakcie obciążeniowej weryfikacji stosu obserwowalności, nie zaś podczas przebiegu macierzy badawczej. Wartości liczbowe widoczne na~panelach nie są~zatem porównywalne z~wynikami z~rozdziału~\ref{cha:AnalizaWydajnosci}; ilustrują one działanie warstwy monitorowania, a~nie rezultaty eksperymentu.
 
-Listing~\ref{lst:OtelDotNet} przedstawia konfigurację śledzenia w~\texttt{OrderService}, wskazującą bezpośrednio na~punkt końcowy kolektora wykorzystany w~eksperymencie.
-
-\begin{lstlisting}[
-  language={[Sharp]C},
-  breaklines=true,
-  caption={Konfiguracja śledzenia OpenTelemetry w~OrderService z~eksportem do~Jaegera},
-  label=lst:OtelDotNet
-]
-builder.Services.AddOpenTelemetry()
-    .WithTracing(tracing => tracing
-        .AddAspNetCoreInstrumentation()
-        .AddEntityFrameworkCoreInstrumentation()
-        .AddOtlpExporter(opt =>
-        {
-            // Jaeger collector inside the Docker network
-            opt.Endpoint = new Uri("http://jaeger:4317");
-        }));
-\end{lstlisting}
-
 Warstwa obserwowalności pełniła w~eksperymencie funkcję pomocniczą, nie pomiarową. Wartości przedstawione w~rozdziale~\ref{cha:AnalizaWydajnosci} pochodzą z~pomiaru wykonywanego po~stronie klienta, natomiast metryki służyły weryfikacji, czy zachowanie systemu odpowiada oczekiwaniom -- w~szczególności czy trafienia w~pamięć podręczną występują tam, gdzie zakładano.
 
 % -----------------------------------------------------------------------
@@ -285,7 +265,7 @@ Warstwa obserwowalności pełniła w~eksperymencie funkcję pomocniczą, nie pom
 \label{subsec:CI}
 % -----------------------------------------------------------------------
 
-Realizacja zasady niezależnego wdrażania usług wymaga automatyzacji budowania i~weryfikacji kodu. Fundamentem metodologicznym pozostaje tu~metodyka \textit{Twelve-Factor App}~\cite{bib:WigginsFactors}, zgodnie z~którą każda usługa powinna być budowana przez dedykowany potok i~wdrażana niezależnie od~pozostałych komponentów.
+Realizacja niezależnego wdrażania usług wymaga automatyzacji budowania i~weryfikacji kodu. Każda usługa powinna być budowana przez dedykowany potok i~wdrażana niezależnie od~pozostałych komponentów.
 
 W~projekcie zdefiniowano potok \textit{GitHub Actions} uruchamiany po~zatwierdzeniu zmian w~gałęziach \texttt{main} i~\texttt{develop} oraz przy zgłoszeniu żądania scalenia. Potok podzielono na~trzy zadania: kompilację backendu, kompilację aplikacji frontendowej oraz budowanie obrazów kontenerów. Listing~\ref{lst:GithubActions} przedstawia jego strukturę w~postaci skróconej.
 

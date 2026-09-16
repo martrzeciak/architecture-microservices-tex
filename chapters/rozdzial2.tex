@@ -6,19 +6,7 @@
 
 Jak przedstawiono w~rozdziale~\ref{cha:WprowadzenieDoMikroserwisow}, architektura mikroserwisowa zakłada podział systemu na~niezależne usługi odpowiedzialne za~określone obszary funkcjonalne. Każdy mikroserwis funkcjonuje jako odrębny proces, co~sprawia, że~realizacja złożonych procesów biznesowych wymaga komunikacji pomiędzy poszczególnymi usługami. Wybór odpowiedniego mechanizmu wymiany danych ma~istotne znaczenie dla wydajności, skalowalności i~niezawodności całego systemu~\cite{bib:Richardson2018}.
 
-Mechanizmy komunikacji stosowane w~architekturze mikroserwisowej można podzielić ze~względu na~sposób wymiany danych na~komunikację synchroniczną oraz asynchroniczną. W~pierwszym przypadku usługa oczekuje na~odpowiedź w~ramach obsługi żądania, natomiast w~drugim wymiana danych odbywa się niezależnie od~bezpośredniej odpowiedzi odbiorcy, najczęściej za~pośrednictwem brokera wiadomości. Oba podejścia znajdują zastosowanie w~różnych scenariuszach i~charakteryzują się odmiennymi właściwościami.
-
-
-%----------------------------------------------------------------------
-
-\section{Komunikacja asynchroniczna}
-
-\label{sec:KomunikacjaAsynchroniczna}
-
-%----------------------------------------------------------------------
-
-Komunikacja asynchroniczna zakłada rozdzielenie momentu wysłania wiadomości od~jej przetworzenia przez odbiorcę. Nadawca nie musi oczekiwać na~bezpośrednią odpowiedź usługi, a~wiadomość może zostać przechowana przez pośredniczący broker i~przetworzona w~późniejszym czasie. Podejście to~ogranicza bezpośrednie zależności pomiędzy usługami oraz umożliwia niezależne przetwarzanie wiadomości w~warunkach zmiennego obciążenia.
-W~ekosystemie .NET komunikacja asynchroniczna może być realizowana z~wykorzystaniem brokerów wiadomości oraz bibliotek zapewniających abstrakcję nad ich obsługą.
+W~niniejszej pracy analizowana jest komunikacja synchroniczna na~granicy aplikacji przeglądarkowej i~usług backendowych. Jej wybór wynika z~charakteru badanych operacji, w~których użytkownik oczekuje na~odpowiedź po~wysłaniu żądania.
 
 %----------------------------------------------------------------------
 
