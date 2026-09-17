@@ -40,7 +40,7 @@ Serializacja binarna redukuje wolumen przesyłanych danych o~42,8--43,4\% w~scen
 \subsection{Wpływ kompresji treści na~wolumen danych}
 \label{subsec:Kompresja}
 
-Wszystkie rozmiary przedstawione w~tabeli~\ref{tab:WolumenDanych} dotyczą treści nieskompresowanej. W~badanym systemie kompresja ciała odpowiedzi nie została włączona na~żadnej ze~ścieżek: usługi nie korzystają z~oprogramowania pośredniczącego kompresji, a~konfiguracja serwera pośredniczącego nie zawiera filtra kompresora. W~takim przypadku żaden z~badanych wariantów nie jest uprzywilejowany. Odpowiada on~przy tym domyślnym ustawieniom platformy ASP.NET Core oraz szkieletu gRPC dla~.NET. Konsekwencje tego wyboru dla zakresu wniosków wymagają jednak omówienia, ponieważ w~praktyce wdrożeniowej dokumenty JSON podawane są~najczęściej z~kompresją realizowaną przez serwer aplikacyjny, odwrotne proxy lub sieć dostarczania treści.
+Wszystkie rozmiary przedstawione w~tabeli~\ref{tab:WolumenDanych} dotyczą treści nieskompresowanej. W~badanym systemie kompresja ciała odpowiedzi nie została włączona na~żadnej ze~ścieżek: usługi nie korzystają z~oprogramowania pośredniczącego kompresji, a~konfiguracja serwera pośredniczącego nie zawiera filtra kompresora. Dla wszystkich badanych wariantów zastosowano tę~samą politykę braku kompresji. Podejście to~odpowiada domyślnym ustawieniom platformy ASP.NET Core oraz szkieletu gRPC dla~.NET. Ponieważ JSON i~Protocol Buffers różnią się podatnością na~kompresję, konsekwencje tego wyboru dla zakresu wniosków wymagają jednak omówienia; w~praktyce wdrożeniowej dokumenty JSON podawane są~najczęściej z~kompresją realizowaną przez serwer aplikacyjny, odwrotne proxy lub sieć dostarczania treści.
 
 Wpływ kompresji oszacowano ilościowo dla scenariusza Echo, którego ładunek generowany jest w~sposób deterministyczny. Poprawność odtworzenia zweryfikowano przez porównanie z~rozmiarami zmierzonymi na~wdrożonym systemie: dla 200~rekordów uzyskano 36\,246~B wobec zmierzonych 36\,242~B w~formacie JSON oraz 24\,079~B wobec 24\,104~B w~formacie binarnym, czyli odchylenie nieprzekraczające 0,1\%. Wyniki kompresji algorytmem gzip przedstawia tabela~\ref{tab:Kompresja}.
 
@@ -212,7 +212,7 @@ Scenariusz Products obejmuje wszystkie składniki obecne w~docelowym zastosowani
 
 Pomiar przy dwudziestu klientach daje ten~sam obraz relacji przy systematycznie wyższych wartościach bezwzględnych. Powtarzalność wyników w~tej grupie jest wysoka: współczynnik zmienności nie przekracza ośmiu procent. Najwyższa zmienność występuje przy najmniejszych ładunkach, gdzie mierzona wartość jest zdominowana przez opóźnienie propagacji i~podlega wahaniom warunków sieciowych w~większym stopniu względnym.
 
-\subsection{Odczyt z~zimną pamięcią podręczną}
+\subsection{Odczyt z~wymuszonym pominięciem pamięci podręcznej (PostgreSQL)}
 \label{subsec:ProductsCold}
 
 Wyniki uzyskane przy wymuszonym pominięciu bufora zestawia tabela~\ref{tab:ProductsCold}.
@@ -220,7 +220,7 @@ Wyniki uzyskane przy wymuszonym pominięciu bufora zestawia tabela~\ref{tab:Prod
 \begin{table}[htb]
 \centering
 \footnotesize
-\caption{Mediana opóźnienia w~scenariuszach Products, zimna pamięć podręczna [ms]; w~nawiasach współczynnik zmienności.}
+\caption{Mediana opóźnienia w~scenariuszach Products, wymuszone pominięcie pamięci podręcznej (PostgreSQL) [ms]; w~nawiasach współczynnik zmienności.}
 \label{tab:ProductsCold}
 \begin{tabular}{|c|c|c|c|c|}
 \hline
@@ -242,7 +242,7 @@ Wyniki uzyskane przy wymuszonym pominięciu bufora zestawia tabela~\ref{tab:Prod
 \begin{figure}[htb]
 \centering
 \includegraphics[width=\textwidth]{figures/chart_browser_products_cold.png}
-\caption{Mediana opóźnienia w~scenariuszach Products z~zimną pamięcią podręczną; słupki błędu odpowiadają 95\% przedziałowi ufności wartości centralnej}
+\caption{Mediana opóźnienia w~scenariuszach Products z~wymuszonym pominięciem pamięci podręcznej (PostgreSQL); słupki błędu odpowiadają 95\% przedziałowi ufności wartości centralnej}
 \label{fig:WykresProductsCold}
 \end{figure}
 
@@ -385,7 +385,7 @@ Pięciokrotne wykonanie całej macierzy umożliwia ocenę powtarzalności. Tabel
 \hline
 Echo                          & 0,7\% & 1,5--5\% & 11,5\% \\
 Products, ciepła pamięć       & 0,6\% & 2--6\%   & 8,0\% \\
-Products, zimna pamięć        & 3,5\% & 10--30\% & 51,3\% \\
+Products, pominięcie pamięci  & 3,5\% & 10--30\% & 51,3\% \\
 Orders                        & 0,7\% & 20--40\% & 54,8\% \\
 \hline
 \end{tabular}
@@ -504,7 +504,7 @@ klientach i~dziesięciu rekordach. Nie przyjęto z~góry progu istotności prakt
 \textbf{H4 (w~operacjach zapisu różnice zanikają):} hipoteza nierozstrzygnięta. Przy dziesięciu i~pięćdziesięciu pozycjach zamówienia mediany wynoszą 83,5--165,8~ms, a~przedziały ufności dla różnic REST--Direct obejmują zero, wyjątek dla pary Envoy--Direct omówiono w~sekcji~\ref{subsec:WynikiPrzedzialy}. Granice interpretacji tego wyniku przedstawiono przy analizie scenariuszy zapisu w~sekcji~\ref{sec:AnalizaOrders}.
 \end{sloppypar}
 
-\textbf{H5 (wariant Direct osiąga niższe opóźnienie niż wariant z~proxy Envoy):} wyniki częściowo wskazują na zgodność z hipotezą. Wariant bezpośredni ma~niższą medianę w~każdej konfiguracji odczytu z~ciepłą pamięcią podręczną oraz scenariusza Echo. Skrócenie czasu wynosi około 0,4--9,2\%. Nie wszystkie różnice są~jednak rozstrzygnięte statystycznie. W~grupie scenariuszy z~zimną pamięcią podręczną relacja ta~nie zachodzi konsekwentnie. Wybór wariantu wdrożenia wymaga uwzględnienia również topologii systemu.
+\textbf{H5 (wariant Direct osiąga niższe opóźnienie niż wariant z~proxy Envoy):} wyniki częściowo wskazują na zgodność z hipotezą. Wariant bezpośredni ma~niższą medianę w~każdej konfiguracji odczytu z~ciepłą pamięcią podręczną oraz scenariusza Echo. Skrócenie czasu wynosi około 0,4--9,2\%. Nie wszystkie różnice są~jednak rozstrzygnięte statystycznie. W~grupie scenariuszy z~wymuszonym pominięciem pamięci podręcznej relacja ta~nie zachodzi konsekwentnie. Wybór wariantu wdrożenia wymaga uwzględnienia również topologii systemu.
 
 % -----------------------------------------------------------------------
 \section{Zestawienie wyników z~dotychczasowymi badaniami}

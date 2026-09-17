@@ -32,7 +32,7 @@ Pomiary prowadzą do~następujących wniosków:
 
 \item W~operacjach zapisu nie wykryto stałej przewagi jednego wariantu. Dla dziesięciu i~pięćdziesięciu pozycji zamówienia mediany wynosiły 83,5--165,8~ms. Przedziały ufności dla różnic REST--Direct obejmowały zero przy zmienności ścieżki zapisu sięgającej czterdziestu procent.
 
-\item W~scenariuszach Echo i~odczytu z~ciepłą pamięcią podręczną wariant Direct skracał medianę czasu o~około 0,4--9,2\% względem Envoy. Nie wszystkie różnice były rozstrzygnięte statystycznie, a~przy zimnej pamięci podręcznej kolejność wariantów nie była stała.
+\item W~scenariuszach Echo i~odczytu z~ciepłą pamięcią podręczną wariant Direct skracał medianę czasu o~około 0,4--9,2\% względem Envoy. Nie wszystkie różnice były rozstrzygnięte statystycznie, a~przy wymuszonym pominięciu pamięci podręcznej kolejność wariantów nie była stała.
 
 \item Zmienność pomiarów okazała się silnie zależna od~udziału warstwy danych w~czasie odpowiedzi: od~poniżej jednego procenta w~scenariuszach izolujących narzut protokołu do~ponad pięćdziesięciu procent w~scenariuszach wymuszających zapytanie do~bazy oraz w~operacjach zapisu. Wprowadzenie pamięci podręcznej obniża tę~zmienność.
 
