@@ -4,7 +4,7 @@
 
 \label{cha:MechanizmyKomunikacji}
 
-Jak przedstawiono w~rozdziale~\ref{cha:WprowadzenieDoMikroserwisow}, architektura mikroserwisowa zakłada podział systemu na~niezależne usługi odpowiedzialne za~określone obszary funkcjonalne. Każdy mikroserwis funkcjonuje jako odrębny proces, co~sprawia, że~realizacja złożonych procesów biznesowych wymaga komunikacji pomiędzy poszczególnymi usługami. Wybór odpowiedniego mechanizmu wymiany danych ma~istotne znaczenie dla wydajności, skalowalności i~niezawodności całego systemu~\cite{bib:Richardson2018}.
+Jak przedstawiono w~rozdziale~\ref{cha:WprowadzenieDoMikroserwisow}, architektura mikroserwisowa zakłada podział systemu na~niezależne usługi odpowiedzialne za~określone obszary funkcjonalne. Każdy mikroserwis funkcjonuje jako odrębny proces, co~sprawia, że~realizacja złożonych procesów biznesowych wymaga komunikacji pomiędzy poszczególnymi usługami. Wymiana danych przestaje być wówczas wywołaniem wewnątrz procesu i~staje się elementem, którego koszt obciąża czas obsługi każdej operacji~\cite{bib:Richardson2018}.
 
 W~niniejszej pracy analizowana jest komunikacja synchroniczna na~granicy aplikacji przeglądarkowej i~usług backendowych. Jej wybór wynika z~charakteru badanych operacji, w~których użytkownik oczekuje na~odpowiedź po~wysłaniu żądania.
 
@@ -15,17 +15,23 @@ W~niniejszej pracy analizowana jest komunikacja synchroniczna na~granicy aplikac
 
 %----------------------------------------------------------------------
 
-Komunikacja synchroniczna opiera się na~modelu żądanie--odpowiedź, w~którym nadawca wysyła żądanie do~odbiorcy i~oczekuje na~jego przetworzenie oraz zwrócenie odpowiedzi. Podejście to~jest powszechnie stosowane zarówno w~komunikacji pomiędzy aplikacjami internetowymi a~usługami backendowymi, jak i~pomiędzy mikroserwisami.
-W~ekosystemie .NET komunikacja synchroniczna może być realizowana z~wykorzystaniem różnych mechanizmów, w~tym stylu REST oraz mechanizmów RPC.
+Komunikacja synchroniczna opiera się na~modelu żądanie--odpowiedź, w~którym nadawca wysyła żądanie do~odbiorcy i~oczekuje na~jego przetworzenie oraz zwrócenie odpowiedzi. Model ten obowiązuje zarówno w~komunikacji pomiędzy aplikacjami internetowymi a~usługami backendowymi, jak i~pomiędzy samymi mikroserwisami.
+W~ekosystemie .NET realizują go dwa mechanizmy omawiane w~dalszych sekcjach: styl REST oraz zdalne wywoływanie procedur w~postaci frameworka gRPC.
 
-\subsection{REST API w~ASP.NET Core}
-\label{subsec:RESTAPI}
+%----------------------------------------------------------------------
 
-\textit{Representational State Transfer} (REST) to~styl architektoniczny sformalizowany przez Roya Fieldinga~\cite{bib:Fielding2000}, definiujący zestaw reguł dla rozproszonych systemów hipermedialnych. W~architekturze mikroserwisowej REST stanowi najpowszechniejszy mechanizm komunikacji synchronicznej ze~względu na~prostotę, uniwersalność oraz dojrzałość ekosystemu narzędziowego~\cite{bib:Newman2021, bib:Fowler2014}. Opiera się na~wykorzystaniu metod protokołu HTTP (GET, POST, PUT, DELETE) do~operacji na~zasobach identyfikowanych przez URI, których reprezentację najczęściej stanowi format JSON.
+\section{REST API w~ASP.NET Core}
+\label{sec:RESTAPI}
+
+%----------------------------------------------------------------------
+
+\textit{Representational State Transfer} (REST) to~styl architektoniczny sformalizowany przez Roya Fieldinga~\cite{bib:Fielding2000}, definiujący zestaw reguł dla rozproszonych systemów hipermedialnych. W~architekturze mikroserwisowej REST pozostaje domyślnym wyborem dla komunikacji synchronicznej, ponieważ opiera się wyłącznie na~mechanizmach samego protokołu HTTP i~nie wymaga dodatkowej warstwy narzędziowej po~żadnej ze~stron~\cite{bib:Newman2021, bib:Fowler2014}. Operacje wykonywane są~metodami HTTP (GET, POST, PUT, DELETE) na~zasobach identyfikowanych przez URI, a~ich reprezentację stanowi zwykle format JSON.
 
 Fielding zdefiniował sześć podstawowych ograniczeń stylu REST: architekturę klient--serwer, bezstanowość, buforowalność odpowiedzi, warstwowość systemu, opcjonalny kod na~żądanie oraz jednolity interfejs~\cite{bib:Fielding2000}. W~praktyce inżynierskiej kluczowy element jednolitego interfejsu, jakim jest sterowanie stanem aplikacji przez hipermedia (HATEOAS), bywa pomijany na~rzecz prostszego modelu żądanie--odpowiedź.
 
-W~środowisku .NET interfejsy REST API mogą być implementowane za pomocą platformy ASP.NET Core. Framework udostępnia między innymi model \textit{Minimal API}~\cite{bib:MinimalApi}, umożliwiający definiowanie punktów końcowych bez konieczności stosowania kontrolerów. Listing~\ref{lst:RESTMinimal} przedstawia przykładową implementację asynchronicznego pobierania rekordu.
+Styl REST nie jest powiązany z~konkretną wersją protokołu HTTP: te~same punkty końcowe mogą być udostępniane po~HTTP/1.1 oraz po~HTTP/2. Wersja protokołu stanowi więc zmienną niezależną od~formatu danych: porównanie REST z~gRPC obejmuje oba te~wymiary równocześnie, o~ile nie zostaną rozdzielone w~projekcie eksperymentu. W~systemie zrealizowanym na~potrzeby pracy ścieżka REST działa po~HTTP/1.1.
+
+W~środowisku .NET interfejsy REST API mogą być implementowane za~pomocą platformy ASP.NET Core. Framework udostępnia model \textit{Minimal API}~\cite{bib:MinimalApi}, umożliwiający definiowanie punktów końcowych bez konieczności stosowania kontrolerów. Listing~\ref{lst:RESTMinimal} przedstawia przykładową implementację asynchronicznego pobierania rekordu, odpowiadającą rozwiązaniu przyjętemu w~usłudze katalogu produktów opisanej w~rozdziale~\ref{cha:StudiumPrzypadku}.
 
 \begin{lstlisting}[language={[Sharp]C}, caption={Definicja punktu końcowego REST z~wykorzystaniem Minimal API w~.NET~10}, label=lst:RESTMinimal]
 app.MapGet("/api/products/{id}", async (ProductDbContext db, string id) =>
@@ -38,23 +44,26 @@ app.MapGet("/api/products/{id}", async (ProductDbContext db, string id) =>
 });
 \end{lstlisting}
 
-Do~głównych zalet stylu REST należą bezstanowość ułatwiająca skalowanie horyzontalne, natywna obsługa buforowania odpowiedzi w~infrastrukturze sieciowej oraz czytelność formatu JSON. Do~ograniczeń zalicza się narzut objętościowy danych tekstowych, brak ścisłego kontraktu binarnego oraz zjawisko nadmiernej komunikacji (ang.\ \textit{chatty API}).
+Brak stanu sesji po~stronie usługi pozwala kierować kolejne żądania tego~samego klienta do~dowolnej instancji, a~nagłówki \texttt{Cache-Control} oraz \texttt{ETag} umożliwiają buforowanie odpowiedzi w~warstwie sieciowej bez udziału kodu aplikacji. Reprezentacja tekstowa pozostaje czytelna dla człowieka, więc do~diagnostyki wystarcza podgląd ruchu HTTP, przy czym nazwy pól powtarzane są~w~każdym rekordzie odpowiedzi. Opis interfejsu, na~przykład w~postaci specyfikacji OpenAPI, powstaje obok implementacji, dlatego niezgodności kontraktu ujawniają się podczas wykonania.
 
-\section{gRPC: architektura i~implementacja}
-\label{subsec:gRPC}
+%----------------------------------------------------------------------
 
-gRPC to~framework komunikacji wykorzystujący protokół HTTP/2 oraz format serializacji Protocol Buffers, opracowany przez Google i~udostępniony jako projekt open-source w~2015~roku \cite{bib:gRPCDocs}. W~porównaniu do~REST wykorzystuje binarną serializację danych oraz mechanizmy HTTP/2, w~tym multipleksowanie wielu wywołań w~ramach jednego połączenia TCP. Z~tego względu jest często stosowany w~komunikacji pomiędzy mikroserwisami, gdzie istotne są~wydajność i~niskie opóźnienia.
+\section{Architektura i~implementacja gRPC}
+\label{sec:gRPC}
+
+%----------------------------------------------------------------------
+
+Odmienne założenia przyjmuje gRPC, udostępniony przez Google jako projekt otwarty w~2015~roku~\cite{bib:gRPCDocs}. Zamiast operacji na~zasobach klient wywołuje zdalną procedurę o~zadeklarowanej sygnaturze, argumenty i~wynik przenoszone są~w~formacie binarnym Protocol Buffers, a~transport zapewnia protokół HTTP/2. Połączenie tych trzech decyzji zmniejsza objętość komunikatów oraz koszt ich przetwarzania, co~czyni gRPC rozwiązaniem stosowanym w~komunikacji pomiędzy usługami wewnątrz systemu.
 
 Centralnym elementem gRPC jest kontrakt definiowany za~pomocą języka Protocol Buffers, określający typy danych oraz operacje dostępne w~usłudze \cite{bib:ProtocolBuffers}. Definicja zapisana w~pliku \texttt{.proto} może zostać wykorzystana do~automatycznej generacji kodu klienta i~serwera. Przykładową definicję serwisu przedstawiono na~listingu~\ref{lst:gRPCProto}.
 
-\begin{lstlisting}[caption={Definicja serwisu gRPC w~formacie Protocol Buffers}, label=lst:gRPCProto]
+\begin{lstlisting}[language=Protobuf, caption={Definicja serwisu gRPC w~formacie Protocol Buffers}, label=lst:gRPCProto]
 syntax = "proto3";
 
 package product;
 
 service ProductService {
   rpc GetProduct (ProductRequest) returns (ProductResponse);
-  rpc StreamProducts (ProductRequest) returns (stream ProductResponse);
 }
 
 message ProductRequest {
@@ -69,5 +78,5 @@ message ProductResponse {
 \end{lstlisting}
 
 \begin{sloppypar}
-W~ekosystemie .NET obsługa gRPC jest dostępna za~pośrednictwem pakietu \texttt{Grpc.AspNetCore}, który integruje framework z~platformą ASP.NET~Core. HTTP/2 zapewnia między innymi multipleksowanie wielu strumieni oraz kontrolę przepływu \cite{bib:RFC9113}. Kompresja nagłówków za~pomocą algorytmu HPACK dodatkowo ogranicza ilość przesyłanych danych \cite{bib:RFC7541}. W~połączeniu z~binarną serializacją Protocol Buffers pozwala to~zmniejszyć rozmiar komunikatów w~porównaniu z~formatem JSON.
+W~ekosystemie .NET obsługę gRPC zapewnia pakiet \texttt{Grpc.AspNetCore}, integrujący framework z~platformą ASP.NET~Core. Wykorzystywany transport HTTP/2 multipleksuje równoległe wywołania w~jednym połączeniu TCP i~udostępnia kontrolę przepływu na~poziomie pojedynczego strumienia~\cite{bib:RFC9113}, a~kompresja nagłówków algorytmem HPACK ogranicza objętość metadanych powtarzanych w~kolejnych żądaniach~\cite{bib:RFC7541}. W~połączeniu z~binarną serializacją Protocol Buffers pozwala to~zmniejszyć rozmiar komunikatów w~porównaniu z~formatem JSON.
 \end{sloppypar}

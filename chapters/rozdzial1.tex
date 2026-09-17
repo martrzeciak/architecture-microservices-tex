@@ -4,34 +4,34 @@
 \label{cha:WprowadzenieDoMikroserwisow}
 
 Przedmiotem rozdziału jest architektura mikroserwisów
-w~kontekście nowoczesnego wytwarzania oprogramowania, z~uwzględnieniem ekosystemu platformy .NET. Przedstawiono w nim podstawowe cechy
-architektury monolitycznej i~mikroserwisowej, ich najważniejsze zalety i~ograniczenia
-oraz kluczowe pojęcia i~zasady projektowe związane z~budową systemów
-mikroserwisowych.
+w~kontekście nowoczesnego wytwarzania oprogramowania, z~uwzględnieniem ekosystemu platformy .NET. Omówiono w~nim definicję
+i~pojęcia opisujące dekompozycję systemu, następstwa projektowe wynikające
+z~porównania z~architekturą monolityczną oraz elementy ekosystemu .NET
+wykorzystane w~zrealizowanym systemie.
 
 %----------------------------------------------------------------------
 \section{Definicja i~charakterystyka architektury mikroserwisowej}
 \label{sec:DefinicjaMikroserwisow}
 %----------------------------------------------------------------------
 
-Architektura mikroserwisowa (ang.\ \textit{microservices architecture}) polega na~budowie systemu informatycznego jako zbioru niewielkich, autonomicznych usług realizujących ściśle określone funkcje biznesowe. W~ujęciu Fowlera i~Lewisa mikroserwisy stanowią niezależnie wdrażalne jednostki, uruchamiane w~odrębnych procesach i~komunikujące się za~pomocą lekkich mechanizmów sieciowych~\cite{bib:Fowler2014}. Organizacja usług wokół zdolności biznesowych (ang.\ \textit{business capabilities}) sprawia, że~ich granice wyznacza zakres odpowiedzialności dziedzinowej, a~nie podział na~warstwy techniczne. Umożliwia to~niezależne skalowanie, wdrażanie oraz modyfikowanie poszczególnych komponentów.
+Architektura mikroserwisowa (ang.\ \textit{microservices architecture}) polega na~budowie systemu informatycznego jako zbioru niewielkich, autonomicznych usług realizujących ściśle określone funkcje biznesowe. W~ujęciu Fowlera i~Lewisa mikroserwisy stanowią niezależnie wdrażalne jednostki, uruchamiane w~odrębnych procesach i~komunikujące się za~pomocą lekkich mechanizmów sieciowych~\cite{bib:Fowler2014}. Organizacja usług wokół zdolności biznesowych (ang.\ \textit{business capabilities}) sprawia, że~ich granice wyznacza zakres odpowiedzialności dziedzinowej, podczas gdy podział na~warstwy techniczne pozostaje wewnętrzną sprawą każdej usługi. Poszczególne komponenty można wówczas skalować, wdrażać i~modyfikować niezależnie od~siebie.
 
 Nadrzędną cechą definiującą mikroserwis jest jego \textit{niezależna wdrażalność} (ang.\ \textit{independent deployability}), czyli możliwość wdrożenia pojedynczej usługi na~środowisko produkcyjne bez konieczności jednoczesnej aktualizacji pozostałych elementów systemu~\cite{bib:Newman2021}. Warunkiem koniecznym do~jej osiągnięcia jest zachowanie luźnego sprzężenia, polegającego na~minimalizacji wiedzy o~wewnętrznej implementacji innych usług. Do~najczęstszych przyczyn utraty tej autonomii należą współdzielone biblioteki zawierające logikę biznesową oraz bezpośredni dostęp do~bazy danych innego mikroserwisu. Oba te~przypadki wprowadzają ukryte zależności, które w~praktyce wymuszają zsynchronizowane wdrożenia.
 
-Wymiana danych pomiędzy usługami odbywa się za~pomocą lekkich protokołów komunikacyjnych, w~tym HTTP oraz systemów kolejkowych. W~odniesieniu do~protokołu HTTP stopień dojrzałości implementacji stylu REST opisuje model dojrzałości Richardsona (ang.\ \textit{Richardson Maturity Model}), klasyfikujący usługi według wykorzystania zasobów, standardowych metod HTTP oraz mechanizmów hipermedialnych (HATEOAS)~\cite{bib:RichardsonMaturity}. Model ten nie definiuje formalnie architektury REST, lecz systematyzuje stopniowe wdrażanie jej kluczowych założeń.
+Wymiana danych pomiędzy usługami odbywa się za~pomocą lekkich protokołów komunikacyjnych, przede wszystkim opartych na~HTTP. Stopień dojrzałości implementacji stylu REST opisuje model dojrzałości Richardsona (ang.\ \textit{Richardson Maturity Model}), klasyfikujący usługi według wykorzystania zasobów, standardowych metod HTTP oraz mechanizmów hipermedialnych (HATEOAS)~\cite{bib:RichardsonMaturity}. Model ten opisuje stopnie wdrożenia założeń stylu REST sformułowanych przez Fieldinga~\cite{bib:Fielding2000}.
 
-Formalnych kryteriów dekompozycji systemu dostarcza metodyka projektowania dziedzinowego (ang.\ \textit{Domain-Driven Design}, DDD). Jej kluczowym elementem jest \textit{kontekst ograniczony} (ang.\ \textit{Bounded Context}), rozumiany jako wyodrębniony obszar dziedziny, w~którym obowiązuje jeden, spójny model pojęciowy~\cite{bib:Evans2003}. Odwzorowanie granic kontekstu na~pojedynczy mikroserwis zapewnia spójność odpowiedzialności biznesowej i~stanowi fundament niezależnej wdrażalności. Zasadę tę~zastosowano przy podziale platformy testowej zrealizowanej w~ramach niniejszej pracy.
+Kryteria dekompozycji systemu porządkuje metodyka projektowania dziedzinowego (ang.\ \textit{Domain-Driven Design}, DDD). Operuje ona pojęciem \textit{kontekstu ograniczonego} (ang.\ \textit{Bounded Context}), rozumianego jako wyodrębniony obszar dziedziny, w~którym obowiązuje jeden, spójny model pojęciowy~\cite{bib:Evans2003}. Odwzorowanie granic kontekstu na~pojedynczy mikroserwis zapewnia spójność odpowiedzialności biznesowej i~stanowi fundament niezależnej wdrażalności.
 
-Projektowanie w~ramach kontekstu ograniczonego obejmuje również wypracowanie \textit{wspólnego języka} (ang.\ \textit{Ubiquitous Language}), czyli słownika pojęć współdzielonego przez programistów i~ekspertów dziedzinowych~\cite{bib:Evans2003}. Wspólny język ogranicza niejednoznaczności semantyczne. Przykładowo pojęcie „klient” może mieć odmienne atrybuty w~module sprzedaży i~w~module reklamacji. Relacje i~przepływ danych pomiędzy kontekstami opisuje \textit{mapowanie kontekstów} (ang.\ \textit{context mapping}). Jeżeli modele są~rozbieżne, ich translację może realizować \textit{warstwa ochronna} (ang.\ \textit{anticorruption layer}), oddzielająca wewnętrzny model usługi od~struktur zewnętrznych.
+Projektowanie w~ramach kontekstu ograniczonego obejmuje również wypracowanie \textit{wspólnego języka} (ang.\ \textit{Ubiquitous Language}), czyli słownika pojęć współdzielonego przez programistów i~ekspertów dziedzinowych~\cite{bib:Evans2003}. Ogranicza on~niejednoznaczności semantyczne, ponieważ pojęcie „klient” może mieć odmienne atrybuty w~module sprzedaży i~w~module reklamacji. Relacje oraz przepływ danych pomiędzy kontekstami opisuje mapowanie kontekstów, a~translację rozbieżnych modeli może realizować \textit{warstwa ochronna} (ang.\ \textit{anticorruption layer}), oddzielająca wewnętrzny model usługi od~struktur zewnętrznych. W~systemie zrealizowanym na~potrzeby pracy konteksty katalogu produktów i~procesu zamówień pozostają rozłączne, a~ich modele nie wymagają wzajemnej translacji, dlatego warstwy tego rodzaju nie zastosowano.
 
 %----------------------------------------------------------------------
 \section{Porównanie z~architekturą monolityczną}
 \label{sec:PorownanieMikroserwisyMonolit}
 %----------------------------------------------------------------------
 
-Architektura monolityczna (ang.\ \textit{monolithic architecture}) zakłada budowę systemu jako pojedynczej, spójnej jednostki wdrożeniowej. Wszystkie moduły funkcjonalne (warstwa prezentacji, logika biznesowa oraz dostęp do~danych) współdzielą jedną bazę danych i~funkcjonują w~ramach pojedynczego procesu systemowego~\cite{bib:Newman2021}. Skalowanie horyzontalne takiego rozwiązania wymaga replikacji całej aplikacji, niezależnie od~tego, który komponent generuje wąskie gardło wydajnościowe. Wraz z~rozrostem bazy kodu wydłużeniu ulega czas kompilacji, testowania i~wdrożenia, a~każda wprowadzana modyfikacja niesie ryzyko destabilizacji całego systemu.
+Architektura monolityczna (ang.\ \textit{monolithic architecture}) zakłada budowę systemu jako pojedynczej, spójnej jednostki wdrożeniowej. Wszystkie moduły funkcjonalne, od~warstwy prezentacji po~dostęp do~danych, współdzielą jedną bazę danych i~funkcjonują w~ramach pojedynczego procesu systemowego~\cite{bib:Newman2021}. Skalowanie horyzontalne takiego rozwiązania wymaga replikacji całej aplikacji, niezależnie od~tego, który komponent generuje wąskie gardło wydajnościowe. Wraz z~rozrostem bazy kodu wydłużeniu ulega czas kompilacji, testowania i~wdrożenia, a~każda wprowadzana modyfikacja niesie ryzyko destabilizacji całego systemu.
 
-Podejście mikroserwisowe eliminuje te ograniczenia poprzez dekompozycję na~niezależne usługi, co~zmienia zarówno strukturę kodu, jak i~model operacyjny. Zestawienie kluczowych różnic pomiędzy oboma paradygmatami przedstawia tabela~\ref{tab:MonolitMikroserwisy}.
+Podejście mikroserwisowe ogranicza te niedogodności poprzez dekompozycję na~niezależne usługi, co~zmienia zarówno strukturę kodu, jak i~model operacyjny, wprowadzając przy tym własne koszty. Zestawienie kluczowych różnic pomiędzy oboma paradygmatami przedstawia tabela~\ref{tab:MonolitMikroserwisy}.
 
 \begin{table}[htb]
 \centering
@@ -72,7 +72,7 @@ Spójność danych
 
 Izolacja awarii 
 & Awaria modułu może wpłynąć na~działanie całego procesu 
-& Awaria pojedynczej usługi może być odizolowana od~pozostałych, wymagane mechanizmy odpornościowe \\
+& Awaria pojedynczej usługi może pozostać odizolowana od~pozostałych \\
 
 \hline
 
@@ -98,15 +98,17 @@ Złożoność operacyjna
 
 \end{table}
 
-Architektura mikroserwisowa zwiększa niezależność wdrożeń i~możliwości skalowania kosztem większej złożoności operacyjnej. Wywołania sieciowe przenoszą część kosztu wykonania do~warstwy transportowej, co ma~znaczenie w~komunikacji między klientem a~serwerem.
+Dekompozycja przenosi część kosztu wykonania z~wywołań wewnątrzprocesowych do~warstwy transportowej. W~aplikacji przeglądarkowej dochodzi do~tego odcinek pomiędzy klientem a~usługą, obciążony opóźnieniem sieci rozległej.
 
 %----------------------------------------------------------------------
 \section{Ekosystem .NET w~kontekście mikroserwisów}
 \label{sec:EkosystemNET}
 %----------------------------------------------------------------------
 
-Ewolucja platformy .NET od~monolitycznego .NET Framework przez wieloplatformowy .NET Core aż po~wersje zunifikowane ugruntowała jej pozycję jako środowiska do~tworzenia natywnych aplikacji chmurowych (ang.\ \textit{cloud-native})~\cite{bib:MicrosoftDocs2024}. Podstawę implementacyjną pracy stanowi .NET~10, edycja LTS z~listopada 2025~roku~\cite{bib:DotNetSupport}. Wersja ta rozwija kompilację statyczną \textit{Native AOT}~\cite{bib:NativeAOT} oraz optymalizacje środowiska uruchomieniowego pod~kątem wdrożeń kontenerowych.
+Platforma .NET przeszła drogę od~związanego z~systemem Windows .NET Framework, przez wieloplatformowy .NET Core, do~wydań zunifikowanych, przystosowanych do~uruchamiania w~kontenerach~\cite{bib:MicrosoftDocs2024}. Podstawę implementacyjną pracy stanowi .NET~10, edycja objęta długim okresem wsparcia, udostępniona w~listopadzie 2025~roku~\cite{bib:DotNetSupport}. Wersja ta rozwija kompilację statyczną \textit{Native AOT}~\cite{bib:NativeAOT}, skracającą czas uruchomienia procesu i~zmniejszającą rozmiar obrazu kontenera.
 
 \begin{sloppypar}
-Fundamentem mikroserwisów w~ekosystemie .NET jest framework ASP.NET Core z~serwerem Kestrel, interfejsem Minimal API oraz potokiem przetwarzania opartym na~oprogramowaniu pośredniczącym (\textit{middleware})~\cite{bib:MicrosoftDocs2024}. Wysokie pozycje Kestrela w~testach TechEmpower (scenariusz \textit{Fortunes})~\cite{bib:TechEmpower} czynią go optymalnym wyborem dla usług o~wysokich wymaganiach wydajnościowych. Ekosystem ten uzupełniają biblioteka \texttt{Grpc.AspNetCore}~\cite{bib:GrpcWebAspNet} (natywne wsparcie gRPC i~gRPC-Web) oraz Entity Framework Core jako warstwa mapowania obiektowo-relacyjnego.
+Usługi zrealizowane na~potrzeby pracy opierają się na~frameworku ASP.NET Core, w~którym obsługę żądań zapewnia serwer Kestrel, definiowanie punktów końcowych model Minimal API, a~modyfikowanie ścieżki przetwarzania żądania oprogramowanie pośredniczące (\textit{middleware})~\cite{bib:MicrosoftDocs2024}. Za~wyborem tego frameworka przemawiają wyniki testów TechEmpower, w~których wpisy platformowe korzystające z~serwera Kestrel zajmują wysokie pozycje w~scenariuszu \textit{Fortunes}~\cite{bib:TechEmpower}, oraz dostępność bibliotek wymaganych przez eksperyment: \texttt{Grpc.AspNetCore} z~obsługą gRPC i~gRPC-Web~\cite{bib:GrpcWebAspNet} oraz Entity Framework Core w~roli warstwy mapowania obiektowo-relacyjnego.
 \end{sloppypar}
+
+Wymienione biblioteki wyznaczają zakres mechanizmów komunikacji dostępnych dla usług .NET. Ich charakterystykę oraz właściwości protokołów wykorzystanych w~eksperymencie omówiono w~rozdziale kolejnym.

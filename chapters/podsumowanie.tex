@@ -4,56 +4,58 @@
 W~ramach niniejszej pracy:
 
 \begin{itemize}
-\item zebrano i~usystematyzowano wiedzę z~zakresu architektury mikroserwisowej, komunikacji synchronicznej oraz wzorców projektowych dla systemów rozproszonych w~ekosystemie .NET,
+\item zebrano i~usystematyzowano wiedzę z~zakresu architektury mikroserwisowej, komunikacji synchronicznej oraz mechanizmów obecnych na~ścieżce żądania: pamięci podręcznej organizowanej wzorcem Cache-Aside i~pośrednictwa serwera proxy,
+\item omówiono dotychczasowe badania porównawcze protokołów REST, gRPC i~GraphQL wraz z~ograniczeniami przenoszalności ich wyników na~komunikację przeglądarki z~warstwą usług, wskazując brakujące w~nich zestawienie wariantów gRPC-Web mierzonych po~stronie klienta,
 \item dokonano szczegółowej analizy protokołu gRPC-Web i~jego wariantów wdrożeniowych (proxy Envoy, bezpośrednia obsługa w~oprogramowaniu pośredniczącym ASP.NET Core),
 \item zaprojektowano i~zaimplementowano autorski system testowy składający się z~dwóch mikroserwisów .NET~10 (ProductService, OrderService), infrastruktury wspierającej (PostgreSQL, Redis, Envoy Proxy) oraz warstwy obserwowalności (Prometheus, Grafana),
-\item zaimplementowano wzorzec Cache-Aside z~wykorzystaniem Redis, a~także skonfigurowano serwer Kestrel do~równoległej obsługi trzech protokołów,
-\item opracowano metodykę pomiarową opartą na~rzeczywistej przeglądarce internetowej, w~której czas mierzony jest wewnątrz strony, od~interakcji użytkownika do~naniesienia odpowiedzi na~drzewo dokumentu, co~obejmuje pełną ścieżkę odczuwaną przez użytkownika aplikacji przeglądarkowej,
+\item zaimplementowano wzorzec Cache-Aside z~wykorzystaniem Redis, a~także skonfigurowano serwer Kestrel do~równoległej obsługi trzech wariantów komunikacji,
+\item opracowano metodykę pomiarową opartą na~rzeczywistej przeglądarce internetowej, w~której czas mierzony jest wewnątrz strony, od~interakcji użytkownika do~naniesienia odpowiedzi na~drzewo dokumentu, co~obejmuje ścieżkę przetwarzania po~stronie aplikacji klienckiej aż~do~aktualizacji drzewa dokumentu,
 \item przeprowadzono 39~konfiguracji pomiarowych w~pięciu niezależnych powtórzeniach z~rotowaną kolejnością protokołów, co~dało 585~wykonanych testów i~171~tysięcy pomiarów, badając wpływ protokołu komunikacji, rozmiaru odpowiedzi, stanu pamięci podręcznej oraz liczby równoległych klientów na~czas odpowiedzi systemu,
-\item poddano wyniki analizie statystycznej, wyznaczając przedziały ufności dla różnic sparowanych w~obrębie przebiegu.
+\item poddano wyniki analizie statystycznej, wyznaczając przedziały ufności dla różnic sparowanych w~obrębie przebiegu,
+\item zestawiono uzyskane wyniki z~ustaleniami omówionych publikacji, wyjaśniając rozbieżność wobec badań mierzących czas po~stronie usługi granicą pomiaru oraz udziałem opóźnienia sieci rozległej.
 \end{itemize}
 
-Główne wnioski z~przeprowadzonych badań eksperymentalnych:
+Pomiary prowadzą do~następujących wniosków:
 
 \begin{enumerate}
-\item Warianty gRPC-Web skracają czas odpowiedzi o~26--43\% względem REST dla dużych, nieskompresowanych odpowiedzi. Efekt pojawiał się po~przekroczeniu zaobserwowanego w~badanym środowisku progu około 64~KiB. Poniżej tego progu różnice wynosiły kilka procent.
+\item Warianty gRPC-Web skracają czas odpowiedzi o~26--43\% względem REST dla dużych, nieskompresowanych odpowiedzi. Efekt pojawiał się po~przekroczeniu zaobserwowanego w~badanym środowisku progu około 64~KiB. Poniżej tego progu różnice wynosiły od~jednego do~szesnastu procent, przy wartościach bezwzględnych od~jednej do~pięciu milisekund.
 
 \item W~analizie objętościowej gzip zmniejszył dokument JSON dwunasto- do~trzynastokrotnie, a~wiadomość binarną około dziesięciokrotnie. Przewaga objętościowa formatu binarnego spadła z~33\% do~15--18\%, a~skompresowane ładunki nie przekroczyły progu 64~KiB. Czasu odpowiedzi z~włączoną kompresją nie mierzono.
 
 \item Zależność przewagi od~rozmiaru odpowiedzi miała charakter skokowy. Model oparty na~efektywnym progu transmisji około 64~KiB odtworzył zmierzone przyrosty czasu w~dziesięciu konfiguracjach z~dokładnością do~0,29~RTT.
 
-\item W~konfiguracji Products, PS=500 i~VU=10 różnica REST--Envoy stanowiła około 95\% różnicy REST--Direct. Wariant przez Envoy uzyskał przewagę nad REST także przy HTTP/1.1 na~odcinku przeglądarkowym. Wynik wskazuje na~znaczenie formatu i~wolumenu odpowiedzi, lecz nie wyodrębnia liczbowego udziału serializacji, TLS, proxy ani wersji HTTP.
+\item W~konfiguracji Products, PS=500 i~VU=10 różnica REST--Envoy stanowiła około 95\% różnicy REST--Direct. Wariant przez Envoy uzyskał przewagę nad REST także przy HTTP/1.1 na~odcinku przeglądarkowym. Wynik dotyczy całej konfiguracji komunikacyjnej.
 
-\item Serializacja Protocol Buffers redukuje wolumen przesyłanych danych o~32--43\%. Wielkość ta~nie zależy od~warunków sieciowych, obciążenia ani od~zastosowanego narzędzia pomiarowego. Jedynym czynnikiem, który ją~zmienia, jest kompresja treści omówiona we~wniosku drugim.
+\item Serializacja Protocol Buffers redukuje wolumen przesyłanych danych o~33--43\%, w~zależności od~kształtu komunikatu. Współczynnik ten pozostawał stały niezależnie od~warunków sieciowych oraz poziomu obciążenia, ponieważ wynika z~samego sposobu kodowania komunikatu. Zmienia go~jedynie kompresja treści, której wpływ opisano w~analizie objętościowej.
 
-\item Przewaga protokołów binarnych skaluje się z~opóźnieniem sieci, a~nie z~szybkością serwera, ponieważ wyraża się liczbą zaoszczędzonych obiegów pakietu. W~komunikacji przez łącze rozległe o~opóźnieniu 26~ms jest znacząca, natomiast w~sieci lokalnej stałaby się pomijalna.
+\item Przewaga protokołów binarnych wyraża się liczbą zaoszczędzonych obiegów pakietu, przez co skaluje się z~opóźnieniem sieci; szybkość serwera pozostaje wobec tego czynnikiem drugorzędnym. W~komunikacji przez łącze rozległe o~opóźnieniu 26~ms jest znacząca. Model wskazuje, że~skala tej korzyści maleje wraz z~opóźnieniem łącza, co~nie zostało zweryfikowane empirycznie.
 
-\item W~operacjach zapisu nie wykryto stałej przewagi jednego wariantu. Dla dziesięciu i~pięćdziesięciu pozycji zamówienia mediany wynosiły 83,5--165,8~ms. Przedziały ufności dla różnic REST--Direct obejmowały zero, co~nie stanowi dowodu równoważności protokołów. Interpretację ograniczała zmienność związana z~obsługą transakcji bazodanowej.
+\item W~operacjach zapisu nie wykryto stałej przewagi jednego wariantu. Dla dziesięciu i~pięćdziesięciu pozycji zamówienia mediany wynosiły 83,5--165,8~ms. Przedziały ufności dla różnic REST--Direct obejmowały zero przy zmienności ścieżki zapisu sięgającej czterdziestu procent.
 
 \item W~scenariuszach Echo i~odczytu z~ciepłą pamięcią podręczną wariant Direct skracał medianę czasu o~około 0,4--9,2\% względem Envoy. Nie wszystkie różnice były rozstrzygnięte statystycznie, a~przy zimnej pamięci podręcznej kolejność wariantów nie była stała.
 
 \item Zmienność pomiarów okazała się silnie zależna od~udziału warstwy danych w~czasie odpowiedzi: od~poniżej jednego procenta w~scenariuszach izolujących narzut protokołu do~ponad pięćdziesięciu procent w~scenariuszach wymuszających zapytanie do~bazy oraz w~operacjach zapisu. Wprowadzenie pamięci podręcznej obniża tę~zmienność.
 
-\item Przepustowość stanowiska pomiarowego przestawała rosnąć pomiędzy dwudziestoma a~trzydziestoma równoległymi klientami, podczas gdy opóźnienie nadal wzrastało. Wspólny pułap trzech wariantów wskazywał na~ograniczenie po~stronie klienta. Z~tego powodu główna macierz obejmowała najwyżej dwudziestu klientów.
+\item Przepustowość obu wariantów gRPC-Web osiągała maksimum przy trzydziestu równoległych klientach, a~w~ścieżce REST rosła w~tym zakresie wolniej, przy czym opóźnienie narastało monotonicznie do~140~ms. Zbliżony pułap trzech wariantów stanowił przesłankę ograniczenia po~stronie stanowiska pomiarowego. Z~tego powodu główna macierz obejmowała najwyżej dwudziestu klientów.
 \end{enumerate}
 
-W~ramach niniejszej pracy zaprojektowano i~zrealizowano działający system mikroserwisowy oraz przeprowadzono na~nim zaplanowany zestaw badań. Wyniki określają relację wydajnościową badanych konfiguracji w~zależności od~rozmiaru odpowiedzi względem okna odbiorczego protokołu TCP. Wszystkie pięć hipotez poddano weryfikacji, przy czym w~przypadku H1 doprecyzowano charakter zależności od~rozmiaru odpowiedzi, a~w~przypadku H5 praktyczną istotność wykazanej różnicy.
+Zaprojektowano i~zrealizowano działający system mikroserwisowy oraz przeprowadzono na~nim zaplanowany zestaw badań. Wyniki określają relację wydajnościową badanych konfiguracji w~zależności od~rozmiaru odpowiedzi względem zaobserwowanego efektywnego progu transmisji. Wszystkie pięć hipotez skonfrontowano z~wynikami pomiarów. Hipotezy H2 i~H3 zostały potwierdzone, w~przypadku H1 doprecyzowano skokowy charakter zależności od~rozmiaru odpowiedzi, a~w~przypadku H5 wykazano niewielką i~nie zawsze statystycznie rozstrzygalną przewagę wariantu Direct. Hipoteza H4 pozostała nierozstrzygnięta: zmienność ścieżki zapisu okazała się zbyt duża, aby na~podstawie zebranych danych orzec o~równoważności protokołów w~tym scenariuszu.
 
-Uzyskane wyniki dotyczą badanych konfiguracji komunikacyjnych. Korzyść wariantów gRPC-Web pojawiała się wtedy, gdy mniejszy wolumen odpowiedzi ograniczał liczbę wymian pakietów potrzebnych do~jej przesłania. Przy małych ładunkach, w~operacjach zapisu oraz po~zastosowaniu kompresji różnice pozostawały praktycznie nieistotne.
+Uzyskane wyniki dotyczą badanych konfiguracji komunikacyjnych. Korzyść wariantów gRPC-Web pojawiała się wtedy, gdy mniejszy wolumen odpowiedzi ograniczał liczbę wymian pakietów potrzebnych do~jej przesłania. Przy małych ładunkach oraz w~operacjach zapisu różnice pozostawały niewielkie lub nierozstrzygnięte. Analiza objętościowa wskazuje ponadto, że~kompresja może ograniczyć przewagę wariantów binarnych, jednak czasu odpowiedzi z~włączoną kompresją nie mierzono.
 
 Zaprojektowany system charakteryzują następujące cechy:
 
 \begin{itemize}
-\item równoległa obsługa trzech protokołów komunikacji w~ramach jednej aplikacji klienckiej, umożliwiająca ich porównanie przy identycznej logice biznesowej, tych~samych danych oraz niezmienionej ścieżce prezentacji,
+\item równoległa obsługa trzech wariantów komunikacji w~ramach jednej aplikacji klienckiej, umożliwiająca ich porównanie przy identycznej logice biznesowej, tych~samych danych oraz niezmienionej ścieżce prezentacji,
 \item podejście Contract-First, w~którym pliki \texttt{.proto} stanowią jedyne źródło prawdy, a~kod serwera (C\#) i~klienta (TypeScript) jest z~nich generowany,
-\item warstwa obserwowalności zgodna ze~standardem OpenTelemetry, obejmująca metryki eksportowane do~Prometheusa i~pulpity wizualizacyjne w~Grafanie, umożliwiająca korelację wyników eksperymentu z~wewnętrznym stanem systemu.
+\item warstwa obserwowalności zgodna ze~standardem OpenTelemetry, w~której metryki eksportowane do~Prometheusa i~pulpity wizualizacyjne w~Grafanie pozwalają odnieść wyniki eksperymentu do~wewnętrznego stanu systemu.
 \end{itemize}
 
 Kierunki dalszego rozwoju pracy obejmują:
 
 \begin{itemize}
-\item rozdzielenie stanowiska pomiarowego na~wiele maszyn klienckich, co~pozwoliłoby przenieść granicę wiarygodności opisaną w~ostatnim z~powyższych wniosków i~objąć pomiarem poziomy współbieżności rzędu setek równoległych klientów,
-\item powtórzenie eksperymentu przy różnych wartościach opóźnienia łącza, co~umożliwiłoby empiryczną weryfikację przewidywanej proporcjonalności przewagi protokołów binarnych do~opóźnienia sieci,
-\item powtórzenie macierzy z~włączoną kompresją ciała odpowiedzi na~wszystkich ścieżkach, co~pozwoliłoby zweryfikować pomiarowo przedstawione oszacowanie objętościowe i~ustalić, czy w~takiej konfiguracji różnice pomiędzy protokołami pozostają wykrywalne,
+\item rozdzielenie stanowiska pomiarowego na~wiele maszyn klienckich, co~pozwoliłoby przesunąć granicę wiarygodności wyznaczoną przez nasycenie pojedynczego stanowiska i~objąć pomiarem poziomy współbieżności rzędu setek równoległych klientów,
+\item powtórzenie eksperymentu przy różnych wartościach opóźnienia łącza; przewidywana proporcjonalność przewagi protokołów binarnych do~opóźnienia sieci zostałaby wówczas sprawdzona empirycznie,
+\item powtórzenie macierzy z~włączoną kompresją ciała odpowiedzi na~wszystkich ścieżkach, w~celu pomiarowej weryfikacji przedstawionego oszacowania objętościowego oraz ustalenia, czy w~takiej konfiguracji różnice pomiędzy protokołami pozostają wykrywalne,
 \item wdrożenie systemu na~platformie Kubernetes (AKS) z~automatycznym skalowaniem horyzontalnym i~badanie wpływu liczby replik na~wydajność.
 \end{itemize}

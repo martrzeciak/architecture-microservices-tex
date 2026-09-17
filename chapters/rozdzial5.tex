@@ -4,18 +4,23 @@
 
 \label{cha:StudiumPrzypadku}
 
-W~rozdziale opisano system zrealizowany na~potrzeby pracy: jego architekturę, kontrakty usług, topologię kontenerów, implementację pamięci podręcznej istotną dla metodyki pomiaru, model wdrożenia w~środowisku chmurowym oraz warstwę obserwowalności.
+Eksperyment wymagał systemu, w~którym trzy badane warianty komunikacji działają na~identycznej logice i~identycznych danych, a~warunki wykonania pozostają niezmienne między pomiarami. Rozdział opisuje, jak te~wymagania zrealizowano: od~podziału na~usługi i~kontraktów, przez konfigurację protokołów oraz pamięci podręcznej, po~model wdrożenia i~warstwę obserwowalności.
 
 % -----------------------------------------------------------------------
-\section{Architektura badanego systemu testowego}
+\section{Architektura systemu}
 \label{sec:ArchitekturaSystemu}
 % -----------------------------------------------------------------------
 
-Na~potrzeby przeprowadzenia eksperymentów wydajnościowych zrealizowano autorski system testowy. Implementację podporządkowano celom badawczym, skupiając się na~porównaniu wybranych protokołów i~wariantów komunikacji sieciowej. Architektura systemu składa się z~trzech głównych warstw: warstwy prezentacji w~postaci aplikacji przeglądarkowej, warstwy usług biznesowych złożonej z~mikroserwisów opartych na~platformie .NET~10 oraz warstwy infrastrukturalnej obejmującej relacyjne bazy danych, pamięć podręczną i~komponenty obserwowalności.
+Na~potrzeby eksperymentów wydajnościowych zrealizowano autorski system testowy. Architektura systemu składa się z~trzech warstw: warstwy prezentacji w~postaci aplikacji przeglądarkowej, warstwy usług biznesowych złożonej z~mikroserwisów opartych na~platformie .NET~10 oraz warstwy infrastrukturalnej obejmującej relacyjne bazy danych, pamięć podręczną i~komponenty obserwowalności.
 
-Środowisko eksperymentalne zostało rozproszone pomiędzy dwie fizyczne maszyny: warstwa mikroserwisów wraz z~całą infrastrukturą pomocniczą została uruchomiona na~zewnętrznym serwerze, natomiast aplikacja kliencka działała lokalnie, na~stacji roboczej pełniącej rolę węzła pomiarowego.
+Środowisko eksperymentalne zostało rozproszone pomiędzy dwie fizyczne maszyny: warstwa mikroserwisów wraz z~całą infrastrukturą pomocniczą została uruchomiona na~zewnętrznym serwerze, a~aplikacja kliencka działała lokalnie, na~stacji roboczej pełniącej rolę węzła pomiarowego.
 
-Przyjęte podejście powinno zagwarantować, że~pomiary odzwierciedlają kompletną, rzeczywistą ścieżkę przetwarzania danych, uwzględniając opóźnienia sieciowe, warstwę pośredniczącą, routing, a~także procesy serializacji i~deserializacji realizowane przez silnik JavaScript w~przeglądarce internetowej.
+Dzięki takiemu rozproszeniu pomiar obejmuje kompletną ścieżkę przetwarzania danych: opóźnienie sieci rozległej, warstwę pośredniczącą, kierowanie ruchem, a~także serializację i~deserializację realizowaną przez silnik JavaScript w~przeglądarce.
+
+\subsection{Warstwa prezentacji}
+\label{subsec:WarstwaPrezentacji}
+
+Warstwę prezentacji stanowi aplikacja we~frameworku Angular~20, uruchamiana na~węźle pomiarowym. Ta~sama aplikacja obsługuje wszystkie trzy badane ścieżki komunikacji, dzięki czemu komponenty odpowiedzialne za~prezentację danych i~sposób aktualizacji widoku pozostają niezmienne pomiędzy badanymi wariantami. Klienta gRPC-Web dla obu wariantów opisano w~rozdziale~\ref{cha:gRPCWeb}; sposób sterowania scenariuszem oraz pomiar czasu wykonywany wewnątrz strony omówiono w~rozdziale~\ref{cha:MetodologiaBadan}.
 
 \subsection{Warstwa usług biznesowych}
 \label{subsec:WarstwaBiznesowa}
@@ -25,18 +30,33 @@ System realizuje podział na~dwa mikroserwisy zgodnie z~zasadą \textit{Bounded 
 \begin{itemize}
     \item \textbf{ProductService} (kontekst: katalog produktów) odpowiada za~operacje odczytu katalogu, implementuje wzorzec Cache-Aside oraz punkt końcowy izolujący narzut protokołu. Dane przechowywane w~dedykowanej bazie produktów obejmują 2000~produktów rozłożonych na~dziesięć kategorii.
     \item \textbf{OrderService} (kontekst: proces zamówień) odpowiada za~tworzenie
-    zamówień: waliduje żądanie, zapisuje encję zamówienia wraz z~jego pozycjami. Dane przechowywane w~dedykowanej bazie zamówień.
+    zamówień: waliduje żądanie oraz zapisuje encję zamówienia wraz z~jego pozycjami. Dane przechowywane są~w~dedykowanej bazie zamówień.
 \end{itemize}
 
 Każdy mikroserwis jest autonomiczną jednostką wdrożeniową z~własnym obrazem kontenera, konfiguracją połączeń oraz migracjami bazy danych realizowanymi w~podejściu Code-First.
 
-Istotną cechą przyjętego projektu jest całkowity brak zależności pomiędzy obiema usługami: nie występują ani synchroniczne wywołania, ani wymiana komunikatów pomiędzy \texttt{ProductService} a~\texttt{OrderService}. Decyzja ta~wynika bezpośrednio z~celu badawczego: przedmiotem pomiaru jest komunikacja na~granicy klient--usługa, a~nie orkiestracja procesu obejmującego wiele usług. Wprowadzenie zależności międzyusługowej wnosiłoby do~pomiarów opóźnienie drugiej usługi, utrudniając izolację narzutu samego protokołu. Konsekwencją takiego podziału jest pełna niezależność wdrożeniowa obu komponentów oraz brak sprzężenia.
+Pomiędzy obiema usługami nie występują ani synchroniczne wywołania, ani wymiana komunikatów. Przedmiotem pomiaru jest komunikacja na~granicy klient--usługa, natomiast orkiestracja procesu obejmującego wiele usług pozostaje poza zakresem badania. Wprowadzenie zależności międzyusługowej wnosiłoby do~pomiarów opóźnienie drugiej usługi, utrudniając izolację narzutu samego protokołu. Oba komponenty pozostają dzięki temu w~pełni niezależne wdrożeniowo.
 
 \subsection{Podejście Contract-First}
 \label{subsec:ContractFirst}
 
-Kontrakty usług gRPC definiowane są~w~plikach Protocol Buffers, które stanowią wspólną definicję interfejsów systemowych. Na~ich podstawie generowany jest kod serwera (C\#, pakiet \texttt{Grpc.Tools}) i~klienta (TypeScript, narzędzia \texttt{@bufbuild/protoc-gen-es} oraz \texttt{@connectrpc/protoc-gen-connect-es}).
-Podejście Contract-First umożliwia sprawdzanie zgodności typów na~granicy systemu podczas kompilacji. Część niekompatybilnych zmian można dzięki temu wykryć przed uruchomieniem aplikacji.
+Kontrakty usług gRPC definiowane są~w~plikach Protocol Buffers, które stanowią wspólną definicję interfejsów systemowych. Na~ich podstawie generowany jest kod serwera (C\#, pakiet \texttt{Grpc.Tools}) i~klienta (TypeScript, narzędzia \texttt{@bufbuild/protoc-gen-es} oraz \texttt{@connectrpc/protoc-gen-connect-es}). Zgodność typów na~granicy systemu sprawdzana jest wówczas podczas kompilacji, wobec czego część niekompatybilnych zmian kontraktu ujawnia się przed uruchomieniem aplikacji.
+
+\subsection{Równoległe udostępnianie badanych protokołów}
+\label{subsec:TrzyProtokoly}
+
+Każda usługa udostępnia tę~samą logikę biznesową przez trzy niezależne punkty nasłuchu serwera Kestrel. W~usłudze \texttt{ProductService} port 5000 obsługuje REST po~HTTP/1.1, port 5001 natywne gRPC po~HTTP/2 bez szyfrowania, a~port 5002 gRPC-Web w~ramach sesji TLS, z~negocjacją HTTP/1.1 albo HTTP/2. Usługa \texttt{OrderService} korzysta z~analogicznego układu na~portach od~5003 do~5005. Ruch gRPC-Web kierowany przez Envoy trafia na~port nasłuchu serwera pośredniczącego, skąd po~translacji wędruje do~portu natywnego gRPC danej usługi.
+
+Wszystkie porównywane warianty komunikacji obsługuje ten~sam proces, na~tych~samych danych i~przy tej~samej implementacji logiki biznesowej. W~rozdziale~\ref{cha:MetodologiaBadan} zestawiono wersje protokołu zweryfikowane pomiarowo dla każdej z~trzech ścieżek.
+
+\subsection{Implementacja pamięci podręcznej}
+\label{subsec:PamiecPodreczna}
+
+Odczyt katalogu produktów obsługiwany jest zgodnie ze~wzorcem Cache-Aside, omówionym w~rozdziale~\ref{cha:WzorceProjektowe}. Rolę magazynu podręcznego pełni Redis, a~klucz wpisu tworzony jest z~identyfikatora kategorii, numeru strony oraz liczby rekordów na~stronie. Wpisy wygasają po~upływie pięciu minut od~zapisu.
+
+Każdy protokół korzysta z~odrębnej przestrzeni kluczy, ponieważ przechowywana reprezentacja odpowiada formatowi odpowiedzi: ścieżka REST zapisuje dokument JSON, a~ścieżka gRPC bajty komunikatu Protocol Buffers. Przy trafieniu ścieżka REST zwraca zapisany dokument bez ponownego przetwarzania, a~ścieżka gRPC odtwarza komunikat z~bajtów i~serializuje go~do~odpowiedzi. Asymetria ta~obciąża wariant binarny w~scenariuszach z~wypełnionym buforem, dlatego uwzględniono ją~w~omówieniu ograniczeń w~rozdziale~\ref{cha:MetodologiaBadan}, a~scenariusz Echo pozostawiono jako punkt odniesienia pozbawiony udziału pamięci podręcznej.
+
+Pominięcie bufora wymuszane jest nagłówkiem żądania \texttt{X-Bypass-Cache}, przekazywanym w~ścieżce gRPC jako metadana wywołania. Punkt końcowy wykonuje wtedy zapytanie do~relacyjnej bazy danych, pozostawiając niezmienioną logikę odpowiedzi, co~pozwala mierzyć ten~sam scenariusz w~dwóch stanach pamięci podręcznej.
 
 \subsection{Topologia Docker Compose}
 \label{subsec:DockerCompose}
@@ -63,11 +83,12 @@ grafana         & grafana/grafana:10.4.2 & 1,0 & 512\,MB \\
 \end{tabular}
 \end{table}
 
+% -----------------------------------------------------------------------
 \section{Wdrożenie i~eksploatacja w~środowisku chmurowym}
 \label{sec:WdrozenieChmurowe}
 % -----------------------------------------------------------------------
 
-System testowy wdrożono w~publicznej chmurze obliczeniowej, w~modelu infrastruktury jako usługi (ang.\ \textit{infrastructure as a~service}). Niniejsza sekcja przedstawia przyjęty model wdrożenia wraz z~jego uzasadnieniem, przebieg wdrożenia oraz warstwę obserwowalności. Rozstrzygnięcia omówione poniżej wynikają w~znacznej mierze z~wymagań eksperymentu.
+System testowy wdrożono w~publicznej chmurze obliczeniowej, w~modelu infrastruktury jako usługi (ang.\ \textit{infrastructure as a~service}). Przyjęty model wdrożenia oraz jego uzasadnienie wynikają z~wymagań pomiarowych, opisanych w~dwóch kolejnych częściach tej sekcji.
 
 \subsection{Uzasadnienie przyjętego modelu wdrożenia}
 \label{subsec:ModelWdrozenia}
@@ -84,13 +105,13 @@ System wdrożono na~serwerze chmury Hetzner Cloud o~ośmiu rdzeniach wirtualnych
 Graf zależności Docker Compose określa kolejność uruchamiania kontenerów i~ogranicza liczbę przedwczesnych prób połączenia z~niedostępnymi usługami. Do~kontroli stanu służą punkty końcowe \texttt{/healthz/live} oraz \texttt{/healthz/ready}, udostępniane przez mechanizm wbudowany w~ASP.NET Core~\cite{bib:MicrosoftDocs2024}.
 
 \section{Obserwowalność systemu}
-\label{subsec:Observability}
+\label{sec:Observability}
 
-System integruje dwa filary obserwowalności zgodnie ze~standardem OpenTelemetry~\cite{bib:OpenTelemetry2024}, obejmując: metryki eksportowane do~Prometheusa przez dedykowany punkt końcowy (czas odpowiedzi, liczba aktywnych połączeń oraz parametry środowiska uruchomieniowego .NET), a~także warstwę wizualizacji danych opartą na~platformie Grafana z~automatycznie wdrażaną konfiguracją źródeł oraz paneli analitycznych.
+Warstwa obserwowalności opiera się na~metrykach, zbieranych zgodnie ze~standardem OpenTelemetry~\cite{bib:OpenTelemetry2024} i~udostępnianych Prometheusowi przez dedykowany punkt końcowy każdej usługi. Zakres instrumentacji obejmuje czas obsługi żądania, liczbę aktywnych połączeń oraz parametry środowiska uruchomieniowego .NET. Zgromadzone szeregi czasowe wizualizuje Grafana, z~konfiguracją źródeł danych i~paneli analitycznych wdrażaną automatycznie wraz ze~stosem.
 
-Pulpity Grafany wdrażane są~wraz z~całym stosem, w~postaci definicji przechowywanych w~repozytorium i~wczytywanych przy starcie kontenera. Dzięki temu warstwa wizualizacji odtwarzana jest automatycznie na~każdym środowisku, bez ręcznej konfiguracji. Pierwszy z~pulpitów (rysunek~\ref{fig:GrafanaHttp}) obejmuje charakterystykę warstwy HTTP obu mikroserwisów: liczbę żądań na~sekundę oraz percentyle czasu obsługi żądania mierzone po~stronie serwera. Drugi (rysunek~\ref{fig:GrafanaRuntime}) przedstawia rozbicie liczby żądań na~poszczególne trasy oraz metryki środowiska uruchomieniowego .NET: wolumen alokacji pamięci i~częstość usuwania zbędnych obiektów z pamięci aplikacji.
+Pulpity Grafany wdrażane są~wraz z~całym stosem, w~postaci definicji przechowywanych w~repozytorium i~wczytywanych przy starcie kontenera. Dzięki temu warstwa wizualizacji odtwarzana jest automatycznie na~każdym środowisku, bez ręcznej konfiguracji. Pierwszy z~pulpitów (rysunek~\ref{fig:GrafanaHttp}) obejmuje charakterystykę warstwy HTTP obu mikroserwisów: liczbę żądań na~sekundę oraz percentyle czasu obsługi żądania mierzone po~stronie serwera. Drugi (rysunek~\ref{fig:GrafanaRuntime}) przedstawia rozbicie liczby żądań na~poszczególne trasy oraz metryki środowiska uruchomieniowego .NET: wolumen alokacji pamięci i~częstość usuwania zbędnych obiektów z~pamięci aplikacji.
 
-Przebiegi zarejestrowano podczas obciążeniowej weryfikacji stosu obserwowalności, poza właściwą macierzą badawczą. Ilustrują działanie warstwy monitorowania i~nie są~wynikami eksperymentu. Warstwa obserwowalności pełniła funkcję pomocniczą.
+Przebiegi widoczne na~obu pulpitach zarejestrowano podczas obciążeniowej weryfikacji stosu monitorowania, poza właściwą macierzą badawczą, wobec czego ilustrują działanie tej warstwy i~pozostają poza zbiorem wyników eksperymentu.
 
 \begin{figure}[p]
 \centering
