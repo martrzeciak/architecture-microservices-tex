@@ -10,7 +10,7 @@ W~ramach niniejszej pracy:
 \item zaprojektowano i~zaimplementowano autorski system testowy składający się z~dwóch mikroserwisów .NET~10 (ProductService, OrderService), infrastruktury wspierającej (PostgreSQL, Redis, Envoy Proxy) oraz warstwy obserwowalności (Prometheus, Grafana),
 \item zaimplementowano wzorzec Cache-Aside z~wykorzystaniem Redis, a~także skonfigurowano serwer Kestrel do~równoległej obsługi trzech wariantów komunikacji,
 \item opracowano metodykę pomiarową opartą na~rzeczywistej przeglądarce internetowej, w~której czas mierzony jest wewnątrz strony, od~interakcji użytkownika do~naniesienia odpowiedzi na~drzewo dokumentu, co~obejmuje ścieżkę przetwarzania po~stronie aplikacji klienckiej aż~do~aktualizacji drzewa dokumentu,
-\item przeprowadzono 39~konfiguracji pomiarowych w~pięciu niezależnych powtórzeniach z~rotowaną kolejnością protokołów, co~dało 585~wykonanych testów i~171~tysięcy pomiarów, badając wpływ protokołu komunikacji, rozmiaru odpowiedzi, stanu pamięci podręcznej oraz liczby równoległych klientów na~czas odpowiedzi systemu,
+\item przeprowadzono 36~konfiguracji pomiarowych w~pięciu niezależnych powtórzeniach z~rotowaną kolejnością protokołów, co~dało 540~wykonanych testów i~153~tysiące pomiarów, badając wpływ protokołu komunikacji, rozmiaru odpowiedzi, stanu pamięci podręcznej oraz liczby równoległych klientów na~czas odpowiedzi systemu,
 \item poddano wyniki analizie statystycznej, wyznaczając przedziały ufności dla różnic sparowanych w~obrębie przebiegu,
 \item zestawiono uzyskane wyniki z~ustaleniami omówionych publikacji, wyjaśniając rozbieżność wobec badań mierzących czas po~stronie usługi granicą pomiaru oraz udziałem opóźnienia sieci rozległej.
 \end{itemize}
