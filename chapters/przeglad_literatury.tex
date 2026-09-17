@@ -3,14 +3,14 @@
 \chapter{Przegląd badań porównawczych}
 \label{cha:StanBadan}
 
-W~rozdziale zestawiono prace empiryczne porównujące REST z~gRPC lub GraphQL, aby określić, które elementy komunikacji zostały już zbadane i~w~jakim stopniu opublikowane wyniki odnoszą się do~aplikacji działającej w~przeglądarce. Dokumentacje techniczne, wykorzystywane w~dalszych rozdziałach, służą wyjaśnieniu mechanizmów implementacyjnych; ocenę wydajności oparto wyłącznie na~badaniach eksperymentalnych.
+W~rozdziale zestawiono prace empiryczne porównujące REST z~gRPC lub GraphQL, aby określić, które elementy komunikacji zostały już zbadane i~w~jakim stopniu opublikowane wyniki odnoszą się do~aplikacji działającej w~przeglądarce.
 
 % -----------------------------------------------------------------------
 \section{Zakres i~kryteria analizy}
 \label{sec:KryteriaPrzegladu}
 % -----------------------------------------------------------------------
 
-Do~przeglądu włączono publikacje empiryczne, w~których podano środowisko wykonania, rodzaj obciążenia oraz co~najmniej jedną miarę wydajności: czas odpowiedzi, rozmiar komunikatu albo wykorzystanie zasobów. Przy ich interpretacji rozpatrywano granicę pomiaru, użyte środowisko, funkcjonalną równoważność operacji oraz sposób dostępu do~danych.
+Do~przeglądu włączono publikacje, w~których podano środowisko wykonania, rodzaj obciążenia oraz co~najmniej jedną miarę wydajności: czas odpowiedzi, rozmiar komunikatu albo wykorzystanie zasobów. Przy ich interpretacji rozpatrywano granicę pomiaru, użyte środowisko, funkcjonalną równoważność operacji oraz sposób dostępu do~danych.
 
 Generator obciążenia rejestruje czas obsługi wywołania API, podczas gdy pomiar realizowany w~przeglądarce obejmuje dodatkowo odebranie odpowiedzi, jej dekodowanie oraz aktualizację interfejsu. Obie wartości odpowiadają odmiennym pytaniom badawczym, dlatego zestawiono je w~sposób jakościowy.
 
@@ -19,9 +19,9 @@ Generator obciążenia rejestruje czas obsługi wywołania API, podczas gdy pomi
 \label{sec:PorownaniaRestGrpc}
 % -----------------------------------------------------------------------
 
-Rozmiar komunikatu i~czas operacji rozchodzą się w~omawianych badaniach. Śliwa i~Pańczyk~\cite{bib:SliwaPanczyk2021} zbudowali trzy aplikacje o~tej samej funkcjonalności na~platformie .NET~5, udostępniające REST, GraphQL i~gRPC. Mniejsze komunikaty przesyłało gRPC, a~korzystne czasy odpowiedzi i~przepustowość w~wielu scenariuszach osiągnął REST. U~Niswara i~współautorów~\cite{bib:Niswar2024} układ ten był odwrotny: w~usługach napisanych w~języku Go, obciążanych narzędziem JMeter, przy odczytach obsługiwanych z~pamięci podręcznej Redis najkrótsze czasy odpowiedzi uzyskało gRPC. Rozmiar komunikatu nie wyznacza więc czasu operacji samodzielnie.
+Rozmiar komunikatu i czas operacji nie pozostają w omawianych badaniach w jednoznacznej zależności. Śliwa i~Pańczyk~\cite{bib:SliwaPanczyk2021} zbudowali trzy aplikacje o~tej samej funkcjonalności na~platformie .NET~5, udostępniające REST, GraphQL i~gRPC. Mniejsze komunikaty przesyłało gRPC, a~korzystne czasy odpowiedzi i~przepustowość w~wielu scenariuszach osiągnął REST. U~Niswara i~współautorów~\cite{bib:Niswar2024} układ ten był odwrotny: w~usługach napisanych w~języku Go, obciążanych narzędziem JMeter, przy odczytach obsługiwanych z~pamięci podręcznej Redis najkrótsze czasy odpowiedzi uzyskało gRPC. Rozmiar komunikatu nie wyznacza więc czasu operacji samodzielnie.
 
-Skoro kierunek relacji zmienia się między badaniami, pozostaje pytanie, czemu właściwie przypisać zmierzoną różnicę. Bolanowski i~współautorzy~\cite{bib:Bolanowski2022} oraz Kamiński i~współautorzy~\cite{bib:Kaminski2023} wiążą wyniki z~rodzajem operacji, środowiskiem uruchomieniowym i~konfiguracją transportu. W~porównaniach tego rodzaju zmieniają się równocześnie format reprezentacji, wersja HTTP, biblioteka serwerowa, a~czasem także ścieżka dostępu do~danych. Mierzony jest wówczas kompletny wariant implementacyjny wraz z~otoczeniem. Ten~sam warunek dotyczy eksperymentu opisanego w~rozdziale~\ref{cha:AnalizaWydajnosci}, gdzie porównaniu podlegają trzy pełne konfiguracje komunikacyjne.
+Skoro kierunek relacji zmienia się między badaniami, pozostaje pytanie, czemu właściwie przypisać zmierzoną różnicę. Bolanowski i~współautorzy~\cite{bib:Bolanowski2022} oraz Kamiński i~współautorzy~\cite{bib:Kaminski2023} wiążą wyniki z~rodzajem operacji, środowiskiem uruchomieniowym i~konfiguracją transportu. W~porównaniach tego rodzaju zmieniają się równocześnie format reprezentacji, wersja HTTP, biblioteka serwerowa, a~czasem także ścieżka dostępu do~danych. Mierzony jest wówczas kompletny wariant implementacyjny wraz z~otoczeniem.
 
 Osobną kwestią jest to, gdzie kończy się pomiar. Zarówno Śliwa i~Pańczyk, jak i~Niswar ze~współautorami rejestrowali czas obsługi wywołania po~stronie usługi, przy użyciu generatora obciążenia. Dekodowanie odpowiedzi oraz aktualizacja interfejsu pozostały poza obserwacją, a~w~aplikacji przeglądarkowej właśnie ten odcinek dopełnia czas widziany przez użytkownika.
 
@@ -32,7 +32,7 @@ Osobną kwestią jest to, gdzie kończy się pomiar. Zarówno Śliwa i~Pańczyk,
 
 GraphQL umożliwia klientowi dobór pól odpowiedzi, przez co wpływa zarówno na~objętość danych, jak i~na~liczbę żądań potrzebnych do~realizacji operacji. Optymalizacja dotyczy w~tym przypadku zakresu przesyłanych informacji, podczas gdy zastosowanie gRPC zmienia sposób kodowania tej samej treści.
 
-Brito, Mombach i~Valente~\cite{bib:Brito2019} ocenili skutki zastąpienia interfejsów REST rozwiązaniem GraphQL i~wykazali, że~ograniczenie zakresu zwracanych pól istotnie zmniejsza rozmiar odpowiedzi. Vadlamani i~współautorzy~\cite{bib:Vadlamani2021} porównali oba rozwiązania na~publicznym API GitHuba; żadne z~nich nie okazało się szybsze dla wszystkich analizowanych par zapytań. W~badaniu Jina i~współautorów~\cite{bib:Jin2025} porównywane rozwiązania wdrożono w~odmiennej infrastrukturze, wobec czego zmierzona różnica obejmuje również skutki wdrożenia. Warunkiem porównywalności pozostaje zwracanie tego~samego zakresu informacji oraz wykonywanie tej~samej logiki biznesowej.
+Brito, Mombach i~Valente~\cite{bib:Brito2019} ocenili skutki zastąpienia interfejsów REST rozwiązaniem GraphQL i~wykazali, że~ograniczenie zakresu zwracanych pól istotnie zmniejsza rozmiar odpowiedzi. Vadlamani i~współautorzy~\cite{bib:Vadlamani2021} porównali oba rozwiązania na~publicznym API GitHuba, żadne z~nich nie okazało się szybsze dla wszystkich analizowanych par zapytań. W~badaniu Jina i~współautorów~\cite{bib:Jin2025} porównywane rozwiązania wdrożono w~odmiennej infrastrukturze, wobec czego zmierzona różnica obejmuje również skutki wdrożenia. Warunkiem porównywalności pozostaje zwracanie tego~samego zakresu informacji oraz wykonywanie tej~samej logiki biznesowej.
 
 Wartości procentowych podawanych w~poszczególnych publikacjach nie zestawiano ze~sobą liczbowo. Tabela~\ref{tab:StanBadan} porządkuje te~cechy omówionych prac, które decydują o~możliwości odniesienia ich wyników do~aplikacji przeglądarkowej.
 
@@ -69,5 +69,3 @@ Jin i~in.~\cite{bib:Jin2025} & REST i~GraphQL & Odmienna infrastruktura wdrożen
 % -----------------------------------------------------------------------
 
 Natywne gRPC oraz gRPC-Web wymagają odmiennego sposobu realizacji komunikacji, dlatego z~perspektywy aplikacji przeglądarkowej pozostają rozwiązaniami rozłącznymi~\cite{bib:gRPCWeb,bib:ProtocolWeb}. Sam REST dopuszcza z~kolei różne wersje protokołu HTTP, a~jednoczesna zmiana formatu danych, wersji HTTP, obecności TLS i~serwera pośredniczącego prowadzi do~porównania całych ścieżek komunikacji. Mniejszy rozmiar odpowiedzi pomaga wyjaśnić zaobserwowaną różnicę czasu, choć oszacowanie udziału poszczególnych czynników wymaga odrębnego układu eksperymentalnego.
-
-Omówione prace obejmują REST, gRPC i~GraphQL mierzone po~stronie usługi. Poza ich zakresem pozostaje gRPC-Web w~dwóch wariantach obsługi, przez serwer pośredniczący Envoy oraz bezpośrednio w~ASP.NET Core, a~także pomiar domykany aktualizacją drzewa dokumentu. Taki właśnie układ jest przedmiotem eksperymentu opisanego w~rozdziałach~\ref{cha:MetodologiaBadan} i~\ref{cha:AnalizaWydajnosci}: trzy konfiguracje komunikacyjne, jedna aplikacja kliencka, kontrolowany rozmiar odpowiedzi oraz rozróżnienie ścieżek dostępu do~danych. Uzyskane wyniki zestawiono z~omówionymi tu~pracami w~sekcji~\ref{sec:ZestawienieZBadaniami}. GraphQL potraktowano jako alternatywny sposób doboru danych i~pozostawiono poza zakresem eksperymentu, ponieważ dobór pól przez klienta zmieniałby objętość odpowiedzi niezależnie od~sposobu jej kodowania.

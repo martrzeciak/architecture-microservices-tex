@@ -31,7 +31,7 @@ Fielding zdefiniował sześć podstawowych ograniczeń stylu REST: architekturę
 
 Styl REST nie jest powiązany z~konkretną wersją protokołu HTTP: te~same punkty końcowe mogą być udostępniane po~HTTP/1.1 oraz po~HTTP/2. Wersja protokołu stanowi więc zmienną niezależną od~formatu danych: porównanie REST z~gRPC obejmuje oba te~wymiary równocześnie, o~ile nie zostaną rozdzielone w~projekcie eksperymentu. W~systemie zrealizowanym na~potrzeby pracy ścieżka REST działa po~HTTP/1.1.
 
-W~środowisku .NET interfejsy REST API mogą być implementowane za~pomocą platformy ASP.NET Core. Framework udostępnia model \textit{Minimal API}~\cite{bib:MinimalApi}, umożliwiający definiowanie punktów końcowych bez konieczności stosowania kontrolerów. Listing~\ref{lst:RESTMinimal} przedstawia przykładową implementację asynchronicznego pobierania rekordu, odpowiadającą rozwiązaniu przyjętemu w~usłudze katalogu produktów opisanej w~rozdziale~\ref{cha:StudiumPrzypadku}.
+W~środowisku .NET interfejsy REST API mogą być implementowane za~pomocą platformy ASP.NET Core. Framework udostępnia model \textit{Minimal API}~\cite{bib:MinimalApi}, umożliwiający definiowanie punktów końcowych bez konieczności stosowania kontrolerów. Listing~\ref{lst:RESTMinimal} przedstawia przykładową implementację asynchronicznego pobierania rekordu.
 
 \begin{lstlisting}[language={[Sharp]C}, caption={Definicja punktu końcowego REST z~wykorzystaniem Minimal API w~.NET~10}, label=lst:RESTMinimal]
 app.MapGet("/api/products/{id}", async (ProductDbContext db, string id) =>

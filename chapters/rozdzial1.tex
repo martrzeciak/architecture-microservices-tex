@@ -36,7 +36,7 @@ Podejście mikroserwisowe ogranicza te niedogodności poprzez dekompozycję na~n
 \begin{table}[htb]
 \centering
 \footnotesize
-\caption{Porównanie architektury monolitycznej i~mikroserwisowej; opracowanie własne na~podstawie~\cite{bib:Newman2021, bib:Richardson2018}}
+\caption{Porównanie architektury monolitycznej i~mikroserwisowej, opracowanie własne na~podstawie~\cite{bib:Newman2021, bib:Richardson2018}}
 \label{tab:MonolitMikroserwisy}
 \begin{tabular}{|p{3.1cm}|p{5.0cm}|p{5.0cm}|}
 
@@ -107,8 +107,7 @@ Dekompozycja przenosi część kosztu wykonania z~wywołań wewnątrzprocesowych
 
 Platforma .NET przeszła drogę od~związanego z~systemem Windows .NET Framework, przez wieloplatformowy .NET Core, do~wydań zunifikowanych, przystosowanych do~uruchamiania w~kontenerach~\cite{bib:MicrosoftDocs2024}. Podstawę implementacyjną pracy stanowi .NET~10, edycja objęta długim okresem wsparcia, udostępniona w~listopadzie 2025~roku~\cite{bib:DotNetSupport}. Wersja ta rozwija kompilację statyczną \textit{Native AOT}~\cite{bib:NativeAOT}, skracającą czas uruchomienia procesu i~zmniejszającą rozmiar obrazu kontenera.
 
+\enlargethispage{3\baselineskip}
 \begin{sloppypar}
-Usługi zrealizowane na~potrzeby pracy opierają się na~frameworku ASP.NET Core, w~którym obsługę żądań zapewnia serwer Kestrel, definiowanie punktów końcowych model Minimal API, a~modyfikowanie ścieżki przetwarzania żądania oprogramowanie pośredniczące (\textit{middleware})~\cite{bib:MicrosoftDocs2024}. Za~wyborem tego frameworka przemawiają wyniki testów TechEmpower, w~których wpisy platformowe korzystające z~serwera Kestrel zajmują wysokie pozycje w~scenariuszu \textit{Fortunes}~\cite{bib:TechEmpower}, oraz dostępność bibliotek wymaganych przez eksperyment: \texttt{Grpc.AspNetCore} z~obsługą gRPC i~gRPC-Web~\cite{bib:GrpcWebAspNet} oraz Entity Framework Core w~roli warstwy mapowania obiektowo-relacyjnego.
+Usługi zrealizowane na~potrzeby pracy opierają się na~frameworku ASP.NET Core, w~którym obsługę żądań zapewnia serwer Kestrel, definiowanie punktów końcowych model Minimal API, a~modyfikowanie ścieżki przetwarzania żądania oprogramowanie pośredniczące (\textit{middleware})~\cite{bib:MicrosoftDocs2024}. Za~wyborem tego frameworka przemawiają wyniki testów TechEmpower, w~których wpisy platformowe korzystające z~serwera Kestrel zajmują wysokie pozycje w~scenariuszu \textit{Fortunes}~\cite{bib:TechEmpower} oraz dostępność bibliotek wymaganych przez eksperyment: \texttt{Grpc.AspNetCore} z~obsługą gRPC i~gRPC-Web~\cite{bib:GrpcWebAspNet} oraz Entity Framework Core w~roli warstwy mapowania obiektowo-relacyjnego.
 \end{sloppypar}
-
-Wymienione biblioteki wyznaczają zakres mechanizmów komunikacji dostępnych dla usług .NET. Ich charakterystykę oraz właściwości protokołów wykorzystanych w~eksperymencie omówiono w~rozdziale kolejnym.

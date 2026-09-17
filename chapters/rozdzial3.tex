@@ -4,7 +4,7 @@
 
 \label{cha:gRPCWeb}
 
-Aplikacja działająca w~przeglądarce nie może posłużyć się natywnym gRPC, choć po~stronie usług protokół ten jest w~ekosystemie .NET dostępny bez ograniczeń (rozdział~\ref{cha:MechanizmyKomunikacji}). Przyczyna leży w~sposobie, w~jaki przeglądarka udostępnia aplikacjom warstwę sieciową: część mechanizmów HTTP/2 wykorzystywanych przez gRPC pozostaje poza zasięgiem kodu wykonywanego na~stronie.
+Aplikacja działająca w~przeglądarce nie może posłużyć się natywnym gRPC, choć po~stronie usług protokół ten jest w~ekosystemie .NET dostępny bez ograniczeń. Przyczyna leży w~sposobie, w~jaki przeglądarka udostępnia aplikacjom warstwę sieciową: część mechanizmów HTTP/2 wykorzystywanych przez gRPC pozostaje poza zasięgiem kodu wykonywanego na~stronie.
 
 W~konsekwencji opracowano mechanizm gRPC-Web, umożliwiający aplikacjom uruchamianym w~przeglądarce komunikację z~usługami wykorzystującymi gRPC. W~zależności od~zastosowanej implementacji komunikacja ta~może być realizowana za~pośrednictwem serwera pośredniczącego lub bezpośrednio przez warstwę obsługującą gRPC-Web po~stronie usługi. Oba sposoby stanowią warianty porównywane w~eksperymencie, dlatego w~rozdziale omówiono kolejno przyczyny ograniczeń przeglądarki, sposób ramkowania komunikatów w~gRPC-Web oraz realizację klienta w~aplikacji frontendowej.
 
@@ -80,9 +80,9 @@ Zestawienie wyznacza zakres porównań możliwych na~granicy przeglądarki. Naty
 
 Istotną różnicą pomiędzy natywnym gRPC a~gRPC-Web jest sposób przekazywania informacji o~statusie wywołania. W~natywnym gRPC informacje te~są~przekazywane w~nagłówkach końcowych HTTP/2. W~gRPC-Web zostały one umieszczone w~specjalnej ramce znajdującej się wewnątrz ciała odpowiedzi HTTP. Zgodnie ze~specyfikacją gRPC-Web ramka końcowa jest poprzedzona bajtem flagi o~wartości \texttt{0x80}, a~ramki zawierające właściwe komunikaty oznaczane są~wartością \texttt{0x00}~\cite{bib:ProtocolWeb}.
 
-Takie rozwiązanie pozwala na~przesyłanie komunikatów gRPC z~wykorzystaniem mechanizmów dostępnych dla aplikacji przeglądarkowych. Warstwa gRPC-Web może być obsługiwana bezpośrednio przez serwer aplikacyjny albo przez dedykowany serwer pośredniczący. Oba warianty zaimplementowano w~systemie badanym w~niniejszej pracy, a~ich zestawienie pomiarowe przedstawiono w~rozdziałach~\ref{cha:MetodologiaBadan} i~\ref{cha:AnalizaWydajnosci}.
+Takie rozwiązanie pozwala na~przesyłanie komunikatów gRPC z~wykorzystaniem mechanizmów dostępnych dla aplikacji przeglądarkowych. Warstwa gRPC-Web może być obsługiwana bezpośrednio przez serwer aplikacyjny albo przez dedykowany serwer pośredniczący.
 
-Warianty różnią się nie tylko liczbą komponentów na~ścieżce żądania, lecz także warstwą transportową po~stronie przeglądarki. W~wariancie z~serwerem pośredniczącym Envoy, wyposażonym w~filtr \texttt{grpc\_web}, przeglądarka wysyła ramki gRPC-Web po~HTTP/1.1, a~translację na~natywne gRPC po~HTTP/2 wykonuje proxy. W~wariancie \textit{Direct} obsługę gRPC-Web realizuje bezpośrednio aplikacja ASP.NET Core, a~połączenie zestawiane jest po~HTTP/2 w~ramach sesji TLS. Różnica dotyczy równocześnie obecności proxy oraz wersji protokołu HTTP, co~należy uwzględniać przy interpretacji zmierzonych czasów. Rolę serwera pośredniczącego w~architekturze badanego systemu oraz koszt dodatkowego przeskoku sieciowego omówiono w~rozdziale~\ref{cha:WzorceProjektowe}.
+Warianty różnią się nie tylko liczbą komponentów na~ścieżce żądania, lecz także warstwą transportową po~stronie przeglądarki. W~wariancie z~serwerem pośredniczącym Envoy, wyposażonym w~filtr \texttt{grpc\_web}, przeglądarka wysyła ramki gRPC-Web po~HTTP/1.1, a~translację na~natywne gRPC po~HTTP/2 wykonuje proxy. W~wariancie \textit{Direct} obsługę gRPC-Web realizuje bezpośrednio aplikacja ASP.NET Core, a~połączenie zestawiane jest po~HTTP/2 w~ramach sesji TLS. Różnica dotyczy równocześnie obecności proxy oraz wersji protokołu HTTP, co~należy uwzględniać przy interpretacji zmierzonych czasów.
 
 % -----------------------------------------------------------------------
 

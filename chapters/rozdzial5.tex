@@ -20,7 +20,7 @@ Dzięki takiemu rozproszeniu pomiar obejmuje kompletną ścieżkę przetwarzania
 \subsection{Warstwa prezentacji}
 \label{subsec:WarstwaPrezentacji}
 
-Warstwę prezentacji stanowi aplikacja we~frameworku Angular~20, uruchamiana na~węźle pomiarowym. Ta~sama aplikacja obsługuje wszystkie trzy badane ścieżki komunikacji, dzięki czemu komponenty odpowiedzialne za~prezentację danych i~sposób aktualizacji widoku pozostają niezmienne pomiędzy badanymi wariantami. Klienta gRPC-Web dla obu wariantów opisano w~rozdziale~\ref{cha:gRPCWeb}; sposób sterowania scenariuszem oraz pomiar czasu wykonywany wewnątrz strony omówiono w~rozdziale~\ref{cha:MetodologiaBadan}.
+Warstwę prezentacji stanowi aplikacja we~frameworku Angular~20, uruchamiana na~węźle pomiarowym. Ta~sama aplikacja obsługuje wszystkie trzy badane ścieżki komunikacji, dzięki czemu komponenty odpowiedzialne za~prezentację danych i~sposób aktualizacji widoku pozostają niezmienne pomiędzy badanymi wariantami.
 
 \subsection{Warstwa usług biznesowych}
 \label{subsec:WarstwaBiznesowa}
@@ -35,7 +35,7 @@ System realizuje podział na~dwa mikroserwisy zgodnie z~zasadą \textit{Bounded 
 
 Każdy mikroserwis jest autonomiczną jednostką wdrożeniową z~własnym obrazem kontenera, konfiguracją połączeń oraz migracjami bazy danych realizowanymi w~podejściu Code-First.
 
-Pomiędzy obiema usługami nie występują ani synchroniczne wywołania, ani wymiana komunikatów. Przedmiotem pomiaru jest komunikacja na~granicy klient--usługa, natomiast orkiestracja procesu obejmującego wiele usług pozostaje poza zakresem badania. Wprowadzenie zależności międzyusługowej wnosiłoby do~pomiarów opóźnienie drugiej usługi, utrudniając izolację narzutu samego protokołu. Oba komponenty pozostają dzięki temu w~pełni niezależne wdrożeniowo.
+Pomiędzy obiema usługami nie występują ani synchroniczne wywołania, ani wymiana komunikatów. Przedmiotem pomiaru jest komunikacja na~granicy klient--usługa, natomiast orkiestracja procesu obejmującego wiele usług pozostaje poza zakresem badania. Wprowadzenie zależności międzyusługowej wnosiłoby do~pomiarów opóźnienie drugiej usługi, utrudniając izolację narzutu samego protokołu.
 
 \subsection{Podejście Contract-First}
 \label{subsec:ContractFirst}
@@ -47,14 +47,12 @@ Kontrakty usług gRPC definiowane są~w~plikach Protocol Buffers, które stanowi
 
 Każda usługa udostępnia tę~samą logikę biznesową przez trzy niezależne punkty nasłuchu serwera Kestrel. W~usłudze \texttt{ProductService} port 5000 obsługuje REST po~HTTP/1.1, port 5001 natywne gRPC po~HTTP/2 bez szyfrowania, a~port 5002 gRPC-Web w~ramach sesji TLS, z~negocjacją HTTP/1.1 albo HTTP/2. Usługa \texttt{OrderService} korzysta z~analogicznego układu na~portach od~5003 do~5005. Ruch gRPC-Web kierowany przez Envoy trafia na~port nasłuchu serwera pośredniczącego, skąd po~translacji wędruje do~portu natywnego gRPC danej usługi.
 
-Wszystkie porównywane warianty komunikacji obsługuje ten~sam proces, na~tych~samych danych i~przy tej~samej implementacji logiki biznesowej. W~rozdziale~\ref{cha:MetodologiaBadan} zestawiono wersje protokołu zweryfikowane pomiarowo dla każdej z~trzech ścieżek.
-
 \subsection{Implementacja pamięci podręcznej}
 \label{subsec:PamiecPodreczna}
 
 Odczyt katalogu produktów obsługiwany jest zgodnie ze~wzorcem Cache-Aside, omówionym w~rozdziale~\ref{cha:WzorceProjektowe}. Rolę magazynu podręcznego pełni Redis, a~klucz wpisu tworzony jest z~identyfikatora kategorii, numeru strony oraz liczby rekordów na~stronie. Wpisy wygasają po~upływie pięciu minut od~zapisu.
 
-Każdy protokół korzysta z~odrębnej przestrzeni kluczy, ponieważ przechowywana reprezentacja odpowiada formatowi odpowiedzi: ścieżka REST zapisuje dokument JSON, a~ścieżka gRPC bajty komunikatu Protocol Buffers. Przy trafieniu ścieżka REST zwraca zapisany dokument bez ponownego przetwarzania, a~ścieżka gRPC odtwarza komunikat z~bajtów i~serializuje go~do~odpowiedzi. Asymetria ta~obciąża wariant binarny w~scenariuszach z~wypełnionym buforem, dlatego uwzględniono ją~w~omówieniu ograniczeń w~rozdziale~\ref{cha:MetodologiaBadan}, a~scenariusz Echo pozostawiono jako punkt odniesienia pozbawiony udziału pamięci podręcznej.
+Każdy protokół korzysta z~odrębnej przestrzeni kluczy, ponieważ przechowywana reprezentacja odpowiada formatowi odpowiedzi: ścieżka REST zapisuje dokument JSON, a~ścieżka gRPC bajty komunikatu Protocol Buffers. Przy trafieniu ścieżka REST zwraca zapisany dokument bez ponownego przetwarzania, a~ścieżka gRPC odtwarza komunikat z~bajtów i~serializuje go~do~odpowiedzi. Asymetria ta~obciąża wariant binarny w~scenariuszach z~wypełnionym buforem.
 
 Pominięcie bufora wymuszane jest nagłówkiem żądania \texttt{X-Bypass-Cache}, przekazywanym w~ścieżce gRPC jako metadana wywołania. Punkt końcowy wykonuje wtedy zapytanie do~relacyjnej bazy danych, pozostawiając niezmienioną logikę odpowiedzi, co~pozwala mierzyć ten~sam scenariusz w~dwóch stanach pamięci podręcznej.
 
@@ -93,7 +91,7 @@ System testowy wdrożono w~publicznej chmurze obliczeniowej, w~modelu infrastruk
 \subsection{Uzasadnienie przyjętego modelu wdrożenia}
 \label{subsec:ModelWdrozenia}
 
-Wszystkie komponenty systemu uruchomiono jako kontenery na~pojedynczej instancji maszyny wirtualnej, zarządzane narzędziem Docker Compose w~konfiguracji przedstawionej w~tabeli~\ref{tab:DockerServices}. Rozwiązanie alternatywne, to~jest wdrożenie w~klastrze zarządzanym platformą Kubernetes wraz z~automatycznym skalowaniem poziomym odrzucono ze~względu na~wymagania pomiarowe.
+Wszystkie komponenty systemu uruchomiono jako kontenery na~pojedynczej instancji maszyny wirtualnej, zarządzane narzędziem Docker Compose w~konfiguracji przedstawionej w~tabeli~\ref{tab:DockerServices}. Rozwiązanie alternatywne, to~wdrożenie w~klastrze zarządzanym platformą Kubernetes wraz z~automatycznym skalowaniem poziomym odrzucono ze~względu na~wymagania pomiarowe.
 
 Mechanizmy automatycznego skalowania oraz ponownego rozmieszczania kontenerów zmieniają liczbę i~lokalizację instancji w~czasie działania systemu. Stała topologia zapewniała powtarzalne warunki pomiaru. Badanie dotyczyło komunikacji, dlatego nie obejmowało wpływu platformy orkiestracji.
 
@@ -111,8 +109,7 @@ Warstwa obserwowalności opiera się na~metrykach, zbieranych zgodnie ze~standar
 
 Pulpity Grafany wdrażane są~wraz z~całym stosem, w~postaci definicji przechowywanych w~repozytorium i~wczytywanych przy starcie kontenera. Dzięki temu warstwa wizualizacji odtwarzana jest automatycznie na~każdym środowisku, bez ręcznej konfiguracji. Pierwszy z~pulpitów (rysunek~\ref{fig:GrafanaHttp}) obejmuje charakterystykę warstwy HTTP obu mikroserwisów: liczbę żądań na~sekundę oraz percentyle czasu obsługi żądania mierzone po~stronie serwera. Drugi (rysunek~\ref{fig:GrafanaRuntime}) przedstawia rozbicie liczby żądań na~poszczególne trasy oraz metryki środowiska uruchomieniowego .NET: wolumen alokacji pamięci i~częstość usuwania zbędnych obiektów z~pamięci aplikacji.
 
-Przebiegi widoczne na~obu pulpitach zarejestrowano podczas obciążeniowej weryfikacji stosu monitorowania, poza właściwą macierzą badawczą, wobec czego ilustrują działanie tej warstwy i~pozostają poza zbiorem wyników eksperymentu.
-
+Przebiegi widoczne na~obu pulpitach zarejestrowano podczas obciążeniowej weryfikacji stosu monitorowania poza właściwą macierzą badawczą.
 \begin{figure}[p]
 \centering
 \includegraphics[height=0.86\textheight,keepaspectratio]{figures/grafana-1.png}

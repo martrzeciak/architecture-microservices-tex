@@ -4,7 +4,7 @@
 
 Podział aplikacji internetowej na~niezależnie wdrażane usługi przenosi część wywołań z~wnętrza procesu do~sieci. W~architekturze mikroserwisowej poszczególne funkcjonalności realizowane są~przez odrębne usługi, wobec czego wymiana danych pomiędzy usługami oraz pomiędzy warstwą usług a~aplikacją kliencką wchodzi w~skład ścieżki wykonania każdej operacji. Wybór protokołu komunikacji staje się w~tych warunkach decyzją projektową o~wymiernych skutkach wydajnościowych.
 
-W~komunikacji z~aplikacjami internetowymi szeroko stosowanym rozwiązaniem jest styl architektoniczny REST, którego założenia opisał Roy Fielding~\cite{bib:Fielding2000}. Dane są~w~nim zwykle przesyłane w~formacie JSON. Alternatywę stanowi gRPC, wykorzystujące binarny format Protocol Buffers oraz protokół HTTP/2~\cite{bib:gRPCDocs}. Rozwiązanie to zaprojektowano z~myślą o~wydajnej komunikacji pomiędzy usługami, a~badania porównawcze wskazują na~korzyści w~zakresie rozmiaru przesyłanych danych i~czasu odpowiedzi~\cite{bib:Niswar2024}. Wyniki dotychczasowych prac są~jednak zróżnicowane i~zależą od~warunków pomiaru, co~omówiono w~rozdziale~\ref{cha:StanBadan}.
+W~komunikacji z~aplikacjami internetowymi szeroko stosowanym rozwiązaniem jest styl architektoniczny REST, którego założenia opisał Roy Fielding~\cite{bib:Fielding2000}. Dane są~w~nim zwykle przesyłane w~formacie JSON. Alternatywę stanowi gRPC, wykorzystujące binarny format Protocol Buffers oraz protokół HTTP/2~\cite{bib:gRPCDocs}. Rozwiązanie to zaprojektowano z~myślą o~wydajnej komunikacji pomiędzy usługami, a~badania porównawcze wskazują na~korzyści w~zakresie rozmiaru przesyłanych danych i~czasu odpowiedzi~\cite{bib:Niswar2024}.
 
 Natywne gRPC pozostaje niedostępne dla kodu wykonywanego w~przeglądarce, ponieważ jej interfejsy programistyczne nie zapewniają dostępu do~nagłówków końcowych odpowiedzi HTTP/2, którymi protokół ten przekazuje status wywołania. Zastosowanie mechanizmów gRPC w~aplikacji przeglądarkowej umożliwia wariant gRPC-Web~\cite{bib:gRPCWeb}. Jego obsługę realizuje się przez serwer pośredniczący, na~przykład Envoy Proxy~\cite{bib:EnvoyProxy}, albo bezpośrednio w~serwerze aplikacyjnym, jak w~przypadku oprogramowania pośredniczącego ASP.NET Core~\cite{bib:GrpcWebAspNet}. Każdy z~tych wariantów wprowadza odmienną liczbę warstw przetwarzania na~ścieżce żądania, a~ich wpływ na~czas obsługi operacji pozostaje kwestią otwartą.
 
@@ -13,26 +13,35 @@ Wynik pomiaru zależy także od~warunków, w~jakich wykonywane są~żądania: ro
 \section{Cel pracy}
 \label{sec:CelPracy}
 
-Celem pracy jest zaprojektowanie, implementacja oraz eksperymentalna walidacja systemu mikroserwisowego w~ekosystemie .NET~10, umożliwiającego porównawczą analizę wydajności protokołów komunikacji na~granicy pomiędzy aplikacją przeglądarkową a~warstwą usług. Realizacja celu obejmuje sprawdzenie, w~jakich warunkach korzyści obserwowane w~pomiarach interfejsów programistycznych przekładają się na~czas obsługi operacji uwzględniający przetwarzanie odpowiedzi przez aplikację kliencką.
+Celem pracy jest zaprojektowanie, implementacja oraz eksperymentalna walidacja systemu mikroserwisowego w~ekosystemie .NET~10, umożliwiającego porównawczą analizę wydajności mechanizmów komunikacji na~granicy pomiędzy aplikacją przeglądarkową a~warstwą usług. Realizacja celu obejmuje określenie, w~jakich warunkach korzyści obserwowane w~pomiarach interfejsów programistycznych przekładają się na~czas obsługi operacji uwzględniający przetwarzanie odpowiedzi przez aplikację kliencką.
 
-Problem badawczy wynika z~odmienności warunków, w~jakich pracuje natywne gRPC, oraz warunków komunikacji aplikacji przeglądarkowej. W~przeglądarce stosowany jest wariant gRPC-Web, którego obsługa wymaga warstwy pośredniczącej albo bezpośredniego wsparcia po~stronie serwera. Na~czas operacji odczuwany przez użytkownika wpływa przy tym cały ciąg zdarzeń: transmisja danych, dostęp do~danych po~stronie usługi, praca aplikacji klienckiej oraz warunki sieciowe. Ocena ścieżki przeglądarka--backend wymaga zatem pomiaru obejmującego wszystkie te~składniki, szerszego niż czas odpowiedzi interfejsu programistycznego lub rozmiar komunikatu.
-
-\begin{sloppypar}
-Dla osiągnięcia celu zaprojektowano trzy scenariusze testowe: Echo, służący ocenie narzutu komunikacji przy deterministycznej odpowiedzi, Products, obejmujący odczyt katalogu z~ciepłą i~zimną pamięcią podręczną, oraz Orders, odzwierciedlający operację zapisu. W~każdym scenariuszu porównano REST oraz dwa warianty gRPC-Web: ścieżkę przez Envoy Proxy i~obsługę bezpośrednio w~ASP.NET Core.
-\end{sloppypar}
-
-Zmiennymi kontrolowanymi w~eksperymencie były rozmiar ładunku, liczba równoległych klientów oraz stan pamięci podręcznej. Mierzono czas od~interakcji użytkownika do~aktualizacji drzewa dokumentu oraz wolumen odpowiedzi, a~uzyskane wyniki odniesiono do~pięciu hipotez badawczych weryfikowanych w~rozdziale~\ref{cha:AnalizaWydajnosci}. Tak określony zakres pozwala opisać zachowanie badanych rozwiązań w~konkretnych konfiguracjach systemu, w~granicach wyznaczonych przez przyjęte warunki pomiaru.
-
-Pomiar czasu kończy się w~chwili naniesienia otrzymanej odpowiedzi na~drzewo dokumentu, obejmuje więc również przetwarzanie odpowiedzi w~aplikacji klienckiej, lecz zamyka się przed wyświetleniem kolejnej klatki na~ekranie. Granica ta~ma znaczenie przy porównywaniu wyników z~badaniami wykorzystującymi generatory żądań, w~których pomiar kończy się na~odpowiedzi serwera.
-
-Zakres eksperymentu ograniczono do~odczytów i~zapisów o~ustalonej semantyce danych. Poza porównaniem pozostawiono natywne gRPC, niedostępne dla aplikacji przeglądarkowej, oraz GraphQL, w~którym dobór pól przez klienta zmieniałby zakres przetwarzanych danych i~wymagał odrębnego projektu scenariuszy.
+Problem badawczy wynika z~odmienności warunków, w~jakich pracuje natywne gRPC oraz warunków komunikacji aplikacji przeglądarkowej. W~przeglądarce stosowany jest wariant gRPC-Web, którego obsługa wymaga warstwy pośredniczącej albo bezpośredniego wsparcia po~stronie serwera. Na~czas obsługi operacji wpływają przy tym transmisja danych, dostęp do~danych po~stronie usługi, przetwarzanie odpowiedzi w~aplikacji klienckiej oraz warunki sieciowe. Celem eksperymentu jest zatem porównanie badanych wariantów komunikacji w~warunkach obejmujących całą analizowaną ścieżkę przeglądarka--backend--przeglądarka oraz określenie wpływu rozmiaru odpowiedzi, rodzaju operacji i~konfiguracji komunikacyjnej na~uzyskiwany czas odpowiedzi.
 
 \section{Zakres pracy}
 \label{sec:ZakresPracy}
 
-Zakres pracy obejmuje architekturę mikroserwisową w~ekosystemie .NET~10 oraz technologie wykorzystane do~realizacji i~porównania komunikacji pomiędzy aplikacją przeglądarkową a~usługami: REST, gRPC-Web, Protocol Buffers, ASP.NET Core, Angular, Envoy Proxy, PostgreSQL, Redis, Prometheus, Grafana oraz Docker Compose, a~także narzędzia pomiarowe Playwright i~przeglądarkę Chromium.
+Zakres pracy obejmuje zagadnienia związane z~architekturą mikroserwisową
+w~ekosystemie .NET~10 oraz komunikacją pomiędzy aplikacją przeglądarkową
+a~warstwą usług. Szczególną uwagę poświęcono porównaniu REST i~gRPC-Web,
+z~uwzględnieniem dwóch sposobów obsługi gRPC-Web: za~pośrednictwem serwera
+Envoy Proxy oraz bezpośrednio przez ASP.NET Core.
 
-Metodyka badawcza polega na~zaprojektowaniu autorskiego systemu oraz przeprowadzeniu powtarzalnych pomiarów typu \textit{end-to-end} w~rzeczywistej przeglądarce, porównujących REST i~warianty gRPC-Web przy kontrolowanej zmianie rozmiaru ładunku, stanu pamięci podręcznej, liczby równoległych klientów i~scenariusza operacji.
+W~ramach pracy zaprojektowano i~zaimplementowano system mikroserwisowy
+wykorzystujący między innymi ASP.NET Core, Angular, Protocol Buffers,
+PostgreSQL i~Redis. Środowisko uzupełniono o~mechanizmy obserwowalności
+oparte na~Prometheus i~Grafana oraz uruchomiono z~wykorzystaniem Docker
+Compose. Do~automatyzacji eksperymentów wykorzystano Playwright
+i~przeglądarkę Chromium.
+
+Część badawcza obejmuje porównanie badanych wariantów komunikacji dla
+różnych rozmiarów przesyłanych danych, poziomów współbieżności oraz stanów
+pamięci podręcznej. Analizowane są scenariusze odczytu i~zapisu, a~pomiar
+obejmuje również przetwarzanie odpowiedzi po~stronie aplikacji klienckiej.
+
+Poza zakresem eksperymentu pozostawiono natywne gRPC, które nie jest
+bezpośrednio dostępne dla aplikacji działających w~przeglądarce oraz
+GraphQL, którego sposób doboru zwracanych danych wymagałby odrębnego
+projektu scenariuszy badawczych.
 
 \section{Struktura pracy}
 \label{sec:StrukturaPracy}

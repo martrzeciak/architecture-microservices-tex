@@ -18,7 +18,7 @@ W~ramach niniejszej pracy:
 Pomiary prowadzą do~następujących wniosków:
 
 \begin{enumerate}
-\item Warianty gRPC-Web skracają czas odpowiedzi o~26--43\% względem REST dla dużych, nieskompresowanych odpowiedzi. Efekt pojawiał się po~przekroczeniu zaobserwowanego w~badanym środowisku progu około 64~KiB. Poniżej tego progu różnice wynosiły od~jednego do~szesnastu procent, przy wartościach bezwzględnych od~jednej do~pięciu milisekund.
+\item Warianty gRPC-Web skracają czas odpowiedzi o~26--43\% względem REST dla dużych, nieskompresowanych odpowiedzi. Efekt pojawiał się po~przekroczeniu zaobserwowanego w~badanym środowisku progu około 64~KiB. Poniżej tego progu różnice wynosiły od~jednego do~szesnastu procent, przy wartościach bezwzględnych rzędu kilku milisekund.
 
 \item W~analizie objętościowej gzip zmniejszył dokument JSON dwunasto- do~trzynastokrotnie, a~wiadomość binarną około dziesięciokrotnie. Przewaga objętościowa formatu binarnego spadła z~33\% do~15--18\%, a~skompresowane ładunki nie przekroczyły progu 64~KiB. Czasu odpowiedzi z~włączoną kompresją nie mierzono.
 
@@ -28,7 +28,7 @@ Pomiary prowadzą do~następujących wniosków:
 
 \item Serializacja Protocol Buffers redukuje wolumen przesyłanych danych o~33--43\%, w~zależności od~kształtu komunikatu. Współczynnik ten pozostawał stały niezależnie od~warunków sieciowych oraz poziomu obciążenia, ponieważ wynika z~samego sposobu kodowania komunikatu. Zmienia go~jedynie kompresja treści, której wpływ opisano w~analizie objętościowej.
 
-\item Przewaga protokołów binarnych wyraża się liczbą zaoszczędzonych obiegów pakietu, przez co skaluje się z~opóźnieniem sieci; szybkość serwera pozostaje wobec tego czynnikiem drugorzędnym. W~komunikacji przez łącze rozległe o~opóźnieniu 26~ms jest znacząca. Model wskazuje, że~skala tej korzyści maleje wraz z~opóźnieniem łącza, co~nie zostało zweryfikowane empirycznie.
+\item Przewaga protokołów binarnych w~modelu wynika z~liczby zaoszczędzonych obiegów pakietu, dlatego jej skala zależy od~opóźnienia sieci. W~komunikacji przez łącze rozległe o~opóźnieniu 26~ms jest znacząca. Model wskazuje, że~skala tej korzyści maleje wraz ze~zmniejszaniem opóźnienia łącza, co~nie zostało zweryfikowane empirycznie.
 
 \item W~operacjach zapisu nie wykryto stałej przewagi jednego wariantu. Dla dziesięciu i~pięćdziesięciu pozycji zamówienia mediany wynosiły 83,5--165,8~ms. Przedziały ufności dla różnic REST--Direct obejmowały zero przy zmienności ścieżki zapisu sięgającej czterdziestu procent.
 
@@ -39,7 +39,7 @@ Pomiary prowadzą do~następujących wniosków:
 \item Przepustowość obu wariantów gRPC-Web osiągała maksimum przy trzydziestu równoległych klientach, a~w~ścieżce REST rosła w~tym zakresie wolniej, przy czym opóźnienie narastało monotonicznie do~140~ms. Zbliżony pułap trzech wariantów stanowił przesłankę ograniczenia po~stronie stanowiska pomiarowego. Z~tego powodu główna macierz obejmowała najwyżej dwudziestu klientów.
 \end{enumerate}
 
-Zaprojektowano i~zrealizowano działający system mikroserwisowy oraz przeprowadzono na~nim zaplanowany zestaw badań. Wyniki określają relację wydajnościową badanych konfiguracji w~zależności od~rozmiaru odpowiedzi względem zaobserwowanego efektywnego progu transmisji. Wszystkie pięć hipotez skonfrontowano z~wynikami pomiarów. Hipotezy H2 i~H3 zostały potwierdzone, w~przypadku H1 doprecyzowano skokowy charakter zależności od~rozmiaru odpowiedzi, a~w~przypadku H5 wykazano niewielką i~nie zawsze statystycznie rozstrzygalną przewagę wariantu Direct. Hipoteza H4 pozostała nierozstrzygnięta: zmienność ścieżki zapisu okazała się zbyt duża, aby na~podstawie zebranych danych orzec o~równoważności protokołów w~tym scenariuszu.
+Zaprojektowano i~zrealizowano działający system mikroserwisowy oraz przeprowadzono na~nim zaplanowany zestaw badań. Wyniki określają relację wydajnościową badanych konfiguracji w~zależności od~rozmiaru odpowiedzi względem zaobserwowanego efektywnego progu transmisji. Wszystkie pięć hipotez skonfrontowano z~wynikami pomiarów. Hipoteza H2 uzyskała wsparcie w~badanych konfiguracjach. Wyniki częściowo wspierają H1, ponieważ przewaga wariantów gRPC-Web pojawia się po~przekroczeniu efektywnego progu transmisji, lecz nie rośnie monotonicznie z~rozmiarem odpowiedzi oraz H3, ponieważ przewaga wariantu przez Envoy jest wyraźna dla większych odpowiedzi, lecz nie zachodzi równie konsekwentnie dla małych ładunków. W~przypadku H5 wykazano niewielką i~nie zawsze statystycznie rozstrzygalną przewagę wariantu Direct. Hipoteza H4 pozostała nierozstrzygnięta: zmienność ścieżki zapisu okazała się zbyt duża, aby na~podstawie zebranych danych orzec o~równoważności protokołów w~tym scenariuszu.
 
 Uzyskane wyniki dotyczą badanych konfiguracji komunikacyjnych. Korzyść wariantów gRPC-Web pojawiała się wtedy, gdy mniejszy wolumen odpowiedzi ograniczał liczbę wymian pakietów potrzebnych do~jej przesłania. Przy małych ładunkach oraz w~operacjach zapisu różnice pozostawały niewielkie lub nierozstrzygnięte. Analiza objętościowa wskazuje ponadto, że~kompresja może ograniczyć przewagę wariantów binarnych, jednak czasu odpowiedzi z~włączoną kompresją nie mierzono.
 
